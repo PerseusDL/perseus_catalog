@@ -11,8 +11,8 @@ class CreateExpression < ActiveRecord::Migration
       t.string :language
       t.string :place_publ
       t.string :publisher
-      t.date :date_publ
-      t.date :date_mod
+      t.year :date_publ
+      t.year :date_mod
       t.string :edition
       t.string :phys_descr
       t.text :notes

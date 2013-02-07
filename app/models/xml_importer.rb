@@ -31,7 +31,7 @@ class XmlImporter
       if File.directory?("#{directory_path}/#{file}")  
           multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS/
       else
-        if file_type == "author" || "edtrans"
+        if file_type == ("author" or "edtrans")
           import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/
         else
           import("#{directory_path}/#{file}", file_type) if file =~ /\.xml/

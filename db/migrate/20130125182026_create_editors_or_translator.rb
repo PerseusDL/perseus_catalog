@@ -2,6 +2,7 @@ class CreateEditorsOrTranslator < ActiveRecord::Migration
   def change
     create_table :editors_or_translators do |t|
       t.string :mads_id
+      t.string :alt_id
       t.string :name, :null => false
       t.string :alt_parts
       t.string :dates

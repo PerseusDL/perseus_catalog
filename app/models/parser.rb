@@ -6,6 +6,8 @@ class Parser
   require 'editors_or_translator.rb'
   require 'work.rb'
 
+  #SOMETHING IS UP WITH THE PARSER, PERHAPS WITH MYSQL
+
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
 
   def self.mads_parse(doc, file_type)
@@ -114,7 +116,24 @@ class Parser
 
       #find the author
       auth_raw = doc.xpath("//cts:groupname", ns).inner_text
-      author = Author.find_by_name_or_alt_name(auth_raw)
+      if (auth_raw and auth_raw != "")
+        author = Author.find_by_name_or_alt_name(auth_raw)
+      else
+        #if groupname was blank (not an author) find by id
+        a_id = id.split(".")[0]
+
+        #an attempt to take into account the few that lack phi or tlg at the front
+        unless a_id =~ /[a-z]+\d+/
+          o_id = doc.xpath("atom:feed/atom:entry/atom:id").first.inner_text
+          if o_id =~ /latinLit/
+            a_id = "phi#{a_id}"
+          elsif o_id =~ /greekLit/
+            a_id = "tlg#{a_id}"
+          end
+        end
+
+        author = Author.find_by_mads_or_alt_ids(a_id)
+      end
    
       unless author
         author = Author.new
@@ -144,89 +163,113 @@ class Parser
 
       #run through the MODS records contained in the feed to create expressions and series
       doc.xpath("//mods:mods", ns).each do |mods_rec|
-
+         
         #we are organizing and identifying expressions with the cts_urns
-        raw_urn = mods_rec.xpath("mods:identifier[@type='ctsurn'", ns).inner_text
-        expression = Expressions.find_by_cts_urn(raw_urn)
+        raw_urn = mods_rec.xpath("mods:identifier[@type='ctsurn']", ns).inner_text
+        expression = Expression.find_by_cts_urn(raw_urn)
 
         unless expression
-          expression = Expressions.new
+          expression = Expression.new
+          expression.cts_urn = raw_urn
         end
-        debugger
+
         expression.work_id = work.id
-        expression.page_start = mods_rec.xpath("//extent/start", ns).inner_text
-        expression.page_end = mods_rec.xpath("//extent/end", ns).inner_text
+        expression.page_start = mods_rec.xpath("mods:extent/mods:start", ns).inner_text
+        expression.page_end = mods_rec.xpath("mods:extent/mods:end", ns).inner_text
 
         #find the uniform, abbreviated and alternative titles
         mods_rec.xpath("mods:titleInfo", ns).each do |title_node|
-          expression.title = title_node.inner_text if title_node.attribute('type').value == 'uniform'
-          expression.abbr_title = title_node.inner_text if title_node.attribute('type').value == 'abbreviated'
-          expression.alt_title = title_node.inner_text if title_node.attribute('type').value == 'alternative'
+          raw_title = title_node.inner_text.strip.gsub(/\s*\n\s*/, ", ")
+          if title_node.attribute('type')
+            expression.title = raw_title if title_node.attribute('type').value == 'uniform'
+            expression.abbr_title = raw_title if title_node.attribute('type').value == 'abbreviated'
+            expression.alt_title = raw_title if title_node.attribute('type').value == 'alternative'
+          else
+            expression.alt_title = raw_title
+          end
         end
         
         #find editors and translators
-        mods_rec.xpath("//name").each do |names|
-          raw_name = names.xpath("namePart[not(@type='date')]", ns).inner_text
-          person = EditorsOrTranslator.find_by_name_or_alt_name(raw_name)
-          unless person
-            person = EditorsOrTranslator.new
-            person.name = raw_name
-            person.dates = names.xpath("namePart[@type='date']", ns).inner_text
-            person.save
+        mods_rec.xpath(".//mods:name", ns).each do |names|
+          raw_name = names.xpath("mods:namePart[not(@type='date')]", ns).inner_text
+          role_term = names.xpath(".//mods:roleTerm", ns).inner_text
+          if role_term =~ /editor|compiler|translator/i
+            person = EditorsOrTranslator.find_by_name_or_alt_name(raw_name)
+            unless person
+              person = EditorsOrTranslator.new
+              person.name = raw_name
+              person.dates = names.xpath("mods:namePart[@type='date']", ns).inner_text
+              person.save
+            end
+
+            expression.editor_id = person.id if role_term =~ /editor|compiler/i
+            expression.translator_id = person.id if role_term =~ /translator/i
           end
-
-          role_term = names.xpath("//roleTerm", ns).inner_text
-
-          expression.editor = person.id if role_term =~ /editor|compiler/i
-          expression.translator = person.id if role_term =~ /translator/i
         end
 
-        expression.language = mods_rec.xpath("//languageTerm", ns).inner_text
-
+        expression.language = mods_rec.xpath("mods:language/mods:languageTerm", ns).inner_text
+          
         #the following group occurs in the originInfo tag
-        expression.place_publ = mods_rec.xpath("//placeTerm[@type='text']", ns).inner_text
-        expression.publisher = mods_rec.xpath("//publisher", ns).inner_text
-        expression.date_publ = mods_rec.xpath("//dateIssued", ns).inner_text
-        expression.date_mod = mods_rec.xpath("//dateModified", ns).inner_text
-        expression.edition = mods_rec.xpath("//edition", ns).inner_text
+        raw_place = []
+        mods_rec.xpath(".//mods:placeTerm[@type='text']", ns).each {|p| raw_place << p.inner_text}
+        expression.place_publ = raw_place.join("; ")
 
-        expression.phys_descr = mods_rec.xpath("//physicalDescription", ns).inner_text #will have \n, or need delimiter?
+        raw_pub =[]
+        mods_rec.xpath(".//mods:publisher", ns).each {|pu| raw_pub << pu.inner_text}
+        expression.publisher = raw_pub.join("; ")
+        
+        pub_date = mods_rec.xpath(".//mods:dateIssued", ns).inner_text.to_i
+        expression.date_publ = Date.new(pub_date).year
+        mod_date = mods_rec.xpath(".//mods:dateModified", ns).inner_text.to_i
+        expression.date_mod = Date.new(mod_date).year
+        expression.edition = mods_rec.xpath(".//mods:edition", ns).inner_text
+
+        raw_des = mods_rec.xpath(".//mods:physicalDescription", ns).inner_text
+        expression.phys_descr =  raw_des.strip.gsub(/\s*\n\s*/,'\; ')
         
         #compile all note tags
         raw_notes = []
-        mods_rec.xpath("//note", ns).each {|n| raw_notes << n}
+        mods_rec.xpath(".//mods:note", ns).each {|n| raw_notes << n.inner_text}
         expression.notes  = raw_notes.join("; ")
         
         #compile all subject tags and subtags
         raw_subjects =[]
-        mods_rec.xpath("//subject", ns).each do |s|
+        mods_rec.xpath(".//mods:subject", ns).each do |s|
           parts =[]
-          s.children.each {|s_part| parts << s_part}
+          s.children.each {|s_part| parts << s_part.inner_text.strip}
+          parts.delete("")
           raw_subjects << parts.join(", ")
         end
         expression.subjects = raw_subjects.join("; ")
 
         #compile all urls
         raw_urls = []
-        mods_rec.xpath("location/url", ns).each {|u| raw_urls << "#{u.attribute('displayLabel').value}, #{u.inner_text}"}
+        mods_rec.xpath("mods:location/mods:url", ns).each {|u| raw_urls << "#{u.attribute('displayLabel').value}, #{u.inner_text}"}
         expression.urls = raw_urls.join("; ")
 
-        mods_rec.xpath("relatedItem", ns).each do |rel_item|
+        mods_rec.xpath("mods:relatedItem", ns).each do |rel_item|
+          #debugger
           #get host work info
           if rel_item.attribute('type').value == "host"
-            expression.host_title = rel_item.xpath("titleInfo", ns).inner_text
+            raw_ht =[]
+            rel_item.xpath("mods:titleInfo", ns).children.each {|c| raw_ht << c.inner_text.strip}
+            raw_ht.delete("")
+            expression.host_title = raw_ht.join("; ")
             h_urls = []
-            rel_item.xpath("location/url", ns).each {|u| h_urls << "#{u.attribute('displayLabel').value}, #{u.inner_text}"}
+            rel_item.xpath("mods:location/mods:url", ns).each {|u| h_urls << "#{u.attribute('displayLabel').value}, #{u.inner_text}"}
             expression.host_urls = h_urls.join("; ")
           end
 
           #get series info
           if rel_item.attribute('type').value == "series"
-            rel_item.xpath("titleInfo", ns).each do |tf|
-              if tf.attribute('abbreviated')
-                ser_abb = tf.inner_text 
+            ser_title = nil
+            ser_abb = nil
+            rel_item.xpath("mods:titleInfo", ns).each do |tf|
+              raw_ser = tf.inner_text.strip.gsub(/\s*\n\s*/,', ')
+              if (tf.attribute('type') and tf.attribute('type').value == "abbreviated")
+                ser_abb = raw_ser 
               else
-                ser_title = tf.inner_text
+                ser_title = raw_ser
               end
             end
 
@@ -239,7 +282,7 @@ class Parser
               ser.save
             end
 
-            expression.series_id = ser.id if ser
+            expression.series_id = ser.id if (ser and !expression.series_id)
           end
 
           #HAVE IGNORED CONSTITUENT ITEMS FOR NOW UNTIL I FIGURE OUT HOW TO HANDLE THEM
@@ -249,8 +292,9 @@ class Parser
         
       end
 
-    rescue
+    rescue Exception => e
       puts "Something went wrong! #{$!}"
+      puts e.backtrace
     end
   end
 
