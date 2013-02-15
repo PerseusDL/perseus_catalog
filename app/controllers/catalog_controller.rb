@@ -9,19 +9,19 @@ class CatalogController < ApplicationController
     ## Default parameters to send to solr for all search-like requests. See also SolrHelper#solr_search_params
     config.default_solr_params = { 
       :qt => 'search',
-      :rows => 10 
+      :rows => 20
     }
 
     ## Default parameters to send on single-document requests to Solr. These settings are the Blackligt defaults (see SolrHelper#solr_doc_params) or 
     ## parameters included in the Blacklight-jetty document requestHandler.
     #
-    #config.default_document_solr_params = {
-    #  :qt => 'document',
+    config.default_document_solr_params = {
+      :qt => 'document',
     #  ## These are hard-coded in the blacklight 'document' requestHandler
-    #  # :fl => '*',
-    #  # :rows => 1
-    #  # :q => '{!raw f=id v=$id}' 
-    #}
+       :fl => '*',
+       :rows => 1,
+       :q => '{!raw f=uid v=$id}' 
+    }
 
     # solr field configuration for search results/index views
     config.index.show_link = 'title_display'
@@ -74,30 +74,21 @@ class CatalogController < ApplicationController
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display 
     config.add_index_field 'exp_id', :label => 'ID:'
-    config.add_index_field 'work_id', :label => 'Work ID:' 
-    config.add_index_field 'auth_name', :label => 'Author:' 
+    config.add_index_field 'work_title', :label => 'Work Title:'
     config.add_index_field 'exp_title', :label => 'Title:' 
+    config.add_index_field 'auth_name', :label => 'Author:'     
     config.add_index_field 'work_lang', :label => 'Language:'
-    #config.add_index_field 'published_display', :label => 'Published:'
-    #config.add_index_field 'published_vern_display', :label => 'Published:'
-    #config.add_index_field 'lc_callnum_display', :label => 'Call number:'
+
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
     config.add_show_field 'exp_title', :label => 'Title:' 
-    #config.add_show_field 'title_vern_display', :label => 'Title:' 
-    #config.add_show_field 'subtitle_display', :label => 'Subtitle:' 
-    #config.add_show_field 'subtitle_vern_display', :label => 'Subtitle:' 
     config.add_show_field 'auth_name', :label => 'Author:' 
-    #config.add_show_field 'author_vern_display', :label => 'Author:' 
-    #config.add_show_field 'format', :label => 'Format:' 
     config.add_show_field 'exp_id', :label => 'ID:'
-    #config.add_show_field 'url_suppl_display', :label => 'More Information:'
     config.add_show_field 'language', :label => 'Language:'
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
-    #config.add_show_field 'lc_callnum_display', :label => 'Call number:'
-    #config.add_show_field 'isbn_t', :label => 'ISBN:'
+
 
     # "fielded" search configuration. Used by pulldown among other places.
     # For supported keys in hash, see rdoc for Blacklight::SearchFields

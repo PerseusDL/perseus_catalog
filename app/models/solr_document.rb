@@ -3,7 +3,7 @@ class SolrDocument
 
   include Blacklight::Solr::Document
 
-  # self.unique_key = 'id'
+  self.unique_key = 'uid'
   
   # The following shows how to setup this blacklight document to display marc documents
   extension_parameters[:marc_source_field] = :marc_display
