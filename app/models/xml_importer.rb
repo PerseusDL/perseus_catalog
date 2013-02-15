@@ -6,7 +6,7 @@ class XmlImporter
 
   def import(file, file_type)
     raw_xml = File.read(file)
-    #debugger
+    puts file
     doc = Nokogiri::XML::Document.parse(raw_xml) 
 
     if file_type == "atom"

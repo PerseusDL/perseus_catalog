@@ -6,7 +6,7 @@ class Parser
   require 'editors_or_translator.rb'
   require 'work.rb'
 
-  #SOMETHING IS UP WITH THE PARSER, PERHAPS WITH MYSQL
+  #SOMETHING IS UP WITH THE PARSER, PERHAPS WITH MYSQ
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
 
@@ -66,7 +66,7 @@ class Parser
 
         alt_ids = []
         doc.xpath("mads:mads/mads:identifier").each do |id|
-          id_type = id.attribute('type').value
+          id_type = id.attribute('type').value if id.attribute('type')
           #taking into account potential "Psuedo" authors without their own record
           if id.attribute('displayLabel')
             alt_id_name = id.attribute('displayLabel').value
@@ -112,7 +112,7 @@ class Parser
       ns = doc.collect_namespaces
 
       #begin with identifying the work
-      id = doc.xpath("atom:feed/atom:id").inner_text
+      id = doc.xpath("atom:feed/atom:id", ns).inner_text
 
       #find the author
       auth_raw = doc.xpath("//cts:groupname", ns).inner_text
@@ -166,16 +166,20 @@ class Parser
          
         #we are organizing and identifying expressions with the cts_urns
         raw_urn = mods_rec.xpath("mods:identifier[@type='ctsurn']", ns).inner_text
+        if raw_urn == nil or raw_urn == ""
+          throw "Lacks a ctsurn, can not save!!"
+        end
         expression = Expression.find_by_cts_urn(raw_urn)
 
         unless expression
           expression = Expression.new
           expression.cts_urn = raw_urn
         end
-
+  
+        expression.clean_cts_urn = raw_urn.gsub(/\.|:|-/, "_")
         expression.work_id = work.id
-        expression.page_start = mods_rec.xpath("mods:extent/mods:start", ns).inner_text
-        expression.page_end = mods_rec.xpath("mods:extent/mods:end", ns).inner_text
+        expression.page_start = mods_rec.xpath("mods:part/mods:extent/mods:start", ns).inner_text
+        expression.page_end = mods_rec.xpath("mods:part/mods:extent/mods:end", ns).inner_text
 
         #find the uniform, abbreviated and alternative titles
         mods_rec.xpath("mods:titleInfo", ns).each do |title_node|
@@ -217,11 +221,12 @@ class Parser
         raw_pub =[]
         mods_rec.xpath(".//mods:publisher", ns).each {|pu| raw_pub << pu.inner_text}
         expression.publisher = raw_pub.join("; ")
-        
+
         pub_date = mods_rec.xpath(".//mods:dateIssued", ns).inner_text.to_i
-        expression.date_publ = Date.new(pub_date).year
-        mod_date = mods_rec.xpath(".//mods:dateModified", ns).inner_text.to_i
-        expression.date_mod = Date.new(mod_date).year
+        expression.date_publ = pub_date unless pub_date == 0 or pub_date == nil
+        mod_date = mods_rec.xpath(".//mods:dateModified", ns).inner_text.to_i        
+        expression.date_mod = mod_date unless mod_date == 0 or mod_date == nil
+
         expression.edition = mods_rec.xpath(".//mods:edition", ns).inner_text
 
         raw_des = mods_rec.xpath(".//mods:physicalDescription", ns).inner_text
@@ -244,24 +249,40 @@ class Parser
 
         #compile all urls
         raw_urls = []
-        mods_rec.xpath("mods:location/mods:url", ns).each {|u| raw_urls << "#{u.attribute('displayLabel').value}, #{u.inner_text}"}
+        mods_rec.xpath("mods:location/mods:url", ns).each do |u|
+          url_label = u.attribute('displayLabel')
+          url_name = url_label.value if url_label
+          if url_name
+            raw_urls << "#{url_name}, #{u.inner_text}"
+          else
+            raw_urls << u.inner_text
+          end
+        end
         expression.urls = raw_urls.join("; ")
 
         mods_rec.xpath("mods:relatedItem", ns).each do |rel_item|
-          #debugger
           #get host work info
-          if rel_item.attribute('type').value == "host"
+          type_attr = rel_item.attribute('type')
+          if type_attr and type_attr.value == "host"
             raw_ht =[]
             rel_item.xpath("mods:titleInfo", ns).children.each {|c| raw_ht << c.inner_text.strip}
             raw_ht.delete("")
             expression.host_title = raw_ht.join("; ")
             h_urls = []
-            rel_item.xpath("mods:location/mods:url", ns).each {|u| h_urls << "#{u.attribute('displayLabel').value}, #{u.inner_text}"}
+            rel_item.xpath("mods:location/mods:url", ns).each do |u|
+              url_label = u.attribute('displayLabel')
+              url_name = url_label.value if url_label
+              if url_name
+                h_urls << "#{url_name}, #{u.inner_text}"
+              else
+                h_urls << u.inner_text
+              end
+            end
             expression.host_urls = h_urls.join("; ")
           end
 
           #get series info
-          if rel_item.attribute('type').value == "series"
+          if type_attr and type_attr.value ==  "series"
             ser_title = nil
             ser_abb = nil
             rel_item.xpath("mods:titleInfo", ns).each do |tf|

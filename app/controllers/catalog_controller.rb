@@ -51,13 +51,11 @@ class CatalogController < ApplicationController
     #
     # :show may be set to false if you don't want the facet to be drawn in the 
     # facet bar
-    config.add_facet_field 'author', :label => 'Author'
-    config.add_facet_field 'work_title', :label => 'Title', :single => true
-    #config.add_facet_field 'subject_topic_facet', :label => 'Topic', :limit => 20 
-    config.add_facet_field 'language', :label => 'Language', :limit => true 
-    config.add_facet_field 'editor', :label => 'Editor' 
-    config.add_facet_field 'translator', :label => 'Translator' 
-    #config.add_facet_field 'subject_era_facet', :label => 'Era'  
+    config.add_facet_field 'auth_name', :label => 'Author'
+    config.add_facet_field 'work_lang', :label => 'Language'
+    config.add_facet_field 'subject', :label => 'Subject', :limit => 20 
+    config.add_facet_field 'series', :label => 'Series' 
+    
 
     #config.add_facet_field 'example_pivot_field', :label => 'Pivot Field', :pivot => ['format', 'language']
 
@@ -75,30 +73,29 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display 
-    config.add_index_field 'id', :label => 'ID:' 
-    config.add_index_field 'author', :label => 'Author:' 
-    #config.add_index_field 'author_display', :label => 'Author:' 
-    #config.add_index_field 'author_vern_display', :label => 'Author:' 
-    config.add_index_field 'work_title', :label => 'Title:' 
-    config.add_index_field 'language', :label => 'Language:'
+    config.add_index_field 'exp_id', :label => 'ID:'
+    config.add_index_field 'work_id', :label => 'Work ID:' 
+    config.add_index_field 'auth_name', :label => 'Author:' 
+    config.add_index_field 'exp_title', :label => 'Title:' 
+    config.add_index_field 'work_lang', :label => 'Language:'
     #config.add_index_field 'published_display', :label => 'Published:'
     #config.add_index_field 'published_vern_display', :label => 'Published:'
     #config.add_index_field 'lc_callnum_display', :label => 'Call number:'
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
-    config.add_show_field 'work_title', :label => 'Title:' 
+    config.add_show_field 'exp_title', :label => 'Title:' 
     #config.add_show_field 'title_vern_display', :label => 'Title:' 
     #config.add_show_field 'subtitle_display', :label => 'Subtitle:' 
     #config.add_show_field 'subtitle_vern_display', :label => 'Subtitle:' 
-    config.add_show_field 'author', :label => 'Author:' 
+    config.add_show_field 'auth_name', :label => 'Author:' 
     #config.add_show_field 'author_vern_display', :label => 'Author:' 
     #config.add_show_field 'format', :label => 'Format:' 
-    config.add_show_field 'ctsurn', :label => 'CTSURN:'
+    config.add_show_field 'exp_id', :label => 'ID:'
     #config.add_show_field 'url_suppl_display', :label => 'More Information:'
     config.add_show_field 'language', :label => 'Language:'
-    config.add_show_field 'editor', :label => 'Editor:'
-    config.add_show_field 'translator', :label => 'Translator:'
+    config.add_show_field 'ed_name', :label => 'Editor:'
+    config.add_show_field 'trans_name', :label => 'Translator:'
     #config.add_show_field 'lc_callnum_display', :label => 'Call number:'
     #config.add_show_field 'isbn_t', :label => 'ISBN:'
 
