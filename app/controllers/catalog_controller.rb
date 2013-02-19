@@ -9,6 +9,7 @@ class CatalogController < ApplicationController
     ## Default parameters to send to solr for all search-like requests. See also SolrHelper#solr_search_params
     config.default_solr_params = { 
       :qt => 'search',
+      :q => '*',
       :rows => 20
     }
 
@@ -51,10 +52,10 @@ class CatalogController < ApplicationController
     #
     # :show may be set to false if you don't want the facet to be drawn in the 
     # facet bar
-    config.add_facet_field 'auth_name', :label => 'Author'
+    config.add_facet_field 'auth_name', :label => 'Author', :limit => 20 
     config.add_facet_field 'work_lang', :label => 'Language'
     config.add_facet_field 'subject', :label => 'Subject', :limit => 20 
-    config.add_facet_field 'series', :label => 'Series' 
+    config.add_facet_field 'series', :label => 'Series' , :limit => 20 
     
 
     #config.add_facet_field 'example_pivot_field', :label => 'Pivot Field', :pivot => ['format', 'language']
@@ -160,10 +161,10 @@ class CatalogController < ApplicationController
     # label in pulldown is followed by the name of the SOLR field to sort by and
     # whether the sort is ascending or descending (it must be asc or desc
     # except in the relevancy case).
-    #config.add_sort_field 'score desc, title_sort asc', :label => 'relevance'
+    config.add_sort_field 'score desc, work_title asc', :label => 'relevance'
     #config.add_sort_field 'pub_date_sort desc, title_sort asc', :label => 'year'
-    #config.add_sort_field 'author_sort asc, title_sort asc', :label => 'author'
-    #config.add_sort_field 'title_sort asc', :label => 'title'
+    config.add_sort_field 'auth_name asc, work_title asc', :label => 'author'
+    config.add_sort_field 'work_title asc', :label => 'title'
 
     # If there are more than this many search results, no spelling ("did you 
     # mean") suggestion is offered.
