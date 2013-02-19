@@ -73,7 +73,6 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display 
-    config.add_index_field 'exp_id', :label => 'ID:'
     config.add_index_field 'work_title', :label => 'Work Title:'
     config.add_index_field 'exp_title', :label => 'Title:' 
     config.add_index_field 'auth_name', :label => 'Author:'     
@@ -82,12 +81,17 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
-    config.add_show_field 'exp_title', :label => 'Title:' 
-    config.add_show_field 'auth_name', :label => 'Author:' 
     config.add_show_field 'exp_id', :label => 'ID:'
-    config.add_show_field 'language', :label => 'Language:'
+    config.add_show_field 'exp_title', :label => 'Title:' 
+    config.add_show_field 'exp_alt_title', :label => 'Alternate Title:'
+    config.add_show_field 'exp_host_title', :label => 'Host Title:'
+    config.add_show_field 'work_title', :label => 'Work Title:'
+    config.add_show_field 'auth_name', :label => 'Author:' 
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
+    config.add_show_field 'language', :label => 'Language:'
+    config.add_show_field 'series', :label => 'Series:'
+    config.add_show_field 'subject', :label => 'Subjects:'
 
 
     # "fielded" search configuration. Used by pulldown among other places.
@@ -117,23 +121,26 @@ class CatalogController < ApplicationController
     
     config.add_search_field('title') do |field|
       #solr_parameters hash are sent to Solr as ordinary url query params. 
-      field.solr_parameters = { :'spellcheck.dictionary' => 'title' }
+      field.solr_parameters = { :'spellcheck.dictionary' => 'work_title' }
 
       # :solr_local_parameters will be sent using Solr LocalParams
       # syntax, as eg {! qf=$title_qf }. This is neccesary to use
       # Solr parameter de-referencing like $title_qf.
       # See: http://wiki.apache.org/solr/LocalParams
-      field.solr_local_parameters = { 
-        :qf => '$title_qf',
-        :pf => '$title_pf'
+      field.solr_local_parameters = {
+        #:df => 'work_title',
+        :type => 'dismax',
+        :qf => 'work_title or exp_title or exp_alt_title or exp_host_title',
+        :pf => 'work_title or exp_title or exp_alt_title or exp_host_title'
       }
     end
     
     config.add_search_field('author') do |field|
-      field.solr_parameters = { :'spellcheck.dictionary' => 'author' }
-      field.solr_local_parameters = { 
-        :qf => '$author_qf',
-        :pf => '$author_pf'
+      field.solr_parameters = { :'spellcheck.dictionary' => 'auth_name' }
+      field.solr_local_parameters = {
+        :type => 'dismax',
+        :qf => 'auth_name or auth_alt_name',
+        :pf => 'auth_name or auth_alt_name'
       }
     end
     
