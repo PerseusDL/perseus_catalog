@@ -37,6 +37,7 @@ ActiveRecord::Schema.define(:version => 20130125182133) do
 
   create_table "editors_or_translators", :force => true do |t|
     t.string   "mads_id"
+    t.string   "alt_id"
     t.string   "name",              :null => false
     t.string   "alt_parts"
     t.string   "dates"
@@ -52,25 +53,27 @@ ActiveRecord::Schema.define(:version => 20130125182133) do
     t.integer  "work_id",       :null => false
     t.string   "title"
     t.string   "alt_title"
-    t.string   "abr_title"
+    t.string   "abbr_title"
     t.string   "host_title"
     t.integer  "editor_id"
     t.integer  "translator_id"
     t.string   "language"
     t.string   "place_publ"
     t.string   "publisher"
-    t.date     "date_publ"
-    t.date     "date_mod"
+    t.integer  "date_publ"
+    t.integer  "date_mod"
     t.string   "edition"
     t.string   "phys_descr"
     t.text     "notes"
     t.string   "subjects"
-    t.string   "cts_urn"
+    t.string   "cts_urn",       :null => false
+    t.string   "clean_cts_urn", :null => false
     t.integer  "series_id"
     t.integer  "page_start"
     t.integer  "page_end"
     t.integer  "word_count"
     t.string   "urls"
+    t.string   "host_urls"
     t.datetime "created_at",    :null => false
     t.datetime "updated_at",    :null => false
   end
@@ -92,13 +95,14 @@ ActiveRecord::Schema.define(:version => 20130125182133) do
 
   create_table "series", :force => true do |t|
     t.string   "ser_title"
-    t.string   "tlg_id"
+    t.string   "abbr_title"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
 
   create_table "works", :force => true do |t|
     t.string   "standard_id", :null => false
+    t.string   "clean_id",    :null => false
     t.integer  "author_id"
     t.string   "title",       :null => false
     t.string   "language"

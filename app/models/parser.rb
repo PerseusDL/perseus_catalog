@@ -6,7 +6,7 @@ class Parser
   require 'editors_or_translator.rb'
   require 'work.rb'
 
-  #SOMETHING IS UP WITH THE PARSER, PERHAPS WITH MYSQ
+
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
 
@@ -74,10 +74,17 @@ class Parser
           else
             alt_ids << (id_type=~/stoa/ ? "#{id.inner_text}" : "#{id_type}#{id.inner_text}")
             unless person.mads_id
+              nums = id.inner_text
               case id_type 
                 when "tlg", "phi", "stoa", "stoa author", "stoa author-text"
-                  person.mads_id = (id_type=~/stoa/ ? "#{id.inner_text}" : "#{id_type}#{id.inner_text}")
-              end 
+                  nums = "0#{nums}" if nums =~ /^\d{3}$/
+                  person.mads_id = (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
+              end
+              #trying to catch identifiers without named types
+              case nums
+                when /tlg/, /phi/, /stoa/
+                  person.mads_id = nums
+              end      
             end
           end
         end
@@ -116,6 +123,7 @@ class Parser
 
       #find the author
       auth_raw = doc.xpath("//cts:groupname", ns).inner_text
+      debugger
       if (auth_raw and auth_raw != "")
         author = Author.find_by_name_or_alt_name(auth_raw)
       else
@@ -152,6 +160,7 @@ class Parser
       if work and author
         
         work.standard_id = id
+        work.clean_id = id.gsub(/\.|\s/, "_")
         work.author_id = author.id
         w_set = doc.xpath("//cts:work", ns)
         work.title = w_set.xpath("dc:title", ns).inner_text
@@ -305,6 +314,8 @@ class Parser
 
             expression.series_id = ser.id if (ser and !expression.series_id)
           end
+
+          #get page counts TO DO
 
           #HAVE IGNORED CONSTITUENT ITEMS FOR NOW UNTIL I FIGURE OUT HOW TO HANDLE THEM
         end

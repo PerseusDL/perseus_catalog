@@ -2,6 +2,7 @@ class CreateWork < ActiveRecord::Migration
   def change
     create_table :works do |t|
       t.string :standard_id, :null =>false
+      t.string :clean_id, :null =>false
       t.integer :author_id
       t.string :title, :null => false
       t.string :language
