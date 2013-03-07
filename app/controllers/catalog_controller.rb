@@ -78,21 +78,22 @@ class CatalogController < ApplicationController
     config.add_index_field 'exp_title', :label => 'Title:' 
     config.add_index_field 'auth_name', :label => 'Author:'     
     config.add_index_field 'work_lang', :label => 'Language:'
+    config.add_index_field 'language', :label => 'Language:'
 
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
     config.add_show_field 'exp_id', :label => 'ID:'
     config.add_show_field 'exp_title', :label => 'Title:' 
-    config.add_show_field 'exp_alt_title', :label => 'Alternate Title:'
-    config.add_show_field 'exp_host_title', :label => 'Host Title:'
-    config.add_show_field 'work_title', :label => 'Work Title:'
+    config.add_show_field 'exp_alt_title', :label => 'Alternate title:'
+    config.add_show_field 'work_title', :label => 'Work title:'
     config.add_show_field 'auth_name', :label => 'Author:' 
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
     config.add_show_field 'language', :label => 'Language:'
     config.add_show_field 'series', :label => 'Series:'
     config.add_show_field 'subject', :label => 'Subjects:'
+    config.add_show_field 'exp_host_title', :label => 'Host work title:'
 
 
     # "fielded" search configuration. Used by pulldown among other places.

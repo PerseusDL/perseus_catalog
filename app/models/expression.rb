@@ -6,4 +6,12 @@ class Expression < ActiveRecord::Base
 
   belongs_to :series
 
+
+  def self.get_info(id)
+    doc = Expression.find_by_cts_urn(id)
+    doc_hash = doc.attributes
+  end
+
+  
+  
 end

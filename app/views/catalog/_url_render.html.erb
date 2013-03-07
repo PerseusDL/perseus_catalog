@@ -1,0 +1,12 @@
+<%# partial to display nicely formatted list of url links no matter the document type-%>
+<% url_arr = value.split(";") %>
+  <% url_arr. each do |url| %>
+    <% url_parts = url.split(",") %>
+    <% if url_parts.length == 1 %>
+        <dd><%= link_to url_parts[0], url_parts[0], :target => "_blank" %></dd>
+    <% else %>
+        <% unless url_parts[1] == " "  %>
+          <dd><%= link_to url_parts[0], url_parts[1], :target => "_blank" %></dd>
+        <% end %>
+    <% end %>
+  <% end %>

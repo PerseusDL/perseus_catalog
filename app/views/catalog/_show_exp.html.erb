@@ -1,0 +1,30 @@
+<%# default partial to display mysql document info in catalog show view for expressions-%>
+
+
+  <% field_list = ["publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "page_start", "page_end", "notes"] %>
+
+<dl class="dl-horizontal  dl-invert">
+
+  <%# item urls-%>
+  <dt><%="Find the text here:" %></dt>
+  <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls")} %>
+
+  <%# show fields-%>
+  <%= render_document_partial @document, :show %>
+
+  <%# mysql fields-%>
+  <% field_list.each do |key| %>
+    <% val = doc.fetch(key)%>
+    <% if (val && val != "")%>
+      
+      <dt><%= key.gsub("_", " ").capitalize%></dt>
+      <dd><%= val %></dd>
+    <% end%>
+  <% end %>
+ 
+  <%# host urls-%>         
+  <dt><%= "Host work location:" %></dt>
+  <%= render :partial => "url_render", :locals => {:value => doc.fetch("host_urls")} %>
+  
+  
+</dl>

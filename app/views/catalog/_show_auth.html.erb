@@ -1,0 +1,7 @@
+<%# default partial to display mysql document info in catalog show view for authors-%>
+<dl class="dl-horizontal  dl-invert">
+  <% d_id = @document.values_at("uid")[0]%>
+  <% doc = Author.get_info(d_id) %>
+  <%# Need to pull author and expression info as well want to create collapsible list of expressions with links to their proper pages/full display of info, perhaps I should go back and populate the expression partial first... -%>
+  <dt>solr items</dt>
+</dl>

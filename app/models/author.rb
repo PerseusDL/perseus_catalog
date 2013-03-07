@@ -13,4 +13,9 @@ class Author < ActiveRecord::Base
       found_id = Author.where(["alt_id RLIKE ?", id]).first
     end
   end
+
+  def self.get_info(id)
+    doc = Author.find_by_mads_or_alt_ids(id)
+    doc_hash = doc.attributes
+  end
 end

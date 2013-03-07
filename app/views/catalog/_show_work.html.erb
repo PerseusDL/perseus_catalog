@@ -1,0 +1,23 @@
+<%# default partial to display mysql document info in catalog show view for works-%>
+<dl class="dl-horizontal  dl-invert">
+  <% d_id = @document.values_at("work_id")[0]%>
+  <% doc = Work.get_info(d_id) %>
+  <%# Need to pull author and expression info as well want to create collapsible list of expressions with links to their proper pages/full display of info, perhaps I should go back and populate the expression partial first... -%>
+  <dl class="dl-horizontal  dl-invert">
+
+  <%# show fields-%>
+  <%= render_document_partial @document, :show %>
+
+</dl>
+
+<div>
+  <p> &nbsp </p>
+  <% exprs, auth = find_related(doc) %>
+
+  <% exprs.each do |expr| %>
+    <% expr_hash = expr.attributes %>
+    <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
+    <span> &nbsp </span>
+  <% end %>
+
+</div>
