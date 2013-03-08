@@ -35,12 +35,11 @@
             <%= " written by " %>
             <%= link_to a_name, a_id, :path => 'solr_document' %></p>
           </div>
-          
+
           <%= render :partial => 'show_exp', :locals => {:doc => doc} %>
         <% elsif @document.has?("work_id") %>
           <%= render 'show_work' %>
         <% else @document.has?("auth_alt_id") %>
-          <p>This is an author</p>
           <%= render 'show_auth' %>
         <% end %>
 

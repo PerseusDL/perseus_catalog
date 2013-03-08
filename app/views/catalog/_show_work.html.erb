@@ -6,6 +6,8 @@
   <dl class="dl-horizontal  dl-invert">
 
   <%# show fields-%>
+  <dt><%= "ID:" %></dt>
+  <dd><%= d_id %></dd>
   <%= render_document_partial @document, :show %>
 
 </dl>
@@ -16,8 +18,12 @@
 
   <% exprs.each do |expr| %>
     <% expr_hash = expr.attributes %>
+    <% e_id = expr_hash["cts_urn"] %>
+    <% c_e_id = expr_hash["clean_cts_urn"] %>
+    <dt><%= "Expression ID:" %></dt>
+    <dd><%= link_to e_id, c_e_id, :path => 'solr_document' %></dd>
     <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
-    <span> &nbsp </span>
+    <p> &nbsp </p>
   <% end %>
 
 </div>

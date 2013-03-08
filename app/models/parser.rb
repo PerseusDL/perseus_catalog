@@ -123,7 +123,6 @@ class Parser
 
       #find the author
       auth_raw = doc.xpath("//cts:groupname", ns).inner_text
-      debugger
       if (auth_raw and auth_raw != "")
         author = Author.find_by_name_or_alt_name(auth_raw)
       else
@@ -187,8 +186,6 @@ class Parser
   
         expression.clean_cts_urn = raw_urn.gsub(/\.|:|-/, "_")
         expression.work_id = work.id
-        expression.page_start = mods_rec.xpath("mods:part/mods:extent/mods:start", ns).inner_text
-        expression.page_end = mods_rec.xpath("mods:part/mods:extent/mods:end", ns).inner_text
 
         #find the uniform, abbreviated and alternative titles
         mods_rec.xpath("mods:titleInfo", ns).each do |title_node|
@@ -315,7 +312,16 @@ class Parser
             expression.series_id = ser.id if (ser and !expression.series_id)
           end
 
-          #get page counts TO DO
+          #get page ranges and word counts
+          mods_rec.xpath("mods:part/mods:extent", ns).each do |ex_tag|
+            unit_attr = ex_tag.attribute('unit').value
+            if unit_attr == "pages"
+              expression.page_start = ex_tag.xpath("mods:start", ns).inner_text
+              expression.page_end = ex_tag.xpath("mods:end", ns).inner_text
+            elsif unit_attr == "words"
+              expression.word_count = ex_tag.xpath("mods:total", ns).inner_text
+            end
+          end
 
           #HAVE IGNORED CONSTITUENT ITEMS FOR NOW UNTIL I FIGURE OUT HOW TO HANDLE THEM
         end

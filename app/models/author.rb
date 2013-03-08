@@ -12,6 +12,7 @@ class Author < ActiveRecord::Base
     unless found_id
       found_id = Author.where(["alt_id RLIKE ?", id]).first
     end
+    return found_id
   end
 
   def self.get_info(id)
