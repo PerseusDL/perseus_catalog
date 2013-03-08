@@ -1,13 +1,40 @@
 <%# default partial to display mysql document info in catalog show view for authors-%>
   <% d_id = @document.values_at("uid")[0]%>
   <% doc = Author.get_info(d_id) %>
-  <% field_list = ["alt_id", "name", "alt_parts", "dates", "alt_names", "field_of_activity", "notes", "urls"] %>
+  <% field_list = ["alt_id", "name", "alt_parts", "dates", "alt_names", "field_of_activity", "notes"] %>
   <%# Need to pull author and expression info as well want to create collapsible list of expressions with links to their proper pages/full display of info, perhaps I should go back and populate the expression partial first... -%>
-  <dl class="dl-horizontal  dl-invert">
+<dl class="dl-horizontal  dl-invert">
 
   <%# show fields-%>
   <dt><%= "ID:" %></dt>
   <dd><%= d_id %></dd>
   <%= render_document_partial @document, :show %>
 
+  <%# mysql fields-%>
+  <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
+
+  <%# host urls-%>         
+  <dt><%= "Author info:" %></dt>
+  <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls")} %>
+
+<div>
+  <p> &nbsp </p>
+  <p> <%="Works by #{doc.fetch("name")}"%></p>
+  <%# list works-%> 
+  <% works = find_related(doc) %>
+
+  <% works.each do |work| %>
+    <% work_hash = work.attributes %>
+    <% w_id = work_hash["standard_id"] %>
+    <% c_w_id = work_hash["clean_id"] %>
+    <dt><%= "Work ID:" %></dt>
+    <dd><%= link_to w_id, c_w_id, :path => 'solr_document' %></dd>
+    <dt><%= "Title:" %></dt>
+    <dd><%= work_hash["title"] %></dd>
+    <p> &nbsp </p>
+  <% end %>
+
+</div>
+
 </dl>
+

@@ -20,6 +20,8 @@ module ApplicationHelper
       return exps, auth
     else
       #author, find works
+      works = Work.find(:all, :conditions => {:author_id => object["id"]})
+      return works
     end
 
   end

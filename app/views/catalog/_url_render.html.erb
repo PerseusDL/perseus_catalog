@@ -1,5 +1,5 @@
 <%# partial to display nicely formatted list of url links no matter the document type-%>
-<% url_arr = value.split(";") if value%>
+<% url_arr = value.split(/;\s/) if value%>
   <% if url_arr %>
     <% url_arr.each do |url| %>
       <% url_parts = url.split(",") %>

@@ -67,17 +67,18 @@ class Parser
         alt_ids = []
         doc.xpath("mads:mads/mads:identifier").each do |id|
           id_type = id.attribute('type').value if id.attribute('type')
+          nums = id.inner_text
+          nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
           #taking into account potential "Psuedo" authors without their own record
           if id.attribute('displayLabel')
             alt_id_name = id.attribute('displayLabel').value
-            alt_ids << "#{alt_id_name}: #{id_type}#{id.inner_text}"
+            alt_ids << "#{alt_id_name}: #{id_type}#{nums}"
           else
-            alt_ids << (id_type=~/stoa/ ? "#{id.inner_text}" : "#{id_type}#{id.inner_text}")
+            alt_ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
             unless person.mads_id
-              nums = id.inner_text
               case id_type 
                 when "tlg", "phi", "stoa", "stoa author", "stoa author-text"
-                  nums = "0#{nums}" if nums =~ /^\d{3}$/
+                  #This isn't too smart, need a way to intellegently select tlg vs phi for authors who have both
                   person.mads_id = (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
               end
               #trying to catch identifiers without named types
