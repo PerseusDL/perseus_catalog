@@ -5,8 +5,10 @@
 <dl class="dl-horizontal  dl-invert">
 
   <%# item urls-%>
-  <dt><%="Find the text here:" %></dt>
-  <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls")} %>
+  <% unless doc.fetch("urls") == "" %>
+    <dt><%="Find the text here:" %></dt>
+    <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls"), :id => doc.fetch("cts_urn")} %>
+  <% end%>
 
   <%# show fields-%>
   <%= render_document_partial @document, :show %>
@@ -14,9 +16,10 @@
   <%# mysql fields-%>
   <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
  
-  <%# host urls-%>         
-  <dt><%= "Host work location:" %></dt>
-  <%= render :partial => "url_render", :locals => {:value => doc.fetch("host_urls")} %>
-  
+  <%# host urls-%>   
+  <% unless doc.fetch("host_urls") == "" %>      
+    <dt><%= "Host work location:" %></dt>
+    <%= render :partial => "url_render", :locals => {:value => doc.fetch("host_urls")} %>
+  <% end%>
   
 </dl>

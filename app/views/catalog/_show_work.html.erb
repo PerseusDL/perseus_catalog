@@ -2,28 +2,34 @@
 <dl class="dl-horizontal  dl-invert">
   <% d_id = @document.values_at("work_id")[0]%>
   <% doc = Work.get_info(d_id) %>
-  <%# Need to pull author and expression info as well want to create collapsible list of expressions with links to their proper pages/full display of info, perhaps I should go back and populate the expression partial first... -%>
+  <% exprs, auth = find_related(doc) %>
+
   <dl class="dl-horizontal  dl-invert">
 
   <%# show fields-%>
   <dt><%= "ID:" %></dt>
   <dd><%= d_id %></dd>
-  <%= render_document_partial @document, :show %>
+  <dt><%= "Work title:" %></dt>
+  <dd><%= @document.values_at("work_title")[0] %></dd>
+
+  <%# This is not very pretty... There is probably a better way-%>
+  <dt><%= "Author:" %></dt>
+  <dd><%= link_to @document.values_at("auth_name")[0], auth.attributes["mads_id"], :path => 'solr_document'%></dd>
+  
 
 </dl>
 
 <div>
-  <p> &nbsp </p>
-  <% exprs, auth = find_related(doc) %>
-
+  <p> &nbsp </p>  
+<ul>
   <% exprs.each do |expr| %>
     <% expr_hash = expr.attributes %>
     <% e_id = expr_hash["cts_urn"] %>
     <% c_e_id = expr_hash["clean_cts_urn"] %>
-    <dt><%= "Expression ID:" %></dt>
-    <dd><%= link_to e_id, c_e_id, :path => 'solr_document' %></dd>
+    <li><%= "Expression ID:" %>
+    <%= link_to e_id, c_e_id, :path => 'solr_document' %></li>
     <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
     <p> &nbsp </p>
   <% end %>
-
+</ul>
 </div>
