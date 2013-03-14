@@ -1,12 +1,12 @@
 <%# default partial to display mysql document info in catalog show view for works-%>
 <dl class="dl-horizontal  dl-invert">
-  <% d_id = @document.values_at("work_id")[0]%>
+  <% d_id = @document.values_at("work_stand_id")[0]%>
   <% doc = Work.get_info(d_id) %>
   <% exprs, auth = find_related(doc) %>
 
   <dl class="dl-horizontal  dl-invert">
 
-  <%# show fields-%>
+  <%# fields-%>
   <dt><%= "ID:" %></dt>
   <dd><%= d_id %></dd>
   <dt><%= "Work title:" %></dt>
@@ -14,7 +14,7 @@
 
   <%# This is not very pretty... There is probably a better way-%>
   <dt><%= "Author:" %></dt>
-  <dd><%= link_to @document.values_at("auth_name")[0], auth.attributes["mads_id"], :path => 'solr_document'%></dd>
+  <dd><%= link_to @document.values_at("work_auth_name")[0], auth.attributes["mads_id"], :path => 'solr_document'%></dd>
   
 
 </dl>
@@ -26,9 +26,11 @@
     <% expr_hash = expr.attributes %>
     <% e_id = expr_hash["cts_urn"] %>
     <% c_e_id = expr_hash["clean_cts_urn"] %>
+    <% #This doesn't work, how to send a query to solr? @document = get_solr_response_for_doc_id(id=c_e_id) %>
     <li><%= "Expression ID:" %>
     <%= link_to e_id, c_e_id, :path => 'solr_document' %></li>
     <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
+
     <p> &nbsp </p>
   <% end %>
 </ul>

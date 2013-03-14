@@ -24,7 +24,7 @@
           <% doc = Expression.get_info(d_id) %>
 
           <div>
-            <%# Link to the related work-%>
+            <%# Link to the related work, doing this here so it is not repeated on the work pages-%>
             <% work, auth = find_related(doc)%>
             <% w_id = work["clean_id"] %>
             <% w_title = work["title"] %>
@@ -37,7 +37,7 @@
           </div>
 
           <%= render :partial => 'show_exp', :locals => {:doc => doc} %>
-        <% elsif @document.has?("work_id") %>
+        <% elsif @document.has?("work_stand_id") %>
           <%= render 'show_work' %>
         <% else @document.has?("auth_alt_id") %>
           <%= render 'show_auth' %>

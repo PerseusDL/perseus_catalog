@@ -52,7 +52,8 @@ class CatalogController < ApplicationController
     #
     # :show may be set to false if you don't want the facet to be drawn in the 
     # facet bar
-    config.add_facet_field 'auth_name', :label => 'Author', :limit => 20 
+    config.add_facet_field 'auth_facet', :label => 'Author', :limit => 20
+    config.add_facet_field 'work_facet', :label => 'Title', :limit => 20 
     config.add_facet_field 'work_lang', :label => 'Language'
     config.add_facet_field 'subject', :label => 'Subject', :limit => 20 
     config.add_facet_field 'series', :label => 'Series' , :limit => 20 
@@ -73,7 +74,10 @@ class CatalogController < ApplicationController
     config.add_facet_fields_to_solr_request!
 
     # solr fields to be displayed in the index (search results) view
-    #   The ordering of the field names is the order of the display 
+    #   The ordering of the field names is the order of the display
+    config.add_index_field 'auth_id', :label => 'Author ID:'
+    config.add_index_field 'work_stand_id', :label => 'Work ID:'
+    config.add_index_field 'exp_id', :label => 'Expression ID:' 
     config.add_index_field 'work_title', :label => 'Work Title:'
     config.add_index_field 'exp_title', :label => 'Title:' 
     config.add_index_field 'auth_name', :label => 'Author:'     
@@ -130,10 +134,10 @@ class CatalogController < ApplicationController
       # Solr parameter de-referencing like $title_qf.
       # See: http://wiki.apache.org/solr/LocalParams
       field.solr_local_parameters = {
-        #:df => 'work_title',
+        :df => 'work_title',
         :type => 'dismax',
-        :qf => 'work_title or exp_title or exp_alt_title or exp_host_title',
-        :pf => 'work_title or exp_title or exp_alt_title or exp_host_title'
+        :qf => 'work_title',
+        :pf => 'work_title'
       }
     end
     
@@ -141,8 +145,14 @@ class CatalogController < ApplicationController
       field.solr_parameters = { :'spellcheck.dictionary' => 'auth_name' }
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'auth_name or auth_alt_name',
-        :pf => 'auth_name or auth_alt_name'
+        :qf => 'auth_name auth_alt_name'
+      }
+    end
+
+    config.add_search_field('id') do |field|
+      field.solr_local_parameters = {
+        :type => 'dismax',
+        :qf => 'auth_id^10.0 work_id auth_alt_id^5.0 exp_id'
       }
     end
     
