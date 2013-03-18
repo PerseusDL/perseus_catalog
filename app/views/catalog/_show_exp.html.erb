@@ -1,25 +1,26 @@
 <%# default partial to display mysql document info in catalog show view for expressions-%>
 
   <% field_list = ["publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "page_start", "page_end", "word_count", "notes"] %>
+<ul>
+  <dl class="dl-horizontal  dl-invert">
 
-<dl class="dl-horizontal  dl-invert">
+    <%# item urls-%>
+    <% unless doc.fetch("urls") == "" %>
+      <dt><%="Find the text here:" %></dt>
+      <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls"), :id => doc.fetch("cts_urn")} %>
+    <% end%>
 
-  <%# item urls-%>
-  <% unless doc.fetch("urls") == "" %>
-    <dt><%="Find the text here:" %></dt>
-    <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls"), :id => doc.fetch("cts_urn")} %>
-  <% end%>
+    <%# show fields-%>
+    <%= render_document_partial @document, :show %>
 
-  <%# show fields-%>
-  <%= render_document_partial @document, :show %>
-
-  <%# mysql fields-%>
-  <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
- 
-  <%# host urls-%>   
-  <% unless doc.fetch("host_urls") == "" %>      
-    <dt><%= "Host work location:" %></dt>
-    <%= render :partial => "url_render", :locals => {:value => doc.fetch("host_urls")} %>
-  <% end%>
-  
-</dl>
+    <%# mysql fields-%>
+    <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
+   
+    <%# host urls-%>   
+    <% unless doc.fetch("host_urls") == "" %>      
+      <dt><%= "Host work location:" %></dt>
+      <%= render :partial => "url_render", :locals => {:value => doc.fetch("host_urls")} %>
+    <% end%>
+    
+  </dl>
+</ul>

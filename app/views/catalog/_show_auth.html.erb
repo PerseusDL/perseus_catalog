@@ -18,8 +18,8 @@
   <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls")} %>
 
 <div>
-  <p> &nbsp </p>
-  <p> <%="Works by #{doc.fetch("name")}"%></p>
+  &nbsp
+  <h4> <%="Works by #{doc.fetch("name")}"%></h4>
   <%# list works-%> 
   <% works = find_related(doc) %>
 

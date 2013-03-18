@@ -12,6 +12,6 @@ class Expression < ActiveRecord::Base
     doc_hash = doc.attributes
   end
 
-  
-  
+
+
 end

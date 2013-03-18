@@ -20,18 +20,24 @@
 </dl>
 
 <div>
-  <p> &nbsp </p>  
-<ul>
-  <% exprs.each do |expr| %>
-    <% expr_hash = expr.attributes %>
-    <% e_id = expr_hash["cts_urn"] %>
-    <% c_e_id = expr_hash["clean_cts_urn"] %>
-    <% #This doesn't work, how to send a query to solr? @document = get_solr_response_for_doc_id(id=c_e_id) %>
-    <li><%= "Expression ID:" %>
-    <%= link_to e_id, c_e_id, :path => 'solr_document' %></li>
-    <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
+  &nbsp
 
-    <p> &nbsp </p>
-  <% end %>
-</ul>
+<%# I've utilized the facet code here to make easy collapsable lists. Might want to override the css to give it different styling, make a special class for it-%>
+
+  <div id="facets" class="facets sidenav">
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Expressions for this Work, Click to Expand" %></h4>
+
+    <% exprs.each do |expr| %>
+      <% expr_hash = expr.attributes %>
+      <% e_id = expr_hash["cts_urn"] %>
+      <% c_e_id = expr_hash["clean_cts_urn"] %>
+
+      <div class="facets-collapse">
+        <h5><%= "Expression ID:" %>
+        <%= link_to e_id, c_e_id, :path => 'solr_document' %></h5>
+        <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
+      </div>
+
+    <% end %>
+  </div>
 </div>
