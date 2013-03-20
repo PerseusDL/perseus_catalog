@@ -153,7 +153,7 @@ class CatalogController < ApplicationController
     config.add_search_field('id') do |field|
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'auth_id^10.0 work_id auth_alt_id^5.0 exp_id'
+        :qf => 'auth_id^10.0 work_stand_id^2.0 auth_alt_id^5.0 exp_id'
       }
     end
     
