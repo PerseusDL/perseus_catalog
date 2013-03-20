@@ -4,7 +4,13 @@ class HathiCompare
 	require 'hathi_importer.rb'
 	require 'mysql2'
 
+  def hathi_check
 	#want to check how old the latest files we have are, import if more than a month old
+    dir = "~/hathi"
+    unless dir.exists?
+         
+
+  end
   #run import rake task
 
   #process the hathifiles one at a time, building them into hashes

@@ -54,9 +54,9 @@ class CatalogController < ApplicationController
     # facet bar
     config.add_facet_field 'auth_facet', :label => 'Author', :limit => 20
     config.add_facet_field 'work_facet', :label => 'Title', :limit => 20 
-    config.add_facet_field 'work_lang', :label => 'Language'
-    config.add_facet_field 'subject', :label => 'Subject', :limit => 20 
-    config.add_facet_field 'series', :label => 'Series' , :limit => 20 
+    config.add_facet_field 'language', :label => 'Language'
+    config.add_facet_field 'subject', :label => 'Subject', :limit => 10 
+    config.add_facet_field 'series', :label => 'Series' , :limit => 10 
     
 
     #config.add_facet_field 'example_pivot_field', :label => 'Pivot Field', :pivot => ['format', 'language']
