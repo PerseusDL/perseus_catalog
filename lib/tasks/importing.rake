@@ -23,7 +23,7 @@ task :parse_records => :environment do
 end
 
 desc "Hathifiles import"
-task :hathifiles_import => environment do
+task :hathifiles_import => :environment do
   #pull the latest metadata files from the HathiTrust
   importer = HathiImporter.new
 

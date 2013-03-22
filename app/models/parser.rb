@@ -21,7 +21,7 @@ class Parser
       auth_set = doc.xpath("//mads:authority//mads:namePart[not(@type='date')]")
       name_arr=[]
       auth_set.each {|node| name_arr << node.inner_text}
-      auth_name = name_arr[0]
+      auth_name = name_arr.join(" ")
 
       var_set = doc.xpath("//mads:variant")
       name_var = []
@@ -52,45 +52,56 @@ class Parser
         person.alt_parts = temp.join("; ")
         person.dates = doc.xpath("//mads:authority//mads:namePart[@type='date']").inner_text
 
-        person.field_of_activity = doc.xpath("//mads:fieldOfActivity").inner_text
+        person.field_of_activity = turn_to_list(doc, "//mads:fieldOfActivity", "; ")
 
-        note_set = doc.xpath("//mads:note")
-        note_list = []
-        note_set.each {|node| note_list << node.inner_text}
-        person.notes = note_list.join("; ")
+        person.notes = turn_to_list(doc, "//mads:note", "; ")
 
-        url_set = doc.xpath("//mads:url")
-        url_list = []
-        url_set.each {|node| url_list << node.inner_text}
-        person.urls = url_list.join("; ")
+        person.urls = turn_to_list(doc, "//mads:url", "; ")
 
-        alt_ids = []
+        ids = []
+        count = ["", 0, false]
         doc.xpath("mads:mads/mads:identifier").each do |id|
-          id_type = id.attribute('type').value if id.attribute('type')
-          nums = id.inner_text
-          nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
-          #taking into account potential "Psuedo" authors without their own record
-          if id.attribute('displayLabel')
-            alt_id_name = id.attribute('displayLabel').value
-            alt_ids << "#{alt_id_name}: #{id_type}#{nums}"
-          else
-            alt_ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
-            unless person.mads_id
-              case id_type 
-                when "tlg", "phi", "stoa", "stoa author", "stoa author-text"
-                  #This isn't too smart, need a way to intellegently select tlg vs phi for authors who have both
-                  person.mads_id = (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
+          if id.attribute('type')
+            id_type = id.attribute('type').value 
+            id_type = "stoa" if id_type =~ /stoa/
+            nums = id.inner_text.gsub(/\.\w+|-\w+/, "")
+            #standardize the numbers, pad with 0s if needed
+            nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
+            #taking into account potential "Psuedo" authors without their own record
+            if (id.attribute('displayLabel') && (id.attribute('displayLabel').value != "SHA"))
+              alt_id_name = id.attribute('displayLabel').value
+              ids << "#{alt_id_name}: #{id_type}#{nums}"
+            else
+              ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
+
+              #count the occurances of related work ids, will try to use the id type that has the most related works
+              rw_set = doc.xpath("mads:mads/mads:extension/identifier")
+              count[2] = true unless rw_set.empty?
+              type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
+              if type_set
+                tl = type_set.length 
+                if tl > count[1]
+                  count[0] = id_type
+                  count[1] = tl
+                end
               end
-              #trying to catch identifiers without named types
-              case nums
-                when /tlg/, /phi/, /stoa/
-                  person.mads_id = nums
-              end      
             end
           end
         end
-        person.alt_id = alt_ids.join("; ")
+        person.alt_id = ids.join("; ")
 
+        unless count[0] == ""
+          best_id = ids.select{|x| x =~ /#{count[0]}/}
+          person.mads_id = best_id.first 
+        else
+          if count[2] == true
+            puts "Listed related works do not synch with ids"
+            person.mads_id = ids.first
+          else
+            puts "No listed related works"
+            person.mads_id = ids.first
+          end
+        end
         #if record has none of the main id types, grab the first identifier to make sure there is an id saved
         frst_id = doc.xpath("//mads:identifier")[0]
         person.mads_id = "#{frst_id.attribute('type').value}#{frst_id.inner_text}" unless person.mads_id
@@ -101,11 +112,22 @@ class Parser
 
       puts "MADS record imported!"
 
-    rescue
+    rescue Exception => e
         puts "Something went wrong! #{$!}" 
+        puts e.backtrace
     end  
   end
 
+
+  def self.turn_to_list(doc, path, join_type)
+
+    node_set = doc.xpath(path)
+    node_list = []
+    node_set.each {|node| node_list << node.inner_text}
+    node_string = node_list.join(join_type)
+    return node_string
+
+  end
 
   def self.mods_parse(doc)
 
@@ -124,10 +146,8 @@ class Parser
 
       #find the author
       auth_raw = doc.xpath("//cts:groupname", ns).inner_text
-      if (auth_raw and auth_raw != "")
-        author = Author.find_by_name_or_alt_name(auth_raw)
-      else
-        #if groupname was blank (not an author) find by id
+      if id
+        #search for the author by id
         a_id = id.split(".")[0]
 
         #an attempt to take into account the few that lack phi or tlg at the front
@@ -139,10 +159,11 @@ class Parser
             a_id = "tlg#{a_id}"
           end
         end
-
         author = Author.find_by_mads_or_alt_ids(a_id)
+        
       end
-   
+
+    #if the author can not be found by id or alt_id, then create a new author in the table
       unless author
         author = Author.new
         author.name = auth_raw
