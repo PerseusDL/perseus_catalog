@@ -45,3 +45,5 @@ gem "bootstrap-sass"
 gem 'bootswatch-rails'
 gem 'mysql2'
 gem 'foreigner'
+gem "devise"
+gem "devise-guests", "~> 0.3"
