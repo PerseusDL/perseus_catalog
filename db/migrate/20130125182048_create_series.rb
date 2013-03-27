@@ -2,6 +2,7 @@ class CreateSeries < ActiveRecord::Migration
   def change
     create_table :series do |t|
       t.string :ser_title
+      t.string :clean_title, :null=>false
       t.string :abbr_title
       t.timestamps
     end

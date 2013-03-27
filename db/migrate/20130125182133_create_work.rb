@@ -6,6 +6,7 @@ class CreateWork < ActiveRecord::Migration
       t.integer :author_id
       t.string :title, :null => false
       t.string :language
+      t.integer :word_count
       t.timestamps
     end
 

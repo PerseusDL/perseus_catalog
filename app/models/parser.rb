@@ -170,6 +170,10 @@ class Parser
         author.mads_id = id.split(".")[0]
         author.save
       end
+      
+      #grab the first word count, since right now all word counts are really work level
+      w_c = doc.xpath("//mods:part/mods:extent/mods:total", ns)
+      words = w_c.first.inner_text if w_c.first
 
       #find if there is a row for this work already, if not, create a new one and populate the row
       work = Work.find_by_standard_id(id)
@@ -186,6 +190,7 @@ class Parser
         w_set = doc.xpath("//cts:work", ns)
         work.title = w_set.xpath("dc:title", ns).inner_text
         work.language = w_set.attribute('lang').value
+        work.word_count = words
         work.save
       else
         puts "Missing a work or author entry in the tables, something is wrong, check the file for #{auth_raw} and/or #{id}"
@@ -321,17 +326,32 @@ class Parser
                 ser_title = raw_ser
               end
             end
+            #series name standardization
+            case
+              when (ser_title =~ /Teubner/i or ser_abb =~ /Teubner/i)
+                clean_title = "Bibliotheca Teubneriana"
+              when (ser_title =~ /Loeb|LCL/i or ser_abb =~ /Loeb|LCL/i)
+                clean_title = "Loeb Classical Library"
+              when (ser_title =~ /Oxford|oxoniensis/i or ser_abb =~ /OCT/i)
+                clean_title = "Oxford Classical Texts"
+              when (ser_title =~ /Bohn/i)
+                clean_title = "Bohn's Classical Library"
+              else
+                clean_title = ser_title.split(/,|\[|\(/)[0]
+            end
 
-            ser = Series.find_by_ser_title(ser_title)
+            ser = Series.find_by_clean_title(clean_title)
 
             unless ser
               ser = Series.new
               ser.ser_title = ser_title
+              ser.clean_title = clean_title
               ser.abbr_title = ser_abb if ser_abb
               ser.save
             end
 
             expression.series_id = ser.id if (ser and !expression.series_id)
+
           end
 
           #get page ranges and word counts
@@ -344,6 +364,9 @@ class Parser
               expression.word_count = ex_tag.xpath("mods:total", ns).inner_text
             end
           end
+
+          #get oclc id
+          expression.oclc_id = rel_item.xpath("mods:identifier[@type='oclc']", ns).inner_text
 
           #HAVE IGNORED CONSTITUENT ITEMS FOR NOW UNTIL I FIGURE OUT HOW TO HANDLE THEM
         end
