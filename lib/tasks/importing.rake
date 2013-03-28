@@ -4,7 +4,7 @@ desc "Parse xml formatted records"
 task :parse_records => :environment do
 
   #supply the directory or file to be imported and a file_type description
-  #accepted tags are 'atom', 'mods', 'author', 'edtrans'
+  #accepted tags are 'atom', 'error', 'author', 'edtrans'
   file_type = ENV["file_type"]
   rec_file = ENV["rec_file"]
   importer = XmlImporter.new

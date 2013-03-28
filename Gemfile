@@ -47,3 +47,5 @@ gem 'mysql2'
 gem 'foreigner'
 gem "devise"
 gem "devise-guests", "~> 0.3"
+gem 'execjs'
+gem 'therubyracer'

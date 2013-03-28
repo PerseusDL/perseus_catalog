@@ -12,9 +12,9 @@ class XmlImporter
     if file_type == "atom"
       puts "sending to atom parser"
       Parser.atom_parse(doc)
-    elsif file_type == "mods"
-      puts "sending to MODS parser"
-      Parser.mods_parse(doc)
+    elsif file_type == "error"
+      puts "sending to atom error parser"
+      Parser.error_parse(raw_xml)
     elsif file_type == "author" || "edtrans"
       puts "sending to MADS parser"
       Parser.mads_parse(doc, file_type)
@@ -33,6 +33,8 @@ class XmlImporter
       else
         if file_type == ("author" or "edtrans")
           import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/
+        elsif file_type == "error"
+          import("#{directory_path}/#{file}", file_type) if file =~ /errors\.aae/
         else
           import("#{directory_path}/#{file}", file_type) if file =~ /\.xml/
         end   

@@ -5,6 +5,7 @@ class Parser
   require 'author.rb'
   require 'editors_or_translator.rb'
   require 'work.rb'
+  require 'atom_error.rb'
 
 
 
@@ -113,8 +114,8 @@ class Parser
       puts "MADS record imported!"
 
     rescue Exception => e
-        puts "Something went wrong! #{$!}" 
-        puts e.backtrace
+      puts "Something went wrong! #{$!}" 
+      puts e.backtrace
     end  
   end
 
@@ -129,10 +130,37 @@ class Parser
 
   end
 
-  def self.mods_parse(doc)
+  def self.error_parse(doc)
+    #import of error files produced by producing the atom feed, for purposes of figuring out the gaps of the catalog
+    begin
+      doc.each do |line|
+        clean_line = line.gsub(/\%20/, " ")
+        l_arr = line.split('&')
+        #0e_Perseus 1e_ids 2e_titles 3e_lang 4e_idTypes 5e_updateDate 6e_authorUrl 7e_authorNames 8e_collection 9e_authorId
 
+        #get the id and id type, need to account for multiple ids listed
+        id_arr = l_arr[1].split("%2C")
+        id_type_arr = l_arr[4].split("%2C")
+
+        id_arr.each_with_index {|id, ind| full_ids[ind] = "#{id}#{id_type_arr[ind]}"}
+        puts "testing how this works"
+
+        #get the title
+        #get the language
+        #get the author name and use the id to get probable mads id
+        #search the authors table for the author, if they aren't there, create a new author
+      end
+    rescue Exception => e
+      puts "Something went wrong! #{$!}" 
+      puts e.backtrace
+    end
   end
 
+  def self.data_clean(piece)
+    arr = piece.split("%2C")
+    first = arr[0].gsub(/.+\=/, "")
+    arr[0] = first
+  end
 
   def self.atom_parse(doc)
     #importing of information from atom feeds, will populate several tables

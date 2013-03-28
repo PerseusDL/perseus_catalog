@@ -10,7 +10,18 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130326150435) do
+ActiveRecord::Schema.define(:version => 20130328112701) do
+
+  create_table "atom_errors", :force => true do |t|
+    t.string   "standard_id", :null => false
+    t.integer  "author_id"
+    t.string   "title",       :null => false
+    t.string   "language"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
+  end
+
+  add_index "atom_errors", ["author_id"], :name => "er_auth_idx"
 
   create_table "authors", :force => true do |t|
     t.string   "mads_id"
@@ -87,6 +98,7 @@ ActiveRecord::Schema.define(:version => 20130326150435) do
     t.integer  "page_start"
     t.integer  "page_end"
     t.integer  "word_count"
+    t.integer  "oclc_id"
     t.string   "urls"
     t.string   "host_urls"
     t.datetime "created_at",    :null => false
@@ -110,9 +122,10 @@ ActiveRecord::Schema.define(:version => 20130326150435) do
 
   create_table "series", :force => true do |t|
     t.string   "ser_title"
+    t.string   "clean_title", :null => false
     t.string   "abbr_title"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
   end
 
   create_table "taggings", :force => true do |t|
@@ -157,11 +170,14 @@ ActiveRecord::Schema.define(:version => 20130326150435) do
     t.integer  "author_id"
     t.string   "title",       :null => false
     t.string   "language"
+    t.integer  "word_count"
     t.datetime "created_at",  :null => false
     t.datetime "updated_at",  :null => false
   end
 
   add_index "works", ["author_id"], :name => "w_auth_idx"
+
+  add_foreign_key "atom_errors", "authors", :name => "er_auth", :dependent => :delete
 
   add_foreign_key "expressions", "editors_or_translators", :name => "e_ed", :column => "editor_id", :dependent => :delete
   add_foreign_key "expressions", "editors_or_translators", :name => "e_trans", :column => "translator_id", :dependent => :delete
