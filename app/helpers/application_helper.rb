@@ -26,6 +26,8 @@ module ApplicationHelper
 
   end
 
-  
-
+  def find_missing_works (author)  
+    error_works = AtomError.find(:all, :conditions => {:author_id => author["id"]})
+    return error_works
+  end
 end

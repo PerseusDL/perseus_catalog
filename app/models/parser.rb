@@ -134,21 +134,63 @@ class Parser
     #import of error files produced by producing the atom feed, for purposes of figuring out the gaps of the catalog
     begin
       doc.each do |line|
+        
         clean_line = line.gsub(/\%20/, " ")
-        l_arr = line.split('&')
+        l_arr = clean_line.split('&')
         #0e_Perseus 1e_ids 2e_titles 3e_lang 4e_idTypes 5e_updateDate 6e_authorUrl 7e_authorNames 8e_collection 9e_authorId
 
-        #get the id and id type, need to account for multiple ids listed
-        id_arr = l_arr[1].split("%2C")
-        id_type_arr = l_arr[4].split("%2C")
-
-        id_arr.each_with_index {|id, ind| full_ids[ind] = "#{id}#{id_type_arr[ind]}"}
-        puts "testing how this works"
+        #get the id and id type, need to account for multiple ids listed, get author id at same time
+        id_arr = data_clean(l_arr[1])
+        id_type_arr = data_clean(l_arr[4])
+        full_ids = []
+        auth_id = ""
+        
+        id_arr.each_with_index do |id, ind| 
+          id = sprintf("%03d", id) if !(id =~ /\d{3}/)
+          unless (id =~ /stoa/ || id =~ /\./)
+            frst = id_arr[0]
+            f_part = frst.split(".")[0]
+            id = "#{f_part}.#{id}"
+          end
+          id_parts = id.split(".")
+          id_type = id_type_arr[ind]
+          auth_id = "#{id_type}#{id_parts[0]}"
+          
+          full_ids[ind] = (id_type =~ /stoa/ ? "#{id}" : "#{id_type}#{id_parts[0]}.#{id_type}#{id_parts[1]}")
+        end
 
         #get the title
+        titles = data_clean(l_arr[2])
+
         #get the language
-        #get the author name and use the id to get probable mads id
+        lang = data_clean(l_arr[3])
+
+        #get the author name
+        auth_name = data_clean(l_arr[7])
+
         #search the authors table for the author, if they aren't there, create a new author
+        author = Author.find_by_mads_or_alt_ids(auth_id)
+        unless author
+          author = Author.new
+          author.name = auth_name[0]
+          author.mads_id = auth_id
+          author.save
+        end
+        auth_db_id = author.id
+
+        #save ids to errors table
+        full_ids.each do |e_id|
+          a_error = AtomError.find_by_standard_id(e_id)
+          unless a_error
+            a_error = AtomError.new
+          end
+          puts "Adding information for error for work #{e_id}"
+          a_error.standard_id = e_id
+          a_error.author_id = auth_db_id
+          a_error.title = titles[0]
+          a_error.language = lang[0]
+          a_error.save
+        end
       end
     rescue Exception => e
       puts "Something went wrong! #{$!}" 
@@ -160,6 +202,7 @@ class Parser
     arr = piece.split("%2C")
     first = arr[0].gsub(/.+\=/, "")
     arr[0] = first
+    return arr
   end
 
   def self.atom_parse(doc)

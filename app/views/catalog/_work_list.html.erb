@@ -1,0 +1,38 @@
+<%# partial to display nicely formatted list of works for author pages-%>  
+<div class="row">  
+  <div class="span4">
+    <% works = find_related(doc) %>
+
+    <h5> <%="Works Currently Cataloged"%></h5>
+    <% works.each do |work| %>
+      <% work_hash = work.attributes %>
+      <% w_id = work_hash["standard_id"] %>
+      <% c_w_id = work_hash["clean_id"] %>
+      <dt><%= "Work ID:" %></dt>
+      <dd><%= link_to w_id, c_w_id, :path => 'solr_document' %></dd>
+      <dt><%= "Title:" %></dt>
+      <dd><%= work_hash["title"] %></dd>
+      <dt><%= "Word Count:" %></dt>
+      <dd><%= work_hash["word_count"] %></dd>
+      <p> &nbsp </p>
+    <% end %>
+  </div>
+
+  <div class="span4 offset1">    
+    <% err_works = find_missing_works(doc) %>
+    <% unless err_works.empty? %>
+      <h5> <%="Works Not Yet Cataloged"%></h5>
+      
+      <% err_works.each do |e_work| %>
+        <% e_work_hash = e_work.attributes %>
+        <% w_id = e_work_hash["standard_id"] %>
+        <dt><%= "Work ID:" %></dt>
+        <dd><%= w_id %></dd>
+        <dt><%= "Title:" %></dt>
+        <dd><%= e_work_hash["title"] %></dd>
+        <p> &nbsp </p>
+      <% end %>
+    <% end %>
+  </div>
+  
+</div>

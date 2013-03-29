@@ -17,24 +17,12 @@
   <dt><%= "Author info:" %></dt>
   <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls")} %>
 
-<div>
+  <%# list works-%> 
   &nbsp
   <h4> <%="Works by #{doc.fetch("name")}"%></h4>
-  <%# list works-%> 
-  <% works = find_related(doc) %>
-
-  <% works.each do |work| %>
-    <% work_hash = work.attributes %>
-    <% w_id = work_hash["standard_id"] %>
-    <% c_w_id = work_hash["clean_id"] %>
-    <dt><%= "Work ID:" %></dt>
-    <dd><%= link_to w_id, c_w_id, :path => 'solr_document' %></dd>
-    <dt><%= "Title:" %></dt>
-    <dd><%= work_hash["title"] %></dd>
-    <p> &nbsp </p>
-  <% end %>
-
-</div>
+  <HR SIZE="3" NOSHADE>
+  <%= render :partial => "work_list", :locals => {:doc => doc} %>
 
 </dl>
 
+  <h3><%= "A Pretty Visualization Will Go Down Here" %></h3>
