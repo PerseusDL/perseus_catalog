@@ -34,8 +34,11 @@
 
       <div class="facets-collapse">
         <h5><%= "Expression ID:" %>
-        <%= link_to e_id, c_e_id, :path => 'solr_document' %></h5>
-        <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
+        <%= e_id %></h5>
+        <ul>
+          <%= link_to "Click Here to go to Expression", c_e_id, :path => 'solr_document' %>
+          <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
+        </ul>
       </div>
 
     <% end %>

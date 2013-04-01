@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130328112701) do
+ActiveRecord::Schema.define(:version => 20130401181955) do
 
   create_table "atom_errors", :force => true do |t|
     t.string   "standard_id", :null => false
@@ -164,6 +164,19 @@ ActiveRecord::Schema.define(:version => 20130328112701) do
   add_index "users", ["email"], :name => "index_users_on_email", :unique => true
   add_index "users", ["reset_password_token"], :name => "index_users_on_reset_password_token", :unique => true
 
+  create_table "word_counts", :force => true do |t|
+    t.integer  "auth_id",        :null => false
+    t.integer  "total_words"
+    t.integer  "words_done"
+    t.integer  "tufts_google"
+    t.integer  "harvard_mellon"
+    t.integer  "to_do"
+    t.datetime "created_at",     :null => false
+    t.datetime "updated_at",     :null => false
+  end
+
+  add_index "word_counts", ["auth_id"], :name => "wc_auth_idx"
+
   create_table "works", :force => true do |t|
     t.string   "standard_id", :null => false
     t.string   "clean_id",    :null => false
@@ -183,6 +196,8 @@ ActiveRecord::Schema.define(:version => 20130328112701) do
   add_foreign_key "expressions", "editors_or_translators", :name => "e_trans", :column => "translator_id", :dependent => :delete
   add_foreign_key "expressions", "series", :name => "e_series", :dependent => :delete
   add_foreign_key "expressions", "works", :name => "e_work", :dependent => :delete
+
+  add_foreign_key "word_counts", "authors", :name => "wc_auth", :column => "auth_id", :dependent => :delete
 
   add_foreign_key "works", "authors", :name => "w_auth", :dependent => :delete
 

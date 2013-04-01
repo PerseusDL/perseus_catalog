@@ -2,37 +2,59 @@
 <div class="row">  
   <div class="span4">
     <% works = find_related(doc) %>
-
-    <h5> <%="Works Currently Cataloged"%></h5>
+    <div id="facets" class="facets sidenav">
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Works Currently Cataloged" %></h4>
     <% works.each do |work| %>
       <% work_hash = work.attributes %>
       <% w_id = work_hash["standard_id"] %>
       <% c_w_id = work_hash["clean_id"] %>
-      <dt><%= "Work ID:" %></dt>
-      <dd><%= link_to w_id, c_w_id, :path => 'solr_document' %></dd>
-      <dt><%= "Title:" %></dt>
-      <dd><%= work_hash["title"] %></dd>
-      <dt><%= "Word Count:" %></dt>
-      <dd><%= work_hash["word_count"] %></dd>
-      <p> &nbsp </p>
+
+      <div class="facets-collapse">
+        <h5><%= "Work ID:  #{w_id}" %></h5>
+        <ul>
+          <%# getting rid of the dt dd lists here because of the two column set up, the formatting looks bad-%>
+          <table cellpadding="10">
+            <tr>
+              <td colspan="2"><%= link_to "Click here to go to Work", c_w_id, :path => 'solr_document' %></td>
+            </tr>
+            <tr> 
+              <td class="muted"><%= "Title:"%></td>
+              <td><%= work_hash["title"] %></td>
+            </tr>
+            <tr>
+              <td class="muted" align='right'><%= "Word Count:"%></td> 
+              <td><%=work_hash["word_count"] %></td>
+            </tr>
+          </table>
+          <li></li>
+        </ul>
+      </div>
     <% end %>
+    </div>
   </div>
 
-  <div class="span4 offset1">    
+<div class="row">  
+  <div class="span4 offset1">
     <% err_works = find_missing_works(doc) %>
     <% unless err_works.empty? %>
-      <h5> <%="Works Not Yet Cataloged"%></h5>
-      
-      <% err_works.each do |e_work| %>
+    <div id="facets" class="facets sidenav">
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%="Works Not Yet Cataloged"%></h4>
+      <% err_works.each do |e_work| %>       
         <% e_work_hash = e_work.attributes %>
         <% w_id = e_work_hash["standard_id"] %>
-        <dt><%= "Work ID:" %></dt>
-        <dd><%= w_id %></dd>
-        <dt><%= "Title:" %></dt>
-        <dd><%= e_work_hash["title"] %></dd>
-        <p> &nbsp </p>
+        <div class="facets-collapse">
+          <h5><%= "Work ID:  #{w_id}" %></h5>
+          <ul>
+            <table cellpadding="10">
+              <tr> 
+              <td class="muted"><%= "Title:"%></td>
+              <td><%= e_work_hash["title"] %></td>
+              </tr>
+            </table>
+          </ul>
+        </div>
       <% end %>
+    </div>
     <% end %>
   </div>
-  
 </div>

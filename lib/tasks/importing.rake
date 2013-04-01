@@ -28,3 +28,19 @@ task :hathifiles_import => :environment do
   importer = HathiImporter.new
 
 end
+
+desc "Word count import"
+task :import_word_count => :environment do
+  #use a csv of word counts to populate the word_counts table
+  file = ENV["file"]
+  file_type = ENV["type"]
+  importer = WordCountImporter.new
+
+  begin
+    if File.exist?(file)
+      importer.import_csv(file, file_type)
+    end
+  rescue
+    puts "Something went wrong #{$!}" 
+  end
+end
