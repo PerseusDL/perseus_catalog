@@ -49,3 +49,4 @@ gem "devise"
 gem "devise-guests", "~> 0.3"
 gem 'execjs'
 gem 'therubyracer'
+gem 'd3_rails'

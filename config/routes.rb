@@ -3,6 +3,8 @@ BlacklightTest::Application.routes.draw do
 
   root :to => "catalog#index"
 
+  match "vis", :to => 'vis#index', :as => 'vis_index'
+
   Blacklight.add_routes(self)
 
   # The priority is based upon order of creation:
