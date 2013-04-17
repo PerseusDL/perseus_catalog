@@ -178,8 +178,7 @@ while (<FILE>)
         "e_authorId" => $author_id,
         "e_authorUrl" => $author_url,
         "e_Perseus" => $perseus,
-	"e_lang" => $lang,
-	"e_updateDate" => "2011-04-20T00:00:00Z"
+	"e_lang" => $lang
     );
     my $qs = join "&" , map { "$_=" . uri_escape($params{$_}) } keys %params;
     my $request = "$service?$qs";
