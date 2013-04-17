@@ -184,7 +184,7 @@ while (<FILE>)
     my $qs = join "&" , map { "$_=" . uri_escape($params{$_}) } keys %params;
     my $request = "$service?$qs";
     my $response = $ua->post($service,\%params);
-    #warn "Calling $qs\n"; 
+    #warn "Calling $request\n"; 
     #my $response = $ua->get($request);
     if ($response->is_success)
     {
@@ -196,7 +196,7 @@ while (<FILE>)
             print ERRORS "$qs\n";
             close ERRORS;
         } else {
-            ($ctsurn) = $decoded =~ /<atom:id>org.perseus:.*?:([^<]+)/;
+            ($ctsurn) = $decoded =~ /<atom:id>http:\/\/data.perseus.org\/catalog\/urn:cts:(?:.*?):(.*?)\/atom/;
 	    print qq!$orig\turn:cts:$ctsurn\n!;
             open XML, ">feeds/$ctsurn.xml" or die $!;
             print XML encode_utf8($decoded);

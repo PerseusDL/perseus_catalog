@@ -7,15 +7,14 @@ declare option exist:serialize "method=xml media-type=text/xml";
 let $e_collection := request:get-parameter("e_collection", ())
 let $e_ids := request:get-parameter("e_ids",())
 let $e_idTypes := request:get-parameter("e_idTypes",())
-let $e_lang := request:get-parameter("e_lang",())
-let $e_authorUrl := request:get-parameter("e_authorUrl",())
-let $e_authorId := request:get-parameter("e_authorId",())
-let $e_authorNames := request:get-parameter("e_authorNames",())
-let $e_titles := request:get-parameter("e_titles",())
+let $e_lang := request:get-parameter("e_lang",(""))
+let $e_authorUrl := request:get-parameter("e_authorUrl",(""))
+let $e_authorId := request:get-parameter("e_authorId",(""))
+let $e_authorNames := request:get-parameter("e_authorNames",(""))
+let $e_titles := request:get-parameter("e_titles",(""))
 let $e_perseus := xs:boolean(request:get-parameter("e_perseus",false()))
-let $e_updateDate := request:get-parameter("e_updateDate",())
+let $e_updateDate := request:get-parameter("e_updateDate",current-dateTime())
 let $e_debug := request:get-parameter("e_debug",())
-
 
 let $frbr := collection($e_collection)
 
@@ -86,7 +85,7 @@ let $result :=
     else 
         (: if we couldn't find a mods record for it, look for a perseus record :)
         let $perseus := frbr:find_perseus(doc('/FRBR/perseuscts.xml'),$idlist,$typelist)
-        let $id := frbr:make_id(string($mods[1]),string($mods[2]))
+        let $id := frbr:make_id(string($perseus[1]),string($perseus[2]))
         return 
             if ($perseus) then frbr:make_sip($e_collection,$e_lang,$id,(),(),$e_titles,$e_updateDate)
         else 
