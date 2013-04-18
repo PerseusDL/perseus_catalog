@@ -10,6 +10,7 @@ class CreateExpression < ActiveRecord::Migration
       t.integer :translator_id
       t.string :language
       t.string :place_publ
+      t.string :place_code
       t.string :publisher
       t.integer :date_publ
       t.integer :date_mod

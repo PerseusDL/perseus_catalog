@@ -52,10 +52,9 @@ class CatalogController < ApplicationController
     #
     # :show may be set to false if you don't want the facet to be drawn in the 
     # facet bar
-    config.add_facet_field 'auth_facet', :label => 'Author', :limit => 20
-    config.add_facet_field 'work_facet', :label => 'Title', :limit => 20 
+    config.add_facet_field 'auth_facet', :label => 'Author', :limit => 20, :sort => 'index' 
+    config.add_facet_field 'work_facet', :label => 'Title', :limit => 20, :sort => 'index' 
     config.add_facet_field 'language', :label => 'Language'
-    config.add_facet_field 'subject', :label => 'Subject', :limit => 10 
     config.add_facet_field 'series', :label => 'Series' , :limit => 10 
     
 

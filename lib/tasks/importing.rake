@@ -29,6 +29,13 @@ task :hathifiles_import => :environment do
 
 end
 
+desc "quick Hathifiles import"
+task :quick_hathifiles_import => :environment do
+  #pull the latest metadata files from the HathiTrust
+  importer = HathiCompare.new
+  importer.hathi_quick
+end
+
 desc "Word count import"
 task :import_word_count => :environment do
   #use a csv of word counts to populate the word_counts table

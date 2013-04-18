@@ -322,6 +322,10 @@ class Parser
         mods_rec.xpath(".//mods:placeTerm[@type='text']", ns).each {|p| raw_place << p.inner_text}
         expression.place_publ = raw_place.join("; ")
 
+        raw_code = []
+        mods_rec.xpath(".//mods:placeTerm[@type='code']", ns).each {|p| raw_code << p.inner_text}
+        expression.place_code = raw_code.join("; ")
+
         raw_pub =[]
         mods_rec.xpath(".//mods:publisher", ns).each {|pu| raw_pub << pu.inner_text}
         expression.publisher = raw_pub.join("; ")
