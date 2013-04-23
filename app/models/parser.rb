@@ -16,6 +16,8 @@ class Parser
     #MADS maps to the authors table, the fields in the table are
     #id, name, alt_parts, birth_date, death_date, alt_names, field_of_activity
     #notes, urls, mads_id
+    start_time = Date.today
+    person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'w')
     begin
       
       #pull the author authority name
@@ -115,6 +117,7 @@ class Parser
 
     rescue Exception => e
       puts "Something went wrong! #{$!}" 
+      person_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end  
   end
@@ -207,11 +210,13 @@ class Parser
 
   def self.atom_parse(doc)
     #importing of information from atom feeds, will populate several tables
-
+    start_time = Date.today
+    missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'w')
+    atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'w')
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
-
+      
       #begin with identifying the work
       id = doc.xpath("atom:feed/atom:id", ns).inner_text
 
@@ -235,10 +240,12 @@ class Parser
       end
 
     #if the author can not be found by id or alt_id, then create a new author in the table
+     
       unless author
         author = Author.new
         author.name = auth_raw
         author.mads_id = id.split(".")[0]
+        missing_auth << "#{author.name}, #{author.mads_id}"
         author.save
       end
       
@@ -452,6 +459,7 @@ class Parser
 
     rescue Exception => e
       puts "Something went wrong! #{$!}"
+      atom_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end
   end

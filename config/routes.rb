@@ -5,6 +5,15 @@ BlacklightTest::Application.routes.draw do
 
   match "vis", :to => 'vis#index', :as => 'vis_index'
 
+
+
+      resources :solr_document,  :path => 'catalog', :controller => 'catalog', :only => [:show, :update], :constraints=>{:id => /.+/} 
+
+      # :show and :update are for backwards-compatibility with catalog_url named routes
+      resources :catalog, :only => [:show, :update], :constraints=>{:id => /.+/} 
+ 
+
+
   Blacklight.add_routes(self)
 
   # The priority is based upon order of creation:
