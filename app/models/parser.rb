@@ -17,7 +17,7 @@ class Parser
     #id, name, alt_parts, birth_date, death_date, alt_names, field_of_activity
     #notes, urls, mads_id
     start_time = Date.today
-    person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'a')
+    #person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'a')
     begin
       
       #pull the author authority name
@@ -135,11 +135,11 @@ class Parser
 
     rescue Exception => e
       puts "Something went wrong! #{$!}" 
-      person_error_log << "Error for #{auth_name}\n"
-      person_error_log << "#{$!}\n#{e.backtrace}\n\n"
+      #person_error_log << "Error for #{auth_name}\n"
+      #person_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end  
-    person_error_log.close
+    #person_error_log.close
   end
 
 
@@ -231,8 +231,8 @@ class Parser
   def self.atom_parse(doc)
     #importing of information from atom feeds, will populate several tables
     start_time = Date.today
-    missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
-    atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'a')
+    #missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
+    #atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'a')
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
@@ -268,7 +268,7 @@ class Parser
         author = Author.new
         author.name = auth_raw
         author.mads_id = a_id
-        missing_auth << "#{auth_raw}, #{a_id}"
+        #missing_auth << "#{auth_raw}, #{a_id}"
         author.save
       end
       
@@ -492,7 +492,7 @@ class Parser
 
     rescue Exception => e
       puts "Something went wrong! #{$!}"
-      atom_error_log << "#{$!}\n#{e.backtrace}\n\n"
+      #atom_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end
   end
