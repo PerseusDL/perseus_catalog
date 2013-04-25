@@ -27,10 +27,8 @@ test:
 production:
   adapter: mysql2
   encoding: utf8
-  host: 23.21.200.102
-  port: 3306
   database: perseus_blacklight
   pool: 5
   username: root
   password: 0ne sh0t
-  socket: /tmp/mysql.sock
+  socket: /var/lib/mysql/mysql.sock
