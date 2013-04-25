@@ -10,6 +10,8 @@
 # jetty_path is only required for rake tasks that need to know
 # how to start up solr, generally for automated testing. 
 
+production: 
+  url: "http://23.21.200.102:8080/solr/db"
 development:
   url: "http://localhost:8983/solr/db"
 test: &test
