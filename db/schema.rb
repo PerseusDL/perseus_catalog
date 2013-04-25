@@ -46,21 +46,6 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.string   "user_type"
   end
 
-  create_table "comments", :force => true do |t|
-    t.string   "title",            :limit => 50, :default => ""
-    t.text     "comment"
-    t.integer  "commentable_id"
-    t.string   "commentable_type"
-    t.integer  "user_id"
-    t.string   "role",                           :default => "comments"
-    t.datetime "created_at",                                             :null => false
-    t.datetime "updated_at",                                             :null => false
-  end
-
-  add_index "comments", ["commentable_id"], :name => "index_comments_on_commentable_id"
-  add_index "comments", ["commentable_type"], :name => "index_comments_on_commentable_type"
-  add_index "comments", ["user_id"], :name => "index_comments_on_user_id"
-
   create_table "editors_or_translators", :force => true do |t|
     t.string   "mads_id"
     t.string   "alt_id"
@@ -85,6 +70,7 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.integer  "translator_id"
     t.string   "language"
     t.string   "place_publ"
+    t.string   "place_code"
     t.string   "publisher"
     t.integer  "date_publ"
     t.integer  "date_mod"
@@ -93,7 +79,6 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.text     "notes"
     t.string   "subjects"
     t.string   "cts_urn",       :null => false
-    t.string   "clean_cts_urn", :null => false
     t.integer  "series_id"
     t.integer  "page_start"
     t.integer  "page_end"
@@ -126,23 +111,6 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.string   "abbr_title"
     t.datetime "created_at",  :null => false
     t.datetime "updated_at",  :null => false
-  end
-
-  create_table "taggings", :force => true do |t|
-    t.integer  "tag_id"
-    t.string   "taggable_id"
-    t.string   "taggable_type"
-    t.integer  "tagger_id"
-    t.string   "tagger_type"
-    t.string   "context",       :limit => 128
-    t.datetime "created_at"
-  end
-
-  add_index "taggings", ["tag_id"], :name => "index_taggings_on_tag_id"
-  add_index "taggings", ["taggable_id", "taggable_type", "context"], :name => "index_taggings_on_taggable_id_and_taggable_type_and_context"
-
-  create_table "tags", :force => true do |t|
-    t.string "name"
   end
 
   create_table "users", :force => true do |t|
@@ -179,7 +147,6 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
 
   create_table "works", :force => true do |t|
     t.string   "standard_id", :null => false
-    t.string   "clean_id",    :null => false
     t.integer  "author_id"
     t.string   "title",       :null => false
     t.string   "language"

@@ -19,7 +19,6 @@ class CreateExpression < ActiveRecord::Migration
       t.text :notes
       t.string :subjects
       t.string :cts_urn, :null => false
-      t.string :clean_cts_urn, :null => false
       t.integer :series_id
       t.integer :page_start
       t.integer :page_end

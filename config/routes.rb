@@ -6,12 +6,14 @@ BlacklightTest::Application.routes.draw do
   match "vis", :to => 'vis#index', :as => 'vis_index'
 
 
+  #resources :solr_document, :constraints => {:id => /urn:cts:\w+:\w+\.*\w*\.*\w*-*\w*/}
 
-      resources :solr_document,  :path => 'catalog', :controller => 'catalog', :only => [:show, :update], :constraints=>{:id => /.+/} 
 
-      # :show and :update are for backwards-compatibility with catalog_url named routes
-      resources :catalog, :only => [:show, :update], :constraints=>{:id => /.+/} 
- 
+  
+=begin
+  # :show and :update are for backwards-compatibility with catalog_url named routes
+  resources :catalog, :only => [:show, :update]
+=end
 
 
   Blacklight.add_routes(self)
@@ -72,4 +74,7 @@ BlacklightTest::Application.routes.draw do
   # This is a legacy wild controller route that's not recommended for RESTful applications.
   # Note: This route will make all actions in every controller accessible via GET requests.
   # match ':controller(/:action(/:id))(.:format)'
+
+
+
 end

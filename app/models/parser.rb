@@ -17,7 +17,7 @@ class Parser
     #id, name, alt_parts, birth_date, death_date, alt_names, field_of_activity
     #notes, urls, mads_id
     start_time = Date.today
-    person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'w')
+    person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'a')
     begin
       
       #pull the author authority name
@@ -36,11 +36,75 @@ class Parser
         auth_name = name_var[0]
       end
 
+      #grab the ids
+      ids = []
+      count = ["", 0, false]
+      doc.xpath("mads:mads/mads:identifier").each do |id|
+        if id.attribute('type')
+          id_type = id.attribute('type').value 
+          id_type = "stoa" if id_type =~ /stoa/
+          nums = id.inner_text.gsub(/\.\w+|-\w+/, "")
+          #standardize the numbers, pad with 0s if needed
+          nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
+          #a little extra cleaning, just in case...
+          nums = nums.strip
+          nums = nums.delete "."
+          #taking into account potential "Psuedo" authors without their own record
+          if (id.attribute('displayLabel') && (id.attribute('displayLabel').value != "SHA"))
+            alt_id_name = id.attribute('displayLabel').value
+            ids << "#{alt_id_name}: #{id_type}#{nums}"
+          else
+            ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
+
+            #count the occurances of related work ids, will try to use the id type that has the most related works
+            rw_set = doc.xpath("mads:mads/mads:extension/identifier")
+            count[2] = true unless rw_set.empty?
+            type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
+            if type_set
+              tl = type_set.length 
+              if tl > count[1]
+                count[0] = id_type
+                count[1] = tl
+              end
+            end
+          end
+        end
+      end
+      
+      prob_mads_id = nil
+      unless count[0] == ""
+        best_id = ids.select{|x| x =~ /#{count[0]}/}
+        prob_mads_id = best_id.first 
+      else
+        if count[2] == true
+          puts "Listed related works do not synch with ids"
+          ix = ids.index {|x| x =~ /tlg|phi|stoa/}
+          prob_mads_id = ids[ix] if ix
+        else
+          puts "No listed related works"
+          ix = ids.index {|x| x =~ /tlg|phi|stoa/}
+          prob_mads_id = ids[ix] if ix
+        end
+      end
+      #if record has none of the main id types, grab the first identifier
+      frst_id = doc.xpath("//mads:identifier")[0]
+      prob_mads_id = "#{frst_id.attribute('type').value}#{frst_id.inner_text}" unless prob_mads_id
+
+
+      #first try to find by name or id
       if file_type == "author"
         person = Author.find_by_name_or_alt_name(auth_name)
+        unless person
+         
+          person = Author.find_by_mads_or_alt_ids(prob_mads_id)
+        end
       else
         person = EditorsOrTranslator.find_by_name_or_alt_name(auth_name)
+        unless person
+          person = EditorsOrTranslator.find_by_mads_id(prob_mads_id)
+        end
       end
+
 
       #determine if author already in the table, if not, make a new row
       unless person
@@ -61,54 +125,8 @@ class Parser
 
         person.urls = turn_to_list(doc, "//mads:url", "; ")
 
-        ids = []
-        count = ["", 0, false]
-        doc.xpath("mads:mads/mads:identifier").each do |id|
-          if id.attribute('type')
-            id_type = id.attribute('type').value 
-            id_type = "stoa" if id_type =~ /stoa/
-            nums = id.inner_text.gsub(/\.\w+|-\w+/, "")
-            #standardize the numbers, pad with 0s if needed
-            nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
-            #taking into account potential "Psuedo" authors without their own record
-            if (id.attribute('displayLabel') && (id.attribute('displayLabel').value != "SHA"))
-              alt_id_name = id.attribute('displayLabel').value
-              ids << "#{alt_id_name}: #{id_type}#{nums}"
-            else
-              ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
-
-              #count the occurances of related work ids, will try to use the id type that has the most related works
-              rw_set = doc.xpath("mads:mads/mads:extension/identifier")
-              count[2] = true unless rw_set.empty?
-              type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
-              if type_set
-                tl = type_set.length 
-                if tl > count[1]
-                  count[0] = id_type
-                  count[1] = tl
-                end
-              end
-            end
-          end
-        end
         person.alt_id = ids.join("; ")
 
-        unless count[0] == ""
-          best_id = ids.select{|x| x =~ /#{count[0]}/}
-          person.mads_id = best_id.first 
-        else
-          if count[2] == true
-            puts "Listed related works do not synch with ids"
-            person.mads_id = ids.first
-          else
-            puts "No listed related works"
-            person.mads_id = ids.first
-          end
-        end
-        #if record has none of the main id types, grab the first identifier to make sure there is an id saved
-        frst_id = doc.xpath("//mads:identifier")[0]
-        person.mads_id = "#{frst_id.attribute('type').value}#{frst_id.inner_text}" unless person.mads_id
- 
         person.save
           
       end
@@ -117,9 +135,11 @@ class Parser
 
     rescue Exception => e
       puts "Something went wrong! #{$!}" 
+      person_error_log << "Error for #{auth_name}\n"
       person_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end  
+    person_error_log.close
   end
 
 
@@ -211,21 +231,22 @@ class Parser
   def self.atom_parse(doc)
     #importing of information from atom feeds, will populate several tables
     start_time = Date.today
-    missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'w')
-    atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'w')
+    missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
+    atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'a')
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
       
       #begin with identifying the work
-      id = doc.xpath("atom:feed/atom:id", ns).inner_text
+      raw_id = doc.xpath("//cts:work", ns)
+      id = raw_id.attribute('urn').value
 
       #find the author
       auth_raw = doc.xpath("//cts:groupname", ns).inner_text
-      if id
-        #search for the author by id
-        a_id = id.split(".")[0]
-
+      #grab author id
+      a_id_raw = doc.xpath("//cts:textgroup", ns)
+      a_id = a_id_raw.attribute('urn').value
+=begin
         #an attempt to take into account the few that lack phi or tlg at the front
         unless a_id =~ /[a-z]+\d+/
           o_id = doc.xpath("atom:feed/atom:entry/atom:id").first.inner_text
@@ -235,17 +256,19 @@ class Parser
             a_id = "tlg#{a_id}"
           end
         end
-        author = Author.find_by_mads_or_alt_ids(a_id)
+=end
+      #search for the author by id
+      author = Author.find_by_mads_or_alt_ids(a_id)
         
-      end
+
 
     #if the author can not be found by id or alt_id, then create a new author in the table
      
       unless author
         author = Author.new
         author.name = auth_raw
-        author.mads_id = id.split(".")[0]
-        missing_auth << "#{author.name}, #{author.mads_id}"
+        author.mads_id = a_id
+        missing_auth << "#{auth_raw}, #{a_id}"
         author.save
       end
       
@@ -263,7 +286,6 @@ class Parser
       if work and author
         
         work.standard_id = id
-        work.clean_id = id.gsub(/\.|\s/, "_")
         work.author_id = author.id
         w_set = doc.xpath("//cts:work", ns)
         work.title = w_set.xpath("dc:title", ns).inner_text
@@ -289,7 +311,6 @@ class Parser
           expression.cts_urn = raw_urn
         end
   
-        expression.clean_cts_urn = raw_urn.gsub(/\.|:|-/, "_")
         expression.work_id = work.id
 
         #find the uniform, abbreviated and alternative titles
@@ -322,7 +343,19 @@ class Parser
           end
         end
 
-        expression.language = mods_rec.xpath("mods:language/mods:languageTerm", ns).inner_text
+        lang_nodes = mods_rec.xpath("mods:language/mods:languageTerm", ns)
+        lang_nodes.each do |part|
+          att = part.attribute("objectPart")
+          if att 
+            if att.value == "text"
+              expression.language = part.inner_text
+            end
+          end
+        end
+
+        unless expression.language
+          expression.language = lang_nodes.first.inner_text
+        end
           
         #the following group occurs in the originInfo tag
         raw_place = []

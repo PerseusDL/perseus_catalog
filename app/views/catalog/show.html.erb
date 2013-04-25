@@ -26,14 +26,14 @@
           <div>
             <%# Link to the related work, doing this here so it is not repeated on the work pages-%>
             <% work, auth = find_related(doc)%>
-            <% w_id = work["clean_id"] %>
+            <% w_id = "#{work["standard_id"]}" %>
             <% w_title = work["title"] %>
             <% a_id = auth["mads_id"] %>
             <% a_name = auth["name"] %>
             <p class="lead"><%= "This is an expression of "%>
-            <%= link_to w_title, w_id, :path => 'solr_document' %>
+            <%= link_to w_title, :id => w_id %>
             <%= " written by " %>
-            <%= link_to a_name, a_id, :path => 'solr_document' %></p>
+            <%= link_to a_name, :id => a_id %></p>
           </div>
 
           <%= render :partial => 'show_exp', :locals => {:doc => doc} %>

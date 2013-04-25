@@ -8,9 +8,10 @@ class Author < ActiveRecord::Base
   end
 
   def self.find_by_mads_or_alt_ids(id)
-    found_id = Author.find_by_mads_id(id)
+    found_id = Author.where(["mads_id RLIKE ?", id]).first
     unless found_id
-      found_id = Author.where(["alt_id RLIKE ?", id]).first
+      short_id = id.split(':').last
+      found_id = Author.where(["alt_id RLIKE ?", short_id]).first
     end
     return found_id
   end

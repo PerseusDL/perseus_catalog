@@ -14,7 +14,7 @@
 
   <%# This is not very pretty... There is probably a better way-%>
   <dt><%= "Author:" %></dt>
-  <dd><%= link_to @document.values_at("work_auth_name")[0], auth.attributes["mads_id"], :path => 'solr_document'%></dd>
+  <dd><%= link_to @document.values_at("work_auth_name")[0], :id => auth.attributes["mads_id"]%></dd>
   
 
 </dl>
@@ -30,13 +30,12 @@
     <% exprs.each do |expr| %>
       <% expr_hash = expr.attributes %>
       <% e_id = expr_hash["cts_urn"] %>
-      <% c_e_id = expr_hash["clean_cts_urn"] %>
 
       <div class="facets-collapse">
         <h5><%= "Expression ID:" %>
         <%= e_id %></h5>
         <ul>
-          <%= link_to "Click Here to go to Expression", c_e_id, :path => 'solr_document' %>
+          <%= link_to "Click Here to go to Expression", :id => e_id %>
           <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
         </ul>
       </div>

@@ -36,6 +36,20 @@ task :quick_hathifiles_import => :environment do
   importer.hathi_quick
 end
 
+desc "Hathi collection building"
+task :hathi_build => :environment do
+  file = ENV["file"]
+  importer = HathiCompare.new
+  importer.hathi_build(file)
+end
+
+desc "Find oclc ids"
+task :oclc_id_find => :environment do
+  file = ENV['file']
+  importer = HathiCompare.new
+  importer.oclc_id_find(file)
+end
+
 desc "Word count import"
 task :import_word_count => :environment do
   #use a csv of word counts to populate the word_counts table

@@ -7,7 +7,6 @@
     <% works.each do |work| %>
       <% work_hash = work.attributes %>
       <% w_id = work_hash["standard_id"] %>
-      <% c_w_id = work_hash["clean_id"] %>
 
       <div class="facets-collapse">
         <h5><%= "Work ID:  #{w_id}" %></h5>
@@ -15,7 +14,7 @@
           <%# getting rid of the dt dd lists here because of the two column set up, the formatting looks bad-%>
           <table cellpadding="10">
             <tr>
-              <td colspan="2"><%= link_to "Click here to go to Work", c_w_id, :path => 'solr_document' %></td>
+              <td colspan="2"><%= link_to "Click here to go to Work", :id => w_id %></td>
             </tr>
             <tr> 
               <td class="muted"><%= "Title:"%></td>
