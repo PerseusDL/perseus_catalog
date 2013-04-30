@@ -231,6 +231,7 @@ class Parser
   def self.atom_parse(doc)
     #importing of information from atom feeds, will populate several tables
     start_time = Date.today
+    #Keeping these error files lines for potential use locally
     #missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
     #atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'a')
     begin
@@ -246,17 +247,7 @@ class Parser
       #grab author id
       a_id_raw = doc.xpath("//cts:textgroup", ns)
       a_id = a_id_raw.attribute('urn').value
-=begin
-        #an attempt to take into account the few that lack phi or tlg at the front
-        unless a_id =~ /[a-z]+\d+/
-          o_id = doc.xpath("atom:feed/atom:entry/atom:id").first.inner_text
-          if o_id =~ /latinLit/
-            a_id = "phi#{a_id}"
-          elsif o_id =~ /greekLit/
-            a_id = "tlg#{a_id}"
-          end
-        end
-=end
+
       #search for the author by id
       author = Author.find_by_mads_or_alt_ids(a_id)
         
@@ -378,7 +369,7 @@ class Parser
         expression.edition = mods_rec.xpath(".//mods:edition", ns).inner_text
 
         raw_des = mods_rec.xpath(".//mods:physicalDescription", ns).inner_text
-        expression.phys_descr =  raw_des.strip.gsub(/\s*\n\s*/,'\; ')
+        expression.phys_descr =  raw_des.strip.gsub(/\s*\n\s*/,'; ')
         
         #compile all note tags
         raw_notes = []
