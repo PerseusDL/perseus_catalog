@@ -91,8 +91,13 @@ foreach my $file (sort keys %both)
         $count++;
 }
 print "FOUND IN BOTH: $count\n";
-`cp $idmatches/errors.xml $all/errors.idmatches.xml`;
-`cp $anon/errors.xml $all/errors.anon.xml`;
-`cp $latin/errors.xml $all/errors.aae-latin.xml`;
-`cp $greek/errors.xml $all/errors.aae-greek.xml`;
+`cp $idmatches/errors.xml $all/errors.idmatches.csv`;
+`cp $anon/errors.xml $all/errors.anon.csv`;
+`cp $latin/errors.xml $all/errors.aae-latin.csv`;
+`cp $greek/errors.xml $all/errors.aae-greek.csv`;
+`cp $greek/noids.out $all/errors-noids.aae-greek.csv`;
+`cp $latin/noids.out $all/errors-noids.aae-latin.csv`;
+`cp $anon/noids.out $all/errors-noids.anon.csv`;
+`cp $idmatches/noids.out $all/errors-noids.idmatches.csv`;
 `rm $all/errors.xml`;
+`rm $all/noids.out`;

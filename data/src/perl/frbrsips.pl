@@ -20,7 +20,7 @@ my $service = "http://localhost:8080/exist/rest/db/xq/frbrsips.xq";
 my @no_ids;
 my @stoa_assign;
 my @need_stoa;
-open NOIDS, ">noids.out" or die $!;
+open NOIDS, ">feeds/noids.out" or die $!;
 open FILE, "<$file" or die "Can't read $file: " . $! . "\n";
 
 my $count = 1;
@@ -64,8 +64,15 @@ while (<FILE>)
 	    push @titles, $cols[$i]
 		unless !($cols[$i]) || $cols[$i] =~ /\bnone\b/i;
 	}
-	format_phi($cols[19],\@ids,\@id_types);
-	format_stoa($cols[20],\@ids,\@id_types);
+        # override for Seneca the Younger to use stoa over phi
+        # See Bug 1159
+        if ($cols[20] && 
+            $cols[20] =~ /^stoa0255-stoa0(04|06|07|08|09|10|11|12|13|14)/)  {
+	    format_stoa($cols[20],\@ids,\@id_types);
+        } else {
+	    format_phi($cols[19],\@ids,\@id_types);
+	    format_stoa($cols[20],\@ids,\@id_types);
+        }
 	if ($cols[20] =~ /^"?\s*(stoa\d+-unassigned)\s*"?$/)
 	{
 		push @stoa_assign, $orig;
@@ -123,14 +130,24 @@ while (<FILE>)
         push @author_names, $cols[$author_col];
         push @titles, $cols[$title_col];	
 	$perseus = $cols[$perseus_col] =~ /none/i ? 0 : 1;
-        # override for Nepos and Suetonius to use abo
-        if ($cols[$abo_col] && ($cols[$abo_col] =~ /phi,1348/ || $cols[$abo_col] =~ /phi,0588/)) {
+        # override for Suetonius to use abo
+        # See Bug 1159
+        if ($cols[$abo_col] && $cols[$abo_col] =~ /phi,1348/) {
+            $format_tried = 'abo';
+	    format_abo($cols[$abo_col],\@ids,\@id_types);
+            $lang = 'lat';
+        } 
+        # override for Nepos to use abo 
+        # See Bug 1159
+        if ($cols[$abo_col] && $cols[$abo_col] =~ /phi,0588/) {
             $format_tried = 'abo';
 	    format_abo($cols[$abo_col],\@ids,\@id_types);
             $lang = 'lat';
         } 
         # override for Seneca the Younger to use stoa over phi
-        if ($cols[$stoa_col] && $cols[$stoa_col] =~ /^stoa0255-/)  {
+        # See Bug 1159
+        if ($cols[$stoa_col] && 
+            $cols[$stoa_col] =~ /^stoa0255-stoa0(04|06|07|08|09|10|11|12|13|14)/)  {
             $format_tried = 'stoa';
 	    format_stoa($cols[$stoa_col],\@ids,\@id_types);
             $lang = 'lat';
@@ -159,7 +176,7 @@ while (<FILE>)
     {
 	push @no_ids, $orig;
 	print "$orig\t";
-        print NOIDS join ",", ($format_tried,$cols[15],$cols[16],$cols[17]);
+        print NOIDS join "\t", ($file,$orig);
 	if ($count == 1)
 	{
 		print qq!"CTS URN"!
@@ -191,8 +208,17 @@ while (<FILE>)
         my $ctsurn;
         if ($decoded =~ /^<error>/)
         {
+            my (@triedurns) = $decoded =~ /<urn>(.*?)<\/urn>/mgs;
 	    open ERRORS, ">>feeds/errors.xml" or die $!;
-            print ERRORS "$qs\n";
+            foreach my $triedurn (@triedurns) {
+                print ERRORS "$triedurn\t" . 
+                   "$author_id\t"  .
+                   "$author_url\t" . 
+                   "$perseus\t" .
+                   (join ",", @author_names) . "\t" .
+                   (join ",", @titles) . "\t" .
+                   "\n";
+            }
             close ERRORS;
         } else {
             ($ctsurn) = $decoded =~ /<atom:id>http:\/\/data.perseus.org\/catalog\/urn:cts:(?:.*?):(.*?)\/atom/;
@@ -230,7 +256,7 @@ sub format_abo {
     if ($group && $work && ($group eq '0588' || $group eq '1348')) {
         $group = sprintf("%04d",$group);
         $work = sprintf("%03d",$work);
-        push @$id_types, 'Perseus:abo';
+        push @$id_types, 'abo';
         push @$ids, "$group.$work"
     }
 }
@@ -249,12 +275,18 @@ sub format_phi {
 	{
 	    $phi_id =~ s/^\s*//;
 	    $phi_id =~ s/\s*$//;
-	    if ($phi_id =~ /^"?\s*(\d+\.\d+)\??\s*"?$/i)
+	    if ($phi_id =~ /^"?\s*(\d+\.[\d\w]+)\??\s*"?$/i)
 	    {
                 my ($group,$work) = split /\./, $1;
 
                 $group = sprintf("%04d",$group);
-                $work = sprintf("%03d",$work);
+                ##################################
+                # some phi ids look like 474.62x06 
+                # don't pad these with 0s
+                ##################################
+                if ($work =~ /^\d+$/) {
+                    $work = sprintf("%03d",$work);
+                }
 		push @$ids, "$group.$work";
 		push @$id_types, 'phi';
                 $added++;
