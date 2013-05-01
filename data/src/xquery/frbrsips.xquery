@@ -53,7 +53,7 @@ declare function frbr:make_sip($a_collection as xs:string, $a_lang as xs:string,
                   :)
                     element atom:content{
         				attribute type { "text/xml" },                           
-        				frbr:exclude-mods($ctsplus)                                                                                
+        				frbr:exclude-mods($ctsplus)
         			} (: end CTS content element :)
         			(:if ($ctsplus//refindex) then
         				element atom:content{
@@ -126,10 +126,9 @@ declare function frbr:make_id($a_id as xs:string, $a_type as xs:string) as xs:st
     else
     if ($a_type = 'abo')
     then 
-        (: replace 'abo' with 'phi' in the identifier :)
+        (: See bug 1159 :)
         let $parts := tokenize($a_id,"\.")
-        let $combined := for $part in $parts return concat('phi',$part)
-        return string-join($combined,".")
+        return concat('phi',$parts[1],'.','abo',$parts[2])
     else 
         $a_id    
 };
@@ -192,27 +191,31 @@ declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods a
                                     $expression/*
                                 }
                 ),
-                element langs {distinct-values(($a_lang,$a_mods//mods:mods/mods:language[@objectPart = 'text' or not(@objectPart)]/mods:languageTerm))},
-                let $opplangs := distinct-values(($a_lang,$a_mods//mods:mods/mods:language[@objectPart = 'text' or not(@objectPart)]/mods:languageTerm))
-                let $all_opp := (
-                    for $thislang in $opplangs
-                        for $mods at $a_i in $a_mods//mods:mods[mods:language[@objectPart = 'text' or not(@objectPart)]/mods:languageTerm[1][.=$thislang]]
-                            return frbr:make_opp_version($a_id,$a_ns,$perseusExpressions,$a_lang,$a_titles,$mods,$a_i),
-                    for $mods at $a_i in $a_mods//mods:mods[mods:language[(@objectPart = 'text' or not(@objectPart)) and not(mods:languageTerm)]]
-                        return frbr:make_opp_version($a_id,$a_ns,$perseusExpressions,$a_lang,$mods,$a_titles,$a_i)
-                )
-           
-                for $thislang in $opplangs 
-                    for $mods at $a_i in $all_opp[*[contains(@projid,concat('opp-',$thislang))]]
-                        let $renumbered :=
-                            existtx:transform($mods,doc('/db/xslt/fixoppver.xsl'),
-                                <parameters>
-                                    <param name="e_base" value="{concat('urn:cts:',$a_ns,':',$a_id)}"/>
-                                    <param name="e_lang" value="{$thislang}"/>
-                                    <param name="e_ns" value="{$a_ns}"/>
-                                    <param name="e_newVer" value="{$a_i}"/>
-                                 </parameters>)
-                        return $renumbered/*
+                
+                    let $opplangs := distinct-values(($a_lang,$a_mods//mods:mods/mods:language[@objectPart = 'text' or not(@objectPart)]/mods:languageTerm))
+                    let $all_opp := 
+                        for $thislang in $opplangs
+                            for $mods at $a_i in $a_mods
+                                return
+                                    if ($mods//mods:mods/mods:language[@objectPart = 'text' or not(@objectPart)]/mods:languageTerm = $thislang)
+                                    then frbr:make_opp_version($a_id,$a_ns,$perseusExpressions,$a_lang,$a_titles,$mods,$a_i)
+                                    else ()
+                    return
+                        (for $mods in $all_opp[@modsonly]
+                        return $mods/*,
+                        for $thislang in $opplangs 
+                            for $mods at $a_i in $all_opp[*[contains(@projid,concat('opp-',$thislang))]]
+                                let $renumbered :=
+                                    existtx:transform($mods,doc('/db/xslt/fixoppver.xsl'),
+                                        <parameters>
+                                            <param name="e_base" value="{concat('urn:cts:',$a_ns,':',$a_id)}"/>
+                                            <param name="e_lang" value="{$thislang}"/>
+                                            <param name="e_ns" value="{$a_ns}"/>
+                                            <param name="e_newVer" value="{$a_i}"/>
+                                        </parameters>)
+                               return $renumbered/*
+                   )
+                
             } (:end work:)        
         } (:end textgroup:)
     } (: end TextInventory:)
@@ -226,110 +229,126 @@ declare function frbr:make_opp_version($a_id,$a_ns,$a_perseusExpressions,$a_lang
     let $xId := concat($a_ns,':opp-',(if ($lang) then $lang else $a_lang),$a_i)
     let $projid :=
         if ($persLoc) then 
-            let $persDoc := substring-after($persLoc[1],"?doc=Perseus:text:")
+            let $persDoc := 
+                (: handle subdocs :)
+                let $full := substring-after($persLoc[1],"?doc=Perseus:text:")
+                return if (contains($full,':')) then substring-before($full,':') else $full
             let $perseusId := 
                 $a_perseusExpressions//cts:online[@docname = concat($persDoc,".xml")][1]/parent::*/@projid
             return if ($perseusId) then string($perseusId) else $xId                                 
+        (: no perseus url id mods :)
         else $xId
-        let $urn := concat('urn:cts:', $a_ns,':',$a_id,'.',substring-after($xId,':'))
-        let $type :=
-            if ($a_mods/mods:name[mods:role/mods:roleTerm = 'translator'] or 
-                $a_mods/mods:subject[@authority='lcsh' and matches(mods:topic, "translation","i")] or
-                $lang != $a_lang ) then "translation" else "edition"                                    
-         return 
-            element temp {
-                (: only add new editions if we didn't have a perseus edition :)
-                (if (contains($projid,$xId))
-                then
-                    element  {concat ('cts:',$type) } {
-                        if ($type = 'edition') then () else attribute xml:lang { if ($lang) then $lang else $a_lang },
-                            attribute projid { $projid },
-                            attribute urn { $urn },
-                            (for $title in $a_mods/mods:titleInfo[@lang]/mods:title[not(. = $a_titles[1])]                                                                
-                                return                                     
-                                element cts:label {
-                                    attribute xml:lang { xs:string($title/@lang) },                                                                     
-                                    xs:string($title)
-                                }
-                            ),
-                            if ($a_mods/mods:titleInfo[not(@lang)]/mods:title[not(. = $a_titles[1])])
-                            then
-                                element cts:label {
-                                    attribute xml:lang { "en" },                                                                     
-                                    string-join($a_mods/mods:titleInfo/mods:title[not(@lang)],",")
-                                }
-                            else (),                                                                                                                
-                            element cts:description{
-                                attribute xml:lang { "en" },
-                                string-join(
-                                    for $name in $a_mods/mods:name return 
-                                        string-join(($name/mods:namePart,$name/mods:role),",")
-                                        ," ")
-                            }                                               
-                        } (:end edition/translation:)
-                else()),                       
-                let $uniformTitle := 
-                    $a_mods/mods:titleInfo[mods:title = $a_titles[1]][1]
-                let $wordCount := $wordCounts//count[@work=$a_id]
-                return                                                    
-                    (: plugin the mods record, adding a cts identifier and word count if we have it:)                                             
-                    element mods:mods {
-                        attribute xsi:schemaLocation { "http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd" },
-                        (: add the uniform title from the spreadsheet :)
-                        if ($uniformTitle) then 
-                            element mods:titleInfo {
-                                $uniformTitle/@*[not(local-name(.) = 'type')],
-                                if ($uniformTitle/@*[local-name(.) = 'lang']) then ()
-                                else attribute xml:lang { 'en' },
-                                attribute type { 'uniform' },
-                                $uniformTitle/mods:title
-                            }
-                        else                                 
-    	                   element mods:titleInfo {
-    	                       attribute xml:lang { 'en' },
-    	                       attribute type { 'uniform' },
-    	                       element mods:title { $a_titles[1] }
-    	                    },
-    	                (: add the wordcount if we have it :)
-    	                if ($wordCount) then 
-                            element mods:part {
-    	                       element mods:extent {
-    	                           attribute unit { 'words' },
-    	                           element mods:total { xs:int($wordCount) }
-    	                       }
-    	                    }
-    	                else (),
-    	                for $node in $a_mods/mods:titleInfo[not(@type='uniform') and not(mods:title = $a_titles[1])] return
-    	                   $node,
-                        for $node in $a_mods/*[not(local-name(.) = 'titleInfo')]
-                        return
-                            if ( node-name($node) = QName("http://www.loc.gov/mods/v3","identifier") and
+    let $urn := concat('urn:cts:', $a_ns,':',$a_id,'.',substring-after($projid,':'))
+    let $type :=
+    if ($a_mods/mods:name[mods:role/mods:roleTerm = 'translator'] or 
+        $a_mods/mods:subject[@authority='lcsh' and matches(mods:topic, "translation","i")] or
+        $lang != $a_lang ) then "translation" else "edition"                                    
+    return 
+        element temp {
+            (: only add new editions if we didn't have a perseus edition :)
+            (if (not(contains($projid,$xId)))
+            then
+                attribute modsonly { 1 } 
+            else 
+                element  {concat ('cts:',$type) } {
+                    if ($type = 'edition') 
+                    then () 
+                    else attribute xml:lang { if ($lang) then $lang else $a_lang },
+                    attribute projid { $projid },
+                    attribute urn { $urn },
+                    (for $title in $a_mods/mods:titleInfo[@lang]/mods:title[not(. = $a_titles[1])]                                                                
+                    return                                     
+                        element cts:label {
+                            attribute xml:lang { xs:string($title/@lang) },                                                                     
+                            xs:string($title)
+                        }
+                    ),
+                    (: Add the host titles :)
+                    (for $title in ($a_mods/mods:relatedItem[@type='host']/mods:titleInfo[not(@type='alternative')])[1]/mods:title[not(. = $a_titles[1])]                                                                
+                    return                                     
+                        element cts:label {
+                            attribute xml:lang { if ($title/@lang) then xs:string($title/@lang) else 'en' },                                                                     
+                            xs:string($title)
+                        }
+                    ),
+                    if ($a_mods/mods:titleInfo[not(@lang)]/mods:title[not(. = $a_titles[1])])
+                    then
+                        element cts:label {
+                            attribute xml:lang { "en" },                                                                     
+                            string-join($a_mods/mods:titleInfo/mods:title[not(@lang)],",")
+                        }
+                    else (),                                                                                                                
+                    element cts:description{
+                        attribute xml:lang { "en" },
+                        string-join(
+                            for $name in $a_mods/mods:name return 
+                            string-join(($name/mods:namePart,$name/mods:role),",")
+                            ," ")
+                    }                                               
+                } (:end edition/translation:)
+            ),                       
+            let $uniformTitle := 
+                $a_mods/mods:titleInfo[mods:title = $a_titles[1]][1]
+            let $wordCount := $wordCounts//count[@work=$a_id]
+            return                                                    
+                (: plugin the mods record, adding a cts identifier and word count if we have it:)                                             
+                element mods:mods {
+                    attribute xsi:schemaLocation { "http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd" },
+                    (: add the uniform title from the spreadsheet :)
+                    if ($uniformTitle) then 
+                        element mods:titleInfo {
+                            $uniformTitle/@*[not(local-name(.) = 'type')],
+                            if ($uniformTitle/@*[local-name(.) = 'lang']) then ()
+                            else attribute xml:lang { 'en' },
+                            attribute type { 'uniform' },
+                            $uniformTitle/mods:title
+                        }
+                    else                                 
+    	               element mods:titleInfo {
+    	                   attribute xml:lang { 'en' },
+    	                   attribute type { 'uniform' },
+    	                   element mods:title { $a_titles[1] }
+    	               },
+    	            (: add the wordcount if we have it :)
+    	            if ($wordCount) then 
+                        element mods:part {
+    	                   element mods:extent {
+    	                       attribute unit { 'words' },
+    	                       element mods:total { xs:int($wordCount) }
+    	                   }
+    	                }
+    	            else (), (: no wordcount :)
+    	            for $node in $a_mods/mods:titleInfo[not(@type='uniform') and not(mods:title = $a_titles[1])] return
+    	               $node,
+                    for $node in $a_mods/*[not(local-name(.) = 'titleInfo')]
+                    return
+                        if ( node-name($node) = QName("http://www.loc.gov/mods/v3","identifier") and
                                 not(node-name($node/following-sibling::*[1]) = QName("http://www.loc.gov/mods/v3","identifier")) and
                                 not ($node/preceding-sibling::mods:identifier[@type='ctsurn']) and 
-                                not ($node/preceding-sibling::mods:identifier[@type='cts-urn'])
+                                not ($node/preceding-sibling::mods:identifier[@type='cts-urn']) and
+                                not ($node/@type='cts-urn') and not($node/@type='ctsurn')
                                 ) 
-                            then 
-                                (frbr:normalize_display_label($node),
-                                element mods:identifier {
-                                    attribute type {"ctsurn"},
-                                    concat("urn:cts:",$a_ns,":",$a_id,".",substring-after($projid,":"))                                                   
-                                }
-                                )
-                            (: some records use cts-urn instead of ctsurn as type type -- normalize them :)
-                            else if (node-name($node) = QName("http://www.loc.gov/mods/v3","identifier") and $node/@type='cts-urn')
-                            then 
-                                let $urn := replace($node/text(),'(greek|latin)Lang','$1Lit')
-                                return
-                                    element mods:identifier {
-                                        attribute type {"ctsurn"},
-                                        $urn                                                   
-                                    }
-                            else if (node-name($node) = QName("http://www.loc.gov/mods/v3","identifier"))
-                            then frbr:normalize_display_label($node)
-                            else ($node)
-                        }
+                        then 
+                           ( frbr:normalize_display_label($node),
+                            element mods:identifier {
+                                attribute type {"ctsurn"},
+                                concat("urn:cts:",$a_ns,":",$a_id,".",substring-after($projid,":"))                                                   
+                            })
+                            
+                        (: make sure any existing urn is replaced with the correct version :)
+                        else if (node-name($node) = QName("http://www.loc.gov/mods/v3","identifier") and 
+                            ($node/@type='cts-urn' or $node/@type='ctsurn'))
+                        then 
+                            element mods:identifier {
+                                attribute type {"ctsurn"},
+                                concat("urn:cts:",$a_ns,":",$a_id,".",substring-after($projid,":"))                                                   
+                            }
+                        else if (node-name($node) = QName("http://www.loc.gov/mods/v3","identifier"))
+                        then frbr:normalize_display_label($node)
+                        else ($node)
+                } (: end mods :)
                               
-                } (: end temp wrapping element :)
+        } (: end temp wrapping element :)
 };
 
 declare function frbr:normalize_display_label($a_node as node()) as node() {
@@ -403,7 +422,7 @@ declare function frbr:find_mods($a_coll as node()*,$a_ids as xs:string*, $a_type
     let $alt_id := if (contains($a_id,'x')) then upper-case($a_id) else if (contains($a_id,'X')) then lower-case($a_id) else $a_id
     (: alternate version of id without leading 0 :)
     let $strip1 := replace($a_ids[1],"^0+","")
-    let $stripped := if ($check_type = 'Perseus:abo') then concat($check_type,":phi,",replace($a_id,"\.",",")) else replace($strip1,"^([^\.]+\.)0+","$1")
+    let $stripped := if ($check_type = 'abo') then concat('Perseus:',$check_type,":phi,",replace($a_id,"\.",",")) else replace($strip1,"^([^\.]+\.)0+","$1")
     
     (: match on secondary sources :)
     let $secondSrcMatch := '^(is)?((commm?entaryon)|(scholiato)|(summaryof)|(indexof)|(epitomeof)|(introductionto)|(paraphraseof)|(quotedby))$'
@@ -424,7 +443,7 @@ declare function frbr:find_mods($a_coll as node()*,$a_ids as xs:string*, $a_type
 					                                    contains(@type,$check_type) and (text() = $a_id or text() = $stripped or text() = $alt_id)]]		
             let $newmods :=       
                 for $item in $constituent return
-                    (: make a mods record from the related item :)
+                    (: make a mods record from the consituent item :)
 	               <mods 
 	                   xmlns="http://www.loc.gov/mods/v3" 
 	                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 

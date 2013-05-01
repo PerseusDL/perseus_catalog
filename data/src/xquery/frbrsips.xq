@@ -31,7 +31,7 @@ let $result :=
         let $deduped := 
             for $item in $mods/expressions/mods:mods 
                 let $dupes :=
-                    for $url in $item/mods:location/mods:url[matches(.,'.*(google|archive\.org|openlibrary|hdl\.handle)')] return
+                    for $url in $item/mods:location/mods:url[matches(.,'.*(perseus|google|archive\.org|openlibrary|hdl\.handle)')] return
                             (:loop through previous records with the same location url  as possible dupes:)
                             for $possible in $item/preceding::mods:mods/mods:location[mods:url = $url]
                                (:loop through the other locations in this record to see if there mismatches on any of the other locations:)
@@ -89,7 +89,12 @@ let $result :=
         return 
             if ($perseus) then frbr:make_sip($e_collection,$e_lang,$id,(),(),$e_titles,$e_updateDate)
         else 
-        <error>Not Found</error>
+        <error>Not Found,
+        { for $id at $a_i in $idlist
+            let $ns := if ($e_lang = 'grc') then "greekLit:" else "latinLit:"
+            return <urn>{concat('urn:cts:',$ns,frbr:make_id($id,$typelist[$a_i]))}</urn>
+        }
+        </error>
         
 return 
   if ($e_debug) 
