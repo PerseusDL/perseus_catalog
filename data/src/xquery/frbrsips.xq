@@ -34,12 +34,13 @@ let $result :=
                     for $url in $item/mods:location/mods:url[matches(.,'.*(perseus|google|archive\.org|openlibrary|hdl\.handle)')] return
                             (:loop through previous records with the same location url  as possible dupes:)
                             for $possible in $item/preceding::mods:mods/mods:location[mods:url = $url]
-                               (:loop through the other locations in this record to see if there mismatches on any of the other locations:)
-                               (: this is the first test:)
                                 let $still_possible :=
-                                    if ($possible/../mods:location[mods:url != $url]) 
+                                    (:loop through the other locations in this record to see if there mismatches on any of the other locations:)
+                                    (: this is the first test:)
+                                    if ($possible/../mods:location[mods:url != $url and matches(mods:url,'.*(perseus|google|archive\.org|openlibrary|hdl\.handle)')]) 
                                     then
                                         for $purl in $possible/../mods:location[mods:url != $url]
+                                            
                                             let $check := $item/mods:mods/mods:location[@displayLabel = $purl/@displayLabel]
                                             return
                                                 if ($check and $check/mods:url != $purl/mods:url)
@@ -47,12 +48,13 @@ let $result :=
                                                    in the original record, so it is likely not a dupe
                                                  :)
                                                 then () 
-                                                else $purl
-                                   (: if this was the only location in the record, then just assume this is a dupe for this test:)    
+                                                else $purl                              
+                                    (: if this was the only location in the record, then just assume this is a dupe for this test:)
                                     else $possible
-                               return
-                                    (:last test is on language :)
-                                    for $last in $still_possible return
+                            
+                                    let $next_possible :=
+                                        (:next test is on language :)
+                                        for $last in $still_possible return
                                         (: can only do this if we have any languages identified :)
                                         if ($last/../mods:language[@objectPart='text' or not(@objectPart)]) 
                                         then
@@ -65,7 +67,21 @@ let $result :=
                                                 else ()
                                        (:can't dedupe on language if we don't have any so assume it is a dupe:)
                                        else $last
-                return if ($dupes) then () else $item
+                                    (: next text is on perseus url -- if one of the original record and the possible
+                                       dupe record has a perseus url and the other doesn't, let them both in because
+                                       perseus versions should be treated as separate versions anyway
+                                       see Bug 1200
+                                    :)
+                                    for $last in $next_possible return      
+                                        if (
+                                             ($last/../mods:location/mods:url[matches(.,'.*perseus')]
+                                             and not($item/mods:location/mods:url[matches(.,'.*perseus')])) 
+                                             or ( $item/mods:location/mods:url[matches(.,'.*perseus')]) and
+                                              not($last/../mods:location/mods:url[matches(.,'.*perseus')])
+                                            )
+                                         then () 
+                                         else $next_possible
+                return if ($dupes) then <dupe><dupes>{$dupes}</dupes>{$item}</dupe> else $item
         let $related :=
             for $item in $mods/related/mods:mods
                 let $dupes :=
@@ -79,7 +95,9 @@ let $result :=
         let $id := frbr:make_id(string($mods/id),string($mods/type))    
         return 
             (:<request><collection>{$e_collection}</collection><id>{$id}</id><mods>{$mods}</mods><related>{$related}</related><titles>{$e_titles}</titles></request>:)
-            frbr:make_sip($e_collection,$e_lang,$id,$deduped,$related,$e_titles,$e_updateDate)
+            if ($e_debug) then 
+                $deduped else 
+                frbr:make_sip($e_collection,$e_lang,$id,$deduped,$related,$e_titles,$e_updateDate)
                         
                                           
     else 

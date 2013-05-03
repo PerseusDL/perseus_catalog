@@ -133,7 +133,28 @@ declare function frbr:make_id($a_id as xs:string, $a_type as xs:string) as xs:st
         $a_id    
 };
 
-
+declare function frbr:make_groupname($a_mods as node()*) {
+    let $names := 
+        for $creator in ($a_mods/mods:name[mods:role/mods:roleTerm='creator']) 
+        return
+            (: 
+               if we have a namePart without a type and another namePart other than 'given', 
+               then concatonate them
+            :)
+            if ($creator/mods:namePart[not(@type) and $creator/mods:namePart[@type != 'given']])
+            then string-join(
+                (replace($creator/mods:namePart[not(@type)][1],"\.$",""),
+                 $creator/mods:namePart[@type != 'given']), " ")
+            else if ($creator/mods:namePart[not(@type)])
+            then
+                replace($creator/mods:namePart[1],"\.$","")
+            (: only if we don't have a namePart without @type then use whatever we have:)
+            else
+                string-join($creator/mods:namePart,' ')
+    (: just return the first one found  for now :)
+    return 
+        $names[1]
+};
 
 
 declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods as node()*,$a_ns as xs:string,$a_titles as xs:string) as node()
@@ -157,9 +178,7 @@ declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods a
                 attribute xml:lang { "en"},
                 if ($perseusExpressions) 
                 then $perseusExpressions[1]/ancestor::cts:textgroup/cts:groupname/text() 
-                else 
-                  string-join(for $creator in $a_mods[1]/mods:name[mods:role/mods:roleTerm = 'creator']
-                  return replace($creator/mods:namePart[1],"\.$",""), " ")                    
+                else frbr:make_groupname($a_mods)                   
             },            
             element cts:work {
                 attribute projid {
@@ -318,34 +337,19 @@ declare function frbr:make_opp_version($a_id,$a_ns,$a_perseusExpressions,$a_lang
     	                   }
     	                }
     	            else (), (: no wordcount :)
+    	            (: include other titleInfo :)
     	            for $node in $a_mods/mods:titleInfo[not(@type='uniform') and not(mods:title = $a_titles[1])] return
     	               $node,
-                    for $node in $a_mods/*[not(local-name(.) = 'titleInfo')]
+    	            (: cleanup identifiers:)
+    	            for $node in $a_mods/mods:identifier[not(@type='ctsurn') and not(@type='cts-urn')] return
+    	               frbr:normalize_display_label($node),
+                     element mods:identifier {
+                        attribute type {"ctsurn"},
+                        concat("urn:cts:",$a_ns,":",$a_id,".",substring-after($projid,":"))                                                   
+                     },
+                    for $node in $a_mods/*[not(local-name(.) = 'titleInfo') and not(local-name(.) = 'identifier')]
                     return
-                        if ( node-name($node) = QName("http://www.loc.gov/mods/v3","identifier") and
-                                not(node-name($node/following-sibling::*[1]) = QName("http://www.loc.gov/mods/v3","identifier")) and
-                                not ($node/preceding-sibling::mods:identifier[@type='ctsurn']) and 
-                                not ($node/preceding-sibling::mods:identifier[@type='cts-urn']) and
-                                not ($node/@type='cts-urn') and not($node/@type='ctsurn')
-                                ) 
-                        then 
-                           ( frbr:normalize_display_label($node),
-                            element mods:identifier {
-                                attribute type {"ctsurn"},
-                                concat("urn:cts:",$a_ns,":",$a_id,".",substring-after($projid,":"))                                                   
-                            })
-                            
-                        (: make sure any existing urn is replaced with the correct version :)
-                        else if (node-name($node) = QName("http://www.loc.gov/mods/v3","identifier") and 
-                            ($node/@type='cts-urn' or $node/@type='ctsurn'))
-                        then 
-                            element mods:identifier {
-                                attribute type {"ctsurn"},
-                                concat("urn:cts:",$a_ns,":",$a_id,".",substring-after($projid,":"))                                                   
-                            }
-                        else if (node-name($node) = QName("http://www.loc.gov/mods/v3","identifier"))
-                        then frbr:normalize_display_label($node)
-                        else ($node)
+                        $node
                 } (: end mods :)
                               
         } (: end temp wrapping element :)
