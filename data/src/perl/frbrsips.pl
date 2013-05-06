@@ -7,10 +7,11 @@ use Encode;
 
 my $file = $ARGV[0];
 my $e_lang = $ARGV[1];
+my $e_dir = $ARGV[2];
 
-unless ($file && $e_lang)
+unless ($file && $e_lang && $e_dir)
 {
-    print "Usage $0 <file> <lang>";
+    print "Usage $0 <file> <lang> <e_dir>";
     exit -1;
 }
 
@@ -20,7 +21,7 @@ my $service = "http://localhost:8080/exist/rest/db/xq/frbrsips.xq";
 my @no_ids;
 my @stoa_assign;
 my @need_stoa;
-open NOIDS, ">feeds/noids.out" or die $!;
+open NOIDS, ">$e_dir/noids.out" or die $!;
 open FILE, "<$file" or die "Can't read $file: " . $! . "\n";
 
 my $count = 1;
@@ -209,7 +210,7 @@ while (<FILE>)
         if ($decoded =~ /^<error>/)
         {
             my (@triedurns) = $decoded =~ /<urn>(.*?)<\/urn>/mgs;
-	    open ERRORS, ">>feeds/errors.xml" or die $!;
+	    open ERRORS, ">>$e_dir/errors.xml" or die $!;
             foreach my $triedurn (@triedurns) {
                 print ERRORS "$triedurn\t" . 
                    "$author_id\t"  .
@@ -223,7 +224,7 @@ while (<FILE>)
         } else {
             ($ctsurn) = $decoded =~ /<atom:id>http:\/\/data.perseus.org\/catalog\/urn:cts:(?:.*?):(.*?)\/atom/;
 	    print qq!$orig\turn:cts:$ctsurn\n!;
-            open XML, ">feeds/$ctsurn.xml" or die $!;
+            open XML, ">$e_dir/$ctsurn.xml" or die $!;
             print XML encode_utf8($decoded);
             close XML;
         }
