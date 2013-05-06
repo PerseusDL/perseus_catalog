@@ -24,8 +24,8 @@ class CreateExpression < ActiveRecord::Migration
       t.integer :page_end
       t.integer :word_count
       t.integer :oclc_id
-      t.string :urls
-      t.string :host_urls
+      t.boolean :exp_edition
+      t.boolean :exp_translation
       t.timestamps
     end
 

@@ -6,7 +6,9 @@ class Parser
   require 'editors_or_translator.rb'
   require 'work.rb'
   require 'atom_error.rb'
-
+  require 'author_url.rb'
+  require 'textgroup.rb'
+  require 'expression_url.rb'
 
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
@@ -26,14 +28,21 @@ class Parser
       auth_set.each {|node| name_arr << node.inner_text}
       auth_name = name_arr.join(" ")
 
+      rel_set = doc.xpath("//mads:related")
       var_set = doc.xpath("//mads:variant")
       name_var = []
+      rel_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
       var_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
       other_names = name_var.join("; ")
 
       #just in case we have an author without an authority name
-      if auth_name == nil or auth_name == " "
-        auth_name = name_var[0]
+      if auth_name == nil or auth_name == " " or auth_name.empty?
+        sub_name = name_var[0].match(/\w+,\w+,/)
+        auth_name = sub_name.chop if sub_name
+      end
+
+      if auth_name == nil or auth_name.empty? or auth_name == " "
+        throw "Error!  This author doesn't have a name! Abort!"
       end
 
       #grab the ids
@@ -43,61 +52,30 @@ class Parser
         if id.attribute('type')
           id_type = id.attribute('type').value 
           id_type = "stoa" if id_type =~ /stoa/
+          nums = nil
           nums = id.inner_text.gsub(/\.\w+|-\w+/, "")
           #standardize the numbers, pad with 0s if needed
-          nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
-          #a little extra cleaning, just in case...
-          nums = nums.strip
-          nums = nums.delete "."
-          #taking into account potential "Psuedo" authors without their own record
-          if (id.attribute('displayLabel') && (id.attribute('displayLabel').value != "SHA"))
-            alt_id_name = id.attribute('displayLabel').value
-            ids << "#{alt_id_name}: #{id_type}#{nums}"
-          else
-            ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
-
-            #count the occurances of related work ids, will try to use the id type that has the most related works
-            rw_set = doc.xpath("mads:mads/mads:extension/identifier")
-            count[2] = true unless rw_set.empty?
-            type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
-            if type_set
-              tl = type_set.length 
-              if tl > count[1]
-                count[0] = id_type
-                count[1] = tl
-              end
+          unless nums == nil or nums == ""
+            nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
+            #a little extra cleaning, just in case...
+            nums = nums.strip
+            nums = nums.delete "."
+            #taking into account potential "Psuedo" authors without their own record
+            if (id.attribute('displayLabel') && (id.attribute('displayLabel').value != "SHA"))
+              alt_id_name = id.attribute('displayLabel').value
+              ids << "#{alt_id_name}: #{id_type}#{nums}"
+            else
+              ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
             end
           end
         end
       end
-      
-      prob_mads_id = nil
-      unless count[0] == ""
-        best_id = ids.select{|x| x =~ /#{count[0]}/}
-        prob_mads_id = best_id.first 
-      else
-        if count[2] == true
-          puts "Listed related works do not synch with ids"
-          ix = ids.index {|x| x =~ /tlg|phi|stoa/}
-          prob_mads_id = ids[ix] if ix
-        else
-          puts "No listed related works"
-          ix = ids.index {|x| x =~ /tlg|phi|stoa/}
-          prob_mads_id = ids[ix] if ix
-        end
-      end
-      #if record has none of the main id types, grab the first identifier
-      frst_id = doc.xpath("//mads:identifier")[0]
-      prob_mads_id = "#{frst_id.attribute('type').value}#{frst_id.inner_text}" unless prob_mads_id
 
 
       #first try to find by name or id
       if file_type == "author"
         person = Author.find_by_name_or_alt_name(auth_name)
-        unless person
-         
-          person = Author.find_by_mads_or_alt_ids(prob_mads_id)
-        end
+
       else
         person = EditorsOrTranslator.find_by_name_or_alt_name(auth_name)
         unless person
@@ -123,12 +101,56 @@ class Parser
 
         person.notes = turn_to_list(doc, "//mads:note", "; ")
 
-        person.urls = turn_to_list(doc, "//mads:url", "; ")
+        #take the ids array and plug them into the appropriate fields
+        alt_ids =[]
+        urls_arr = []
+        ids.each do |id|
+          case 
+            when id =~ /^phi/
+              person.phi_id = id
+            when id =~ /^tlg/
+              person.tlg_id = id
+            when id =~ /^stoa/
+              person.stoa_id = id
+            when id =~ /viaf|url/
+              urls_arr << "VIAF|#{id}"
+            else
+              alt_ids << id
+          end
+        end
 
-        person.alt_id = ids.join("; ")
+        person.alt_id = alt_ids.join(";")
 
         person.save
           
+      end
+
+      #Save all listed urls to the author_urls table
+      url_list = doc.xpath("//mads:url")
+      if url_list
+        url_list.each do |node|
+          if node.attribute('displayLabel')
+            label = node.attribute('displayLabel').value
+          else
+            label = node.inner_text
+          end
+          act_url = node.inner_text
+          urls_arr << "#{label}|#{act_url}"
+        end
+      end
+
+      urls_arr.each do |x|
+        pair = x.split("|")
+        row = AuthorUrl.find_by_url(pair[1])
+        unless row
+          row = AuthorUrl.new
+        end
+        if row
+          row.author_id = person.id
+          row.url = pair[1]
+          row.display_label = pair[0]
+        end
+        row.save
       end
 
       puts "MADS record imported!"
@@ -143,6 +165,7 @@ class Parser
   end
 
 
+
   def self.turn_to_list(doc, path, join_type)
 
     node_set = doc.xpath(path)
@@ -152,6 +175,8 @@ class Parser
     return node_string
 
   end
+
+
 
   def self.error_parse(doc)
     #import of error files produced by producing the atom feed, for purposes of figuring out the gaps of the catalog
@@ -242,25 +267,37 @@ class Parser
       raw_id = doc.xpath("//cts:work", ns)
       id = raw_id.attribute('urn').value
 
-      #find the author
-      auth_raw = doc.xpath("//cts:groupname", ns).inner_text
-      #grab author id
-      a_id_raw = doc.xpath("//cts:textgroup", ns)
-      a_id = a_id_raw.attribute('urn').value
+      #find the textgroup
+      tg_raw = doc.xpath("//cts:groupname", ns).inner_text
+      #grab textgroup id
+      tg_id_raw = doc.xpath("//cts:textgroup", ns)
+      tg_id = tg_id_raw.attribute('urn').value
+      
+      #save editions and translations
+      inventory = {}
+      inv_tags = ["cts:edition", "cts:translation"]
+      inv_tags.each do |tag|
+        tg_id_raw.xpath("//#{tag}", ns).each do |vers| 
+          urn = vers.attribute("urn").value
+          label = vers.xpath("cts:label", ns).inner_text
+          description = vers.xpath("cts:description", ns).inner_text
+          inventory[urn] = [label, description, tag, false]
+        end
+      end   
 
-      #search for the author by id
-      author = Author.find_by_mads_or_alt_ids(a_id)
+      #search for the textgroup by id
+      textgroup = Textgroup.find_by_urn(tg_id)
         
 
 
-    #if the author can not be found by id or alt_id, then create a new author in the table
+    #if the textgroup can not be found by id or alt_id, then create a new textgroup in the table
      
-      unless author
-        author = Author.new
-        author.name = auth_raw
-        author.mads_id = a_id
-        #missing_auth << "#{auth_raw}, #{a_id}"
-        author.save
+      unless textgroup
+        textgroup = Textgroup.new
+        textgroup.group_name = tg_raw
+        textgroup.urn = tg_id
+        textgroup.urn_end = tg_id.split(":").last
+        textgroup.save
       end
       
       #grab the first word count, since right now all word counts are really work level
@@ -274,18 +311,20 @@ class Parser
         work = Work.new
       end
 
-      if work and author
+      if work and textgroup
         
         work.standard_id = id
-        work.author_id = author.id
+        work.textgroup_id = textgroup.id
         w_set = doc.xpath("//cts:work", ns)
         work.title = w_set.xpath("dc:title", ns).inner_text
         work.language = w_set.attribute('lang').value
         work.word_count = words
         work.save
       else
-        puts "Missing a work or author entry in the tables, something is wrong, check the file for #{auth_raw} and/or #{id}"
+        puts "Missing a work or textgroup entry in the tables, something is wrong, check the file for #{tg_raw} and/or #{id}"
       end
+
+
 
       #run through the MODS records contained in the feed to create expressions and series
       doc.xpath("//mods:mods", ns).each do |mods_rec|
@@ -310,8 +349,15 @@ class Parser
             expression = Expression.new
             expression.cts_urn = cts
           end
-    
+      
           expression.work_id = work.id
+          if inventory.include?(cts)
+            arr = inventory[cts] 
+            expression.exp_edition = arr[2] == "cts:edition"
+            expression.exp_translation = arr[2] == "cts:translation"
+            inventory[cts][3] = true
+
+          end
 
           #find the uniform, abbreviated and alternative titles
           mods_rec.xpath("mods:titleInfo", ns).each do |title_node|
@@ -370,7 +416,7 @@ class Parser
           mods_rec.xpath(".//mods:publisher", ns).each {|pu| raw_pub << pu.inner_text}
           expression.publisher = raw_pub.join("; ")
 
-          pub_date = mods_rec.xpath(".//mods:dateIssued", ns).inner_text.to_i
+          pub_date = mods_rec.xpath(".//mods:dateIssued", ns).first.inner_text.to_i
           expression.date_publ = pub_date unless pub_date == 0 or pub_date == nil
           mod_date = mods_rec.xpath(".//mods:dateModified", ns).inner_text.to_i        
           expression.date_mod = mod_date unless mod_date == 0 or mod_date == nil
@@ -400,13 +446,13 @@ class Parser
           mods_rec.xpath("mods:location/mods:url", ns).each do |u|
             url_label = u.attribute('displayLabel')
             url_name = url_label.value if url_label
+            act_url = u.inner_text
             if url_name
-              raw_urls << "#{url_name}, #{u.inner_text}"
+              raw_urls << "#{url_name}|#{u.inner_text}|"
             else
-              raw_urls << u.inner_text
+              raw_urls << "#{u.inner_text}|#{u.inner_text}|"
             end
           end
-          expression.urls = raw_urls.join("; ")
 
           mods_rec.xpath("mods:relatedItem", ns).each do |rel_item|
             #get host work info
@@ -416,17 +462,15 @@ class Parser
               rel_item.xpath("mods:titleInfo", ns).children.each {|c| raw_ht << c.inner_text.strip}
               raw_ht.delete("")
               expression.host_title = raw_ht.join("; ")
-              h_urls = []
               rel_item.xpath("mods:location/mods:url", ns).each do |u|
                 url_label = u.attribute('displayLabel')
                 url_name = url_label.value if url_label
                 if url_name
-                  h_urls << "#{url_name}, #{u.inner_text}"
+                  raw_urls << "#{url_name}|#{u.inner_text}|h"
                 else
-                  h_urls << u.inner_text
+                  raw_urls << "#{u.inner_text}|#{u.inner_text}|h"
                 end
               end
-              expression.host_urls = h_urls.join("; ")
             end
 
             #get series info
@@ -487,9 +531,42 @@ class Parser
           end
 
           expression.save
+
+          #go ahead and save all urls here
+          unless raw_urls.empty?
+            raw_urls.each do |x|
+              part = x.split("|")
+              url_row = ExpressionUrl.find_by_url(part[1])
+                unless url_row
+                  url_row = ExpressionUrl.new
+                end
+              url_row.exp_id = expression.id
+              url_row.url = part[1]
+              url_row.display_label = part[0]
+              url_row.host_work = part[2] == "h"
+              url_row.save
+            end
+          end
+
         rescue Exception => e
           puts "Something went wrong for the mod! #{$!}"
           puts e.backtrace
+        end
+      end
+
+      inventory.each do |index, item|
+        if item[3] == false
+          exp = NonCatalogedExpression.find_by_urn(index)
+          unless exp
+            exp = NonCatalogedExpression.new
+            exp.urn = index
+          end
+          exp.work_id = Work.find_by_standard_id(id).id
+          exp.title = item[0]
+          exp.ed_trans = item[1]
+          exp.exp_edition = item[2] == "cts:edition"
+          exp.exp_translation = item[2] == "cts:translation"
+          exp.save
         end
       end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130401181955) do
+ActiveRecord::Schema.define(:version => 20130506160519) do
 
   create_table "atom_errors", :force => true do |t|
     t.string   "standard_id", :null => false
@@ -23,8 +23,20 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
 
   add_index "atom_errors", ["author_id"], :name => "er_auth_idx"
 
+  create_table "author_urls", :force => true do |t|
+    t.integer  "author_id"
+    t.text     "url"
+    t.string   "display_label"
+    t.datetime "created_at",    :null => false
+    t.datetime "updated_at",    :null => false
+  end
+
+  add_index "author_urls", ["author_id"], :name => "url_auth_idx"
+
   create_table "authors", :force => true do |t|
-    t.string   "mads_id"
+    t.string   "phi_id"
+    t.string   "tlg_id"
+    t.string   "stoa_id"
     t.string   "alt_id"
     t.string   "name",              :null => false
     t.string   "alt_parts"
@@ -32,7 +44,6 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.string   "alt_names"
     t.string   "field_of_activity"
     t.text     "notes"
-    t.text     "urls"
     t.datetime "created_at",        :null => false
     t.datetime "updated_at",        :null => false
   end
@@ -60,8 +71,19 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.datetime "updated_at",        :null => false
   end
 
+  create_table "expression_urls", :force => true do |t|
+    t.integer  "exp_id",        :null => false
+    t.string   "url"
+    t.string   "display_label"
+    t.boolean  "host_work"
+    t.datetime "created_at",    :null => false
+    t.datetime "updated_at",    :null => false
+  end
+
+  add_index "expression_urls", ["exp_id"], :name => "eu_exp_idx"
+
   create_table "expressions", :force => true do |t|
-    t.integer  "work_id",       :null => false
+    t.integer  "work_id",         :null => false
     t.string   "title"
     t.string   "alt_title"
     t.string   "abbr_title"
@@ -78,21 +100,48 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
     t.string   "phys_descr"
     t.text     "notes"
     t.string   "subjects"
-    t.string   "cts_urn",       :null => false
+    t.string   "cts_urn",         :null => false
     t.integer  "series_id"
     t.integer  "page_start"
     t.integer  "page_end"
     t.integer  "word_count"
-    t.string   "urls"
-    t.string   "host_urls"
-    t.datetime "created_at",    :null => false
-    t.datetime "updated_at",    :null => false
+    t.integer  "oclc_id"
+    t.boolean  "exp_edition"
+    t.boolean  "exp_translation"
+    t.datetime "created_at",      :null => false
+    t.datetime "updated_at",      :null => false
   end
 
   add_index "expressions", ["editor_id"], :name => "e_ed_idx"
   add_index "expressions", ["series_id"], :name => "e_series_idx"
   add_index "expressions", ["translator_id"], :name => "e_trans_idx"
   add_index "expressions", ["work_id"], :name => "e_work_idx"
+
+  create_table "non_cataloged_expressions", :force => true do |t|
+    t.string   "urn",             :null => false
+    t.integer  "work_id",         :null => false
+    t.string   "title"
+    t.string   "ed_trans"
+    t.boolean  "exp_edition"
+    t.boolean  "exp_translation"
+    t.datetime "created_at",      :null => false
+    t.datetime "updated_at",      :null => false
+  end
+
+  add_index "non_cataloged_expressions", ["work_id"], :name => "nce_w_idx"
+
+  create_table "non_cataloged_works", :force => true do |t|
+    t.string   "urn",             :null => false
+    t.integer  "textgroup_id",    :null => false
+    t.string   "title"
+    t.string   "ed_trans"
+    t.boolean  "exp_edition"
+    t.boolean  "exp_translation"
+    t.datetime "created_at",      :null => false
+    t.datetime "updated_at",      :null => false
+  end
+
+  add_index "non_cataloged_works", ["textgroup_id"], :name => "ncw_tg_idx"
 
   create_table "searches", :force => true do |t|
     t.text     "query_params"
@@ -106,9 +155,18 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
 
   create_table "series", :force => true do |t|
     t.string   "ser_title"
+    t.string   "clean_title", :null => false
     t.string   "abbr_title"
     t.datetime "created_at",  :null => false
     t.datetime "updated_at",  :null => false
+  end
+
+  create_table "textgroups", :force => true do |t|
+    t.string   "urn",        :null => false
+    t.string   "urn_end",    :null => false
+    t.string   "group_name"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
   end
 
   create_table "users", :force => true do |t|
@@ -144,25 +202,34 @@ ActiveRecord::Schema.define(:version => 20130401181955) do
   add_index "word_counts", ["auth_id"], :name => "wc_auth_idx"
 
   create_table "works", :force => true do |t|
-    t.string   "standard_id", :null => false
-    t.integer  "author_id"
-    t.string   "title",       :null => false
+    t.string   "standard_id",  :null => false
+    t.integer  "textgroup_id"
+    t.string   "title",        :null => false
     t.string   "language"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.integer  "word_count"
+    t.datetime "created_at",   :null => false
+    t.datetime "updated_at",   :null => false
   end
 
-  add_index "works", ["author_id"], :name => "w_auth_idx"
+  add_index "works", ["textgroup_id"], :name => "w_tg_idx"
 
   add_foreign_key "atom_errors", "authors", :name => "er_auth", :dependent => :delete
+
+  add_foreign_key "author_urls", "authors", :name => "url_auth", :dependent => :delete
+
+  add_foreign_key "expression_urls", "expressions", :name => "eu_exp", :column => "exp_id", :dependent => :delete
 
   add_foreign_key "expressions", "editors_or_translators", :name => "e_ed", :column => "editor_id", :dependent => :delete
   add_foreign_key "expressions", "editors_or_translators", :name => "e_trans", :column => "translator_id", :dependent => :delete
   add_foreign_key "expressions", "series", :name => "e_series", :dependent => :delete
   add_foreign_key "expressions", "works", :name => "e_work", :dependent => :delete
 
+  add_foreign_key "non_cataloged_expressions", "works", :name => "nce_tg", :dependent => :delete
+
+  add_foreign_key "non_cataloged_works", "textgroups", :name => "ncw_tg", :dependent => :delete
+
   add_foreign_key "word_counts", "authors", :name => "wc_auth", :column => "auth_id", :dependent => :delete
 
-  add_foreign_key "works", "authors", :name => "w_auth", :dependent => :delete
+  add_foreign_key "works", "textgroups", :name => "w_tg", :dependent => :delete
 
 end

@@ -2,22 +2,14 @@ class CreateWork < ActiveRecord::Migration
   def change
     create_table :works do |t|
       t.string :standard_id, :null =>false
-      t.integer :author_id
+      t.integer :textgroup_id
       t.string :title, :null => false
       t.string :language
       t.integer :word_count
       t.timestamps
     end
 
-    execute <<-SQL
-      ALTER TABLE `perseus_blacklight`.`works` 
-      ADD CONSTRAINT `w_auth`
-      FOREIGN KEY (`author_id` )
-      REFERENCES `perseus_blacklight`.`authors` (`id` )
-      ON DELETE CASCADE
-      ON UPDATE NO ACTION,
-      ADD INDEX `w_auth_idx` (`author_id` ASC) ;
-    SQL
+
 
     execute <<-SQL
       ALTER TABLE `perseus_blacklight`.`expressions` 
