@@ -1,6 +1,6 @@
 <%# default partial to display mysql document info in catalog show view for works-%>
 <dl class="dl-horizontal  dl-invert">
-  <% d_id = @document.values_at("work_stand_id")[0]%>
+  <% d_id = @document.values_at("work_urn")[0]%>
   <% doc = Work.get_info(d_id) %>
   <% exprs, auth = find_related(doc) %>
 
@@ -13,8 +13,8 @@
   <dd><%= @document.values_at("work_title")[0] %></dd>
 
   <%# This is not very pretty... There is probably a better way-%>
-  <dt><%= "Author:" %></dt>
-  <dd><%= link_to @document.values_at("work_auth_name")[0], :id => auth.attributes["mads_id"]%></dd>
+  <dt><%= "Texgroup:" %></dt>
+  <dd><%= link_to auth.attributes["group_name"], :id => auth.attributes["urn"]%></dd>
   
 
 </dl>
@@ -25,21 +25,42 @@
 <%# I've utilized the facet code here to make easy collapsable lists. Might want to override the css to give it different styling, make a special class for it-%>
 
   <div id="facets" class="facets sidenav">
-    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Expressions for this Work, Click to Expand" %></h4>
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Editions for this Work, Click to Expand" %></h4>
 
     <% exprs.each do |expr| %>
+      
       <% expr_hash = expr.attributes %>
       <% e_id = expr_hash["cts_urn"] %>
+      <% if expr_hash["exp_edition"] == true %>
+        <div class="facets-collapse">
+          <h5><%= "Edition ID:" %>
+          <%= e_id %></h5>
+          <ul>
+            <%= link_to "Click here for Edition record", :id => e_id %>
+            
+          </ul>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
 
-      <div class="facets-collapse">
-        <h5><%= "Expression ID:" %>
-        <%= e_id %></h5>
-        <ul>
-          <%= link_to "Click here Expression record", :id => e_id %>
-          <%= render :partial => 'show_exp', :locals => {:doc => expr_hash} %>
-        </ul>
-      </div>
+  <div id="facets" class="facets sidenav">
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Translations for this Work, Click to Expand" %></h4>
 
+    <% exprs.each do |expr| %>
+      
+      <% expr_hash = expr.attributes %>
+      <% e_id = expr_hash["cts_urn"] %>
+      <% if expr_hash["exp_translation"] == true %>
+        <div class="facets-collapse">
+          <h5><%= "Translation ID:" %>
+          <%= e_id %></h5>
+          <ul>
+            <%= link_to "Click here for Translation record", :id => e_id %>
+            
+          </ul>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </div>

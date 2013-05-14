@@ -1,5 +1,5 @@
 <%# default partial to display mysql document info in catalog show view for authors-%>
-  <% d_id = @document.values_at("uid")[0]%>
+  <% d_id = @document.values_at("auth_name")[0]%>
   <% doc = Author.get_info(d_id) %>
   <% field_list = ["alt_id", "name", "alt_parts", "dates", "alt_names", "field_of_activity", "notes"] %>
   <%# Need to pull author and expression info as well want to create collapsible list of expressions with links to their proper pages/full display of info, perhaps I should go back and populate the expression partial first... -%>
@@ -15,7 +15,7 @@
 
   <%# host urls-%>         
   <dt><%= "Author info:" %></dt>
-  <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls")} %>
+  <%= render :partial => "url_render", :locals => {:id => doc.fetch("id"), :type => "author"} %>
 
   <%# list works-%> 
   &nbsp

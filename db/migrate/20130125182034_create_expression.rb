@@ -2,6 +2,7 @@ class CreateExpression < ActiveRecord::Migration
   def change
     create_table :expressions do |t|
       t.integer :work_id, :null => false
+      t.integer :tg_id, :null => false
       t.string :title
       t.string :alt_title
       t.string :abbr_title
@@ -24,8 +25,7 @@ class CreateExpression < ActiveRecord::Migration
       t.integer :page_end
       t.integer :word_count
       t.integer :oclc_id
-      t.boolean :exp_edition
-      t.boolean :exp_translation
+      t.string :type
       t.timestamps
     end
 

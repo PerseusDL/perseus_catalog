@@ -1,14 +1,20 @@
 <%# default partial to display mysql document info in catalog show view for expressions-%>
+  
+  <% d_id = @document.values_at("uid")[0]%>
+  <% doc = Expression.get_info(d_id) %>
+
+     
+
 
   <% field_list = ["publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "page_start", "page_end", "word_count", "notes"] %>
 
   <dl class="dl-horizontal  dl-invert">
 
     <%# item urls-%>
-    <% unless doc.fetch("urls") == "" %>
-      <dt><%="Find the text here:" %></dt>
-      <%= render :partial => "url_render", :locals => {:value => doc.fetch("urls"), :id => doc.fetch("cts_urn")} %>
-    <% end%>
+
+      <dt><%="Find the text here:"%></dt>
+      <%= render :partial => "url_render", :locals => {:id => doc.fetch("id"), :type => "expression"} %>
+
 
     <%# show fields-%>
     <%= render_document_partial @document, :show %>
@@ -17,10 +23,10 @@
     <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
    
     <%# host urls-%>   
-    <% unless doc.fetch("host_urls") == "" %>      
+   
       <dt><%= "Host work location:" %></dt>
-      <%= render :partial => "url_render", :locals => {:value => doc.fetch("host_urls")} %>
-    <% end%>
+      <%= render :partial => "url_render", :locals => {:id => doc.fetch("id"), :type => "host"} %>
+
     
   </dl>
 
