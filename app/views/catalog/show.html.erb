@@ -20,27 +20,11 @@
       <%= render_document_heading(:h3).html_safe %>
       
       <div class="document">
-        <% if @document.has?("exp_of") %>
-          <% d_id = @document.values_at("exp_id")[0]%>
-          <% doc = Expression.get_info(d_id) %>
-
-          <div>
-            <%# Link to the related work, doing this here so it is not repeated on the work pages-%>
-            <% work, auth = find_related(doc)%>
-            <% w_id = "#{work["standard_id"]}" %>
-            <% w_title = work["title"] %>
-            <% a_id = auth["mads_id"] %>
-            <% a_name = auth["name"] %>
-            <p class="lead"><%= "This is an expression of "%>
-            <%= link_to w_title, :id => w_id %>
-            <%= " written by " %>
-            <%= link_to a_name, :id => a_id %></p>
-          </div>
-
-          <%= render :partial => 'show_exp', :locals => {:doc => doc} %>
-        <% elsif @document.has?("work_stand_id") %>
+        <% if @document.has?("exp_language") %>
+          <%= render 'show_exp'%>
+        <% elsif @document.has?("work_urn") %>
           <%= render 'show_work' %>
-        <% else @document.has?("auth_alt_id") %>
+        <% else @document.has?("auth_facet") %>
           <%= render 'show_auth' %>
         <% end %>
 
