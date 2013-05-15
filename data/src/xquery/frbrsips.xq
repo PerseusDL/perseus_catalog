@@ -67,7 +67,7 @@ let $result :=
                                                 else ()
                                        (:can't dedupe on language if we don't have any so assume it is a dupe:)
                                        else $last
-                                    (: next text is on perseus url -- if one of the original record and the possible
+                                    (: next test is on perseus url -- if one of the original record and the possible
                                        dupe record has a perseus url and the other doesn't, let them both in because
                                        perseus versions should be treated as separate versions anyway
                                        see Bug 1200
@@ -81,7 +81,7 @@ let $result :=
                                             )
                                          then () 
                                          else $next_possible
-                return if ($dupes) then <dupe><dupes>{$dupes}</dupes>{$item}</dupe> else $item
+                return if ($dupes) then () else $item
         let $related :=
             for $item in $mods/related/mods:mods
                 let $dupes :=
