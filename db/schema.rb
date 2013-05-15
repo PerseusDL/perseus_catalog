@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130506160519) do
+ActiveRecord::Schema.define(:version => 20130513191533) do
 
   create_table "atom_errors", :force => true do |t|
     t.string   "standard_id", :null => false
@@ -34,6 +34,7 @@ ActiveRecord::Schema.define(:version => 20130506160519) do
   add_index "author_urls", ["author_id"], :name => "url_auth_idx"
 
   create_table "authors", :force => true do |t|
+    t.string   "urn",               :null => false
     t.string   "phi_id"
     t.string   "tlg_id"
     t.string   "stoa_id"
@@ -83,7 +84,8 @@ ActiveRecord::Schema.define(:version => 20130506160519) do
   add_index "expression_urls", ["exp_id"], :name => "eu_exp_idx"
 
   create_table "expressions", :force => true do |t|
-    t.integer  "work_id",         :null => false
+    t.integer  "work_id",       :null => false
+    t.integer  "tg_id",         :null => false
     t.string   "title"
     t.string   "alt_title"
     t.string   "abbr_title"
@@ -100,16 +102,15 @@ ActiveRecord::Schema.define(:version => 20130506160519) do
     t.string   "phys_descr"
     t.text     "notes"
     t.string   "subjects"
-    t.string   "cts_urn",         :null => false
+    t.string   "cts_urn",       :null => false
     t.integer  "series_id"
     t.integer  "page_start"
     t.integer  "page_end"
     t.integer  "word_count"
     t.integer  "oclc_id"
-    t.boolean  "exp_edition"
-    t.boolean  "exp_translation"
-    t.datetime "created_at",      :null => false
-    t.datetime "updated_at",      :null => false
+    t.string   "var_type"
+    t.datetime "created_at",    :null => false
+    t.datetime "updated_at",    :null => false
   end
 
   add_index "expressions", ["editor_id"], :name => "e_ed_idx"
@@ -169,6 +170,18 @@ ActiveRecord::Schema.define(:version => 20130506160519) do
     t.datetime "updated_at", :null => false
   end
 
+  create_table "tg_auth_works", :force => true do |t|
+    t.integer  "tg_id"
+    t.integer  "auth_id"
+    t.integer  "work_id"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
+  end
+
+  add_index "tg_auth_works", ["auth_id"], :name => "taw_aid_idx"
+  add_index "tg_auth_works", ["tg_id"], :name => "taw_tg_idx"
+  add_index "tg_auth_works", ["work_id"], :name => "taw_wid_idx"
+
   create_table "users", :force => true do |t|
     t.string   "email",                  :default => "",    :null => false
     t.string   "encrypted_password",     :default => "",    :null => false
@@ -227,6 +240,10 @@ ActiveRecord::Schema.define(:version => 20130506160519) do
   add_foreign_key "non_cataloged_expressions", "works", :name => "nce_tg", :dependent => :delete
 
   add_foreign_key "non_cataloged_works", "textgroups", :name => "ncw_tg", :dependent => :delete
+
+  add_foreign_key "tg_auth_works", "authors", :name => "taw_aid", :column => "auth_id", :dependent => :delete
+  add_foreign_key "tg_auth_works", "textgroups", :name => "taw_tg", :column => "tg_id", :dependent => :delete
+  add_foreign_key "tg_auth_works", "works", :name => "taw_wid", :dependent => :delete
 
   add_foreign_key "word_counts", "authors", :name => "wc_auth", :column => "auth_id", :dependent => :delete
 

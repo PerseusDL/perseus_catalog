@@ -55,8 +55,8 @@ class CatalogController < ApplicationController
     config.add_facet_field 'auth_facet', :label => 'Author', :limit => 20, :sort => 'index' 
     config.add_facet_field 'work_facet', :label => 'Work', :limit => 20, :sort => 'index'
     config.add_facet_field 'year_facet', :label => 'Year', :limit => 20, :sort => 'index' 
-    config.add_facet_field 'language', :label => 'Language'
-    config.add_facet_field 'series', :label => 'Series' , :limit => 10 
+    config.add_facet_field 'exp_language', :label => 'Language'
+    config.add_facet_field 'exp_series', :label => 'Series' , :limit => 10 
     config.add_facet_field 'auth_no_token', :show => false
 
     #config.add_facet_field 'example_pivot_field', :label => 'Pivot Field', :pivot => ['format', 'language']
@@ -75,29 +75,31 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display
-    config.add_index_field 'auth_id', :label => 'Textgroup ID:'
-    config.add_index_field 'auth_name', :label => 'Author Name:'
-    config.add_index_field 'work_stand_id', :label => 'Work ID:'
-    config.add_index_field 'exp_id', :label => 'Expression ID:' 
+    config.add_index_field 'tg_urn', :label => 'Textgroup:'
+    config.add_index_field 'auth_name', :label => 'Author:'
+    config.add_index_field 'work_urn', :label => 'Work:'
+    config.add_index_field 'edi_urn', :label => 'Edition:'
+    config.add_index_field 'tranl_urn', :label => 'Translation:' 
     config.add_index_field 'work_title', :label => 'Work Title:'
     config.add_index_field 'exp_title', :label => 'Title:' 
-    config.add_index_field 'work_auth_name', :label => 'Author:'     
+    config.add_index_field 'work_auth_name', :label => 'Author:'  
+    config.add_index_field 'ed_name', :label => 'Editor:'
+    config.add_index_field 'trans_name', :label => 'Translator'   
     config.add_index_field 'work_lang', :label => 'Language:'
-    config.add_index_field 'language', :label => 'Language:'
+    config.add_index_field 'exp_language', :label => 'Language:'
 
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
-    config.add_show_field 'exp_id', :label => 'ID:'
     config.add_show_field 'exp_title', :label => 'Title:' 
     config.add_show_field 'exp_alt_title', :label => 'Alternate title:'
     config.add_show_field 'work_title', :label => 'Work title:'
     config.add_show_field 'auth_name', :label => 'Author:' 
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
-    config.add_show_field 'language', :label => 'Language:'
-    config.add_show_field 'series', :label => 'Series:'
-    config.add_show_field 'subject', :label => 'Subjects:'
+    config.add_show_field 'exp_language', :label => 'Language:'
+    config.add_show_field 'exp_series', :label => 'Series:'
+    config.add_show_field 'exp_subject', :label => 'Subjects:'
     config.add_show_field 'exp_host_title', :label => 'Host work title:'
 
 
@@ -150,10 +152,10 @@ class CatalogController < ApplicationController
       }
     end
 
-    config.add_search_field('id') do |field|
+    config.add_search_field('urn') do |field|
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'auth_id^10.0 work_stand_id^2.0 auth_alt_id^5.0 exp_id'
+        :qf => 'tg_urn^10.0 phi_id^5.0 tlg_id^5.0 stoa_id^5.0 work_urn^2.0 edi_urn tranl_urn'
       }
     end
     
@@ -176,7 +178,7 @@ class CatalogController < ApplicationController
     config.add_sort_field 'score desc, work_title asc', :label => 'relevance'
     #config.add_sort_field 'pub_date_sort desc, title_sort asc', :label => 'year'
     config.add_sort_field 'auth_name asc, work_title asc', :label => 'author'
-    config.add_sort_field 'work_title asc', :label => 'title'
+    config.add_sort_field 'title_display asc', :label => 'title'
 
     # If there are more than this many search results, no spelling ("did you 
     # mean") suggestion is offered.

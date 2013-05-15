@@ -1,15 +1,20 @@
 <%# partial to display nicely formatted list of url links no matter the document type-%>
+<% if type == "expression" %>
+  <% rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 0 and exp_id = ?", id]) %>
+<% elsif type == "author" %>
+  <% rows = AuthorUrl.find(:all, :conditions => [ "author_id = ?", id]) %>
+<% elsif type == "host" %>
+  <% rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 1 and exp_id = ?", id]) %>
+<% end %>
 
-<% url_arr = value.split(/;\s/) if (value && !(value==""))%>
-  <% if url_arr %>
-    <% url_arr.each do |url| %>
-      <% url_parts = url.split(",") %>
-      <% if url_parts.length == 1 %>
-          <dd><%= link_to url_parts[0], url_parts[0], :target => "_blank" %></dd>
-      <% else %>
-          <% unless url_parts[1] == " "  %>
-            <dd><%= link_to url_parts[0], url_parts[1], :target => "_blank" %></dd>
-          <% end %>
+<% if rows %>
+  <% rows.each do |row| %>
+    <% url = row["url"] %>
+    <% label = row["display_label"] %>
+    <% if url %>
+      <% unless url == " " or url =="" %>
+        <dd><%= link_to label, url, :target => "_blank" %></dd>
       <% end %>
     <% end %>
   <% end %>
+<% end %>

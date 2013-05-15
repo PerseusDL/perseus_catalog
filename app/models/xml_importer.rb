@@ -10,8 +10,12 @@ class XmlImporter
     doc = Nokogiri::XML::Document.parse(raw_xml) 
 
     if file_type == "atom"
-      puts "sending to atom parser"
-      Parser.atom_parse(doc)
+      if file =~ /\.csv/
+        Parser.cite_parse(raw_xml) if file =~ /mads\.cite\.import/
+      else
+        puts "sending to atom parser"
+        Parser.atom_parse(doc)
+      end
     elsif file_type == "error"
       puts "sending to atom error parser"
       Parser.error_parse(raw_xml)
@@ -36,7 +40,7 @@ class XmlImporter
         elsif file_type == "error"
           import("#{directory_path}/#{file}", file_type) if file =~ /errors\.aae/
         else
-          import("#{directory_path}/#{file}", file_type) if file =~ /\.xml/
+          import("#{directory_path}/#{file}", file_type) if file =~ /\.xml|\.csv/
         end   
       end
     end

@@ -11,16 +11,22 @@ module ApplicationHelper
     if object.key?("cts_urn")
       #expression, find work and author
       work = Work.find_by_id(object["work_id"])
-      auth = Author.find_by_id(work["author_id"])
-      return work, auth
+      tg = Textgroup.find_by_id(work["textgroup_id"])
+      return work, tg
     elsif object.key?("standard_id")
       #work, find author and expressions
       exps = Expression.find(:all, :conditions => {:work_id => object["id"]})
-      auth = Author.find_by_id(object["author_id"])
-      return exps, auth
+      tg = Textgroup.find_by_id(object["textgroup_id"])
+      return exps, tg
     else
       #author, find works
-      works = Work.find(:all, :conditions => {:author_id => object["id"]})
+      phi = object["phi_id"]
+      tlg = object["tlg_id"]
+      stoa = object ["stoa_id"]
+      tg_arr = Textgroup.find(:all, :conditions => {:urn_end => [phi, tlg, stoa]})
+      ids = []
+      tg_arr.each {|row| ids << row["id"]}
+      works = Work.find(:all, :conditions => {:textgroup_id => ids})
       return works
     end
 
