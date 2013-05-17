@@ -8,6 +8,7 @@ module ApplicationHelper
   end
 
   def find_related (object)
+    #REWORK THIS TO USE THE TG_AUTH_WORKS TABLE
     if object.key?("cts_urn")
       #expression, find work and author
       work = Work.find_by_id(object["work_id"])
