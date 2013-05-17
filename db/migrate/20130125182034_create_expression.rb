@@ -25,7 +25,7 @@ class CreateExpression < ActiveRecord::Migration
       t.integer :page_end
       t.integer :word_count
       t.integer :oclc_id
-      t.string :type
+      t.string :var_type
       t.timestamps
     end
 

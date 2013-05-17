@@ -1,6 +1,7 @@
 class CreateAuthor < ActiveRecord::Migration
   def change
     create_table :authors do |t|
+      t.string :urn, :null =>false
       t.string :phi_id
       t.string :tlg_id
       t.string :stoa_id

@@ -37,7 +37,8 @@ class HathiCompare
 
     hathi_hash = {}
     count = 0
-    File.foreach('/Users/anna/hathi/hathi_full_20130201.txt').each do |line|
+    File.foreach('/Users/anna/Downloads/viaf-20130417-links.txt').each do |line|
+      debugger
       arr = line.split("\t")
       oclc_id = arr[7]
       hathi_id = arr[0]

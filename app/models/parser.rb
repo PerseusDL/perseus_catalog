@@ -317,7 +317,7 @@ class Parser
     #importing of information from atom feeds, will populate several tables
     start_time = Date.today
     #Keeping these error files lines for potential use locally
-    missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
+    #missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
     #atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'a')
     begin
       #grab namespaces not defined on the root of the xml doc
@@ -362,7 +362,7 @@ class Parser
 
       auth_match = Author.find(:first, :conditions => ["? in (phi_id, tlg_id, stoa_id)", textgroup.urn_end])
       unless auth_match
-        missing_auth << "#{tg_id}, #{tg_raw}\n"
+        #missing_auth << "#{tg_id}, #{tg_raw}\n"
       end
       
       #grab the first word count, since right now all word counts are really work level
@@ -428,7 +428,7 @@ class Parser
       #atom_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end
-    missing_auth.close
+    #missing_auth.close
   end
 
 
@@ -670,9 +670,7 @@ class Parser
           val = link_item.attribute('href').value
           auth_urn = val.match(/urn:cite:perseus:primauth\.\d+/)[0]
           auth_name = atom_rec.xpath("//mads:namePart", ns).first.inner_text
-          if auth_name == "Brutus, M. Junius (Marcus Junius)"
-            debugger
-          end
+
           match_auth = Author.find_by_name_or_alt_name(auth_name)
           match_auth = Author.find(:first, :conditions => ["name RLIKE ?", auth_name]) unless match_auth
           match_auth =
