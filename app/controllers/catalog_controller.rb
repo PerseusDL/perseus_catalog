@@ -58,6 +58,7 @@ class CatalogController < ApplicationController
     config.add_facet_field 'exp_language', :label => 'Language'
     config.add_facet_field 'exp_series', :label => 'Series' , :limit => 10 
     config.add_facet_field 'auth_no_token', :show => false
+    config.add_facet_field 'work_no_token', :show => false
 
     #config.add_facet_field 'example_pivot_field', :label => 'Pivot Field', :pivot => ['format', 'language']
 
@@ -75,14 +76,9 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display
-    config.add_index_field 'tg_urn', :label => 'Textgroup:'
-    config.add_index_field 'auth_name', :label => 'Author:'
-    config.add_index_field 'work_urn', :label => 'Work:'
-    config.add_index_field 'edi_urn', :label => 'Edition:'
-    config.add_index_field 'tranl_urn', :label => 'Translation:' 
-    config.add_index_field 'work_title', :label => 'Work Title:'
-    config.add_index_field 'exp_title', :label => 'Title:' 
-    config.add_index_field 'work_auth_name', :label => 'Author:'  
+    config.add_index_field 'uid', :label => 'URN:'
+    config.add_index_field 'work_auth_name', :label => 'Author:'
+    config.add_index_field 'exp_auth_name', :label => 'Author:'  
     config.add_index_field 'ed_name', :label => 'Editor:'
     config.add_index_field 'trans_name', :label => 'Translator'   
     config.add_index_field 'work_lang', :label => 'Language:'
@@ -91,10 +87,10 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
-    config.add_show_field 'exp_title', :label => 'Title:' 
+    config.add_show_field 'uid', :label => 'URN:'
     config.add_show_field 'exp_alt_title', :label => 'Alternate title:'
-    config.add_show_field 'work_title', :label => 'Work title:'
-    config.add_show_field 'auth_name', :label => 'Author:' 
+    config.add_show_field 'work_auth_name', :label => 'Author:'
+    config.add_show_field 'exp_auth_name', :label => 'Author:' 
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
     config.add_show_field 'exp_language', :label => 'Language:'
@@ -130,7 +126,7 @@ class CatalogController < ApplicationController
     
     config.add_search_field('title') do |field|
       #solr_parameters hash are sent to Solr as ordinary url query params. 
-      field.solr_parameters = { :'spellcheck.dictionary' => 'work_title' }
+      field.solr_parameters = { :'spellcheck.dictionary' => 'title_display' }
 
       # :solr_local_parameters will be sent using Solr LocalParams
       # syntax, as eg {! qf=$title_qf }. This is neccesary to use

@@ -31,7 +31,7 @@
       
       <% expr_hash = expr.attributes %>
       <% e_id = expr_hash["cts_urn"] %>
-      <% if expr_hash["exp_edition"] == true %>
+      <% if expr_hash["var_type"] == "edition"%>
         <div class="facets-collapse">
           <h5><%= "Edition ID:" %>
           <%= e_id %></h5>
@@ -51,7 +51,7 @@
       
       <% expr_hash = expr.attributes %>
       <% e_id = expr_hash["cts_urn"] %>
-      <% if expr_hash["exp_translation"] == true %>
+      <% if expr_hash["var_type"] == "translation" %>
         <div class="facets-collapse">
           <h5><%= "Translation ID:" %>
           <%= e_id %></h5>
