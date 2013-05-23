@@ -118,9 +118,9 @@ declare function frbr:make_sip($a_collection as xs:string, $a_lang as xs:string,
                     }, (: end entry element :)
               for $related at $a_i in $a_related return
                 element atom:entry {
-                    element atom:id { concat($frbr:e_pidBase, $ns, ':',$a_id, '/atom#mods-relateditem-',$a_i)},
+                    element atom:id { concat($frbr:e_pidBase, 'urn:cts:',$ns, ':',$a_id, '/atom#mods-relateditem-',$a_i)},
                     element atom:author { 'Perseus Digital Library' },
-                    element atom:title { concat('The Perseus Catalog: MODS file for text related to CTS work ', $ns, ':',$a_id) },
+                    element atom:title { concat('The Perseus Catalog: MODS file for text related to CTS work urn:cts:', $ns, ':',$a_id) },
                     element atom:link {
                         attribute type { 'application/atom+xml'},
                         attribute rel { 'self' },
@@ -140,9 +140,9 @@ declare function frbr:make_sip($a_collection as xs:string, $a_lang as xs:string,
                 }, (: end entry element :)
                for $mads at $a_i in $mads/match return
                   element atom:entry {
-                    element atom:id { concat($frbr:e_pidBase, $ns, ':',$a_id, '/atom#mads-',$a_i)},
+                    element atom:id { concat($frbr:e_pidBase, 'urn:cts:',$ns, ':',$a_id, '/atom#mads-',$a_i)},
                     element atom:author { 'Perseus Digital Library' },
-                    element atom:title { concat('The Perseus Catalog: MADS file for author of CTS work ', $ns, ':',$a_id) },
+                    element atom:title { concat('The Perseus Catalog: MADS file for author of CTS work urn:cts:', $ns, ':',$a_id) },
                     element atom:link {
                         attribute type { 'application/atom+xml'},
                         attribute rel { 'self' },

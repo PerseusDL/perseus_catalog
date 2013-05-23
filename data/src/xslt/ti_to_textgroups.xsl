@@ -11,33 +11,41 @@
     <xsl:output indent="yes"></xsl:output>
     
     <xsl:template match="/">
+        <xsl:variable name="author" select="atom:author"/>
+        <xsl:variable name="updated" select="atom:updated"/>
+        <xsl:variable name="rights" select="atom:rights"/>
         <xsl:for-each select="//cts:textgroup">
             <!-- create file path ns/textgroup.xml -->
-            <xsl:variable name="file" select="concat($e_outputDir,'/',replace(substring-after(@urn,'urn:cts'),':','/'),'.xml')"/>
+            <xsl:variable name="file" select="concat($e_outputDir,'/',replace(substring-after(@urn,'urn:cts'),':','/'),'.atom.xml')"/>
             <xsl:variable name="baseUri" select="concat($e_baseUriDir,@urn)"/>
             <xsl:result-document href="{$file}">
                 <atom:feed xmlns:atom="http://www.w3.org/2005/Atom">
                     <!-- TODO final id decision -->
                     <atom:id><xsl:value-of select="concat($baseUri,'/atom')"/></atom:id>
+                    <atom:title>The Perseus Catalog: atom feed for CTS textgroup <xsl:value-of select="@urn"/></atom:title>
+                    <xsl:copy-of select="$updated"/>
+                    <xsl:copy-of select="$author"/>
+                    <xsl:copy-of select="$rights"/>
                     <atom:link href="{concat($baseUri,'/atom')}" type="application/atom+xml" rel="self"/>
-                    <!-- TODO take from input -->
-                    <atom:updated>2013-04-24T16:26:35.897-04:00</atom:updated>
                     <atom:entry>
                         <atom:id><xsl:value-of select="concat($baseUri,'/atom#ctsti')"/></atom:id>
+                        <atom:title>The Perseus Catalog: Text Inventory for CTS textgroup <xsl:value-of select="@urn"/></atom:title>
                         <atom:link href="{concat($baseUri,'/atom#ctsti')}"
                             type="application/atom+xml" rel="self"/>
+                        <atom:link href="{concat($baseUri,'/html')}"
+                            type="text/html" rel="alternate"/>
                         <atom:content type="text/xml">
                             <TextInventory xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
                                 <xsl:copy-of select="//cts:TextInventory/@*"/>
                                 <xsl:copy-of select="//cts:TextInventory/*[not(local-name(.) = 'textgroup')]" copy-namespaces="yes"/>
                                 <textgroup xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
                                     <xsl:copy-of select="@*"/>
-                                    <xsl:copy-of select="*[not(local-name(.) = 'entry')]"/>
+                                    <xsl:copy-of select="*[not(local-name(.) = 'entry')]"  exclude-result-prefixes="#all" copy-namespaces="no"/>
                                 </textgroup>
                             </TextInventory>
                         </atom:content>
                     </atom:entry>
-                    <xsl:copy-of select="atom:entry"/>
+                    <xsl:copy-of select="atom:entry" exclude-result-prefixes="cts" copy-namespaces="no"/>
                 </atom:feed>
             </xsl:result-document>
         </xsl:for-each>
