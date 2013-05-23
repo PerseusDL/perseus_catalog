@@ -80,7 +80,8 @@ class CatalogController < ApplicationController
     config.add_index_field 'work_auth_name', :label => 'Author:'
     config.add_index_field 'exp_auth_name', :label => 'Author:'  
     config.add_index_field 'ed_name', :label => 'Editor:'
-    config.add_index_field 'trans_name', :label => 'Translator'   
+    config.add_index_field 'trans_name', :label => 'Translator:'   
+    config.add_index_field 'exp_year', :label => 'Year Published:'
     config.add_index_field 'work_lang', :label => 'Language:'
     config.add_index_field 'exp_language', :label => 'Language:'
 
@@ -151,7 +152,7 @@ class CatalogController < ApplicationController
     config.add_search_field('urn') do |field|
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'tg_urn^10.0 phi_id^5.0 tlg_id^5.0 stoa_id^5.0 work_urn^2.0 edi_urn tranl_urn'
+        :qf => 'tg_urn^10.0 phi_id^5.0 tlg_id^5.0 stoa_id^5.0 work_urn^2.0 exp_urn'
       }
     end
     

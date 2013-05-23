@@ -12,6 +12,8 @@ class XmlImporter
     if file_type == "atom"
       if file =~ /\.csv/
         Parser.cite_parse(raw_xml) if file =~ /mads\.cite\.import/
+      elsif file =~ /\.atom\.xml/
+        puts "atom file, skipping"
       else
         puts "sending to atom parser"
         Parser.atom_parse(doc)

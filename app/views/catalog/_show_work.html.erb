@@ -7,14 +7,14 @@
   <dl class="dl-horizontal  dl-invert">
 
   <%# fields-%>
-  <dt><%= "ID:" %></dt>
+  <dt><%= "URN:" %></dt>
   <dd><%= d_id %></dd>
   <dt><%= "Work title:" %></dt>
   <dd><%= @document.values_at("work_title")[0] %></dd>
 
   <%# This is not very pretty... There is probably a better way-%>
-  <dt><%= "Texgroup:" %></dt>
-  <dd><%= link_to auth.attributes["group_name"], :id => auth.attributes["urn"]%></dd>
+  <dt><%= "Author:" %></dt>
+  <dd><%= link_to auth.attributes["name"], :id => auth.attributes["urn"]%></dd>
   
 
 </dl>

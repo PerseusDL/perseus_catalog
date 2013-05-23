@@ -17,8 +17,8 @@ module ApplicationHelper
     elsif object.key?("standard_id")
       #work, find author and expressions
       exps = Expression.find(:all, :conditions => {:work_id => object["id"]})
-      tg = Textgroup.find_by_id(object["textgroup_id"])
-      return exps, tg
+      auth = Author.find(:first, :conditions => ["id = (SELECT auth_id from tg_auth_works where work_id = ?)", object["id"]])
+      return exps, auth
     else
       #author, find works
       phi = object["phi_id"]

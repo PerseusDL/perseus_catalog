@@ -1,13 +1,11 @@
 <%# default partial to display mysql document info in catalog show view for authors-%>
   <% d_id = @document.values_at("auth_name")[0]%>
   <% doc = Author.get_info(d_id) %>
-  <% field_list = ["alt_id", "name", "alt_parts", "dates", "alt_names", "field_of_activity", "notes"] %>
+  <% field_list = ["phi_id", "tlg_id", "stoa_id", "alt_id", "name", "alt_parts", "dates", "alt_names", "field_of_activity", "notes"] %>
   <%# Need to pull author and expression info as well want to create collapsible list of expressions with links to their proper pages/full display of info, perhaps I should go back and populate the expression partial first... -%>
 <dl class="dl-horizontal  dl-invert">
 
   <%# show fields-%>
-  <dt><%= "ID:" %></dt>
-  <dd><%= d_id %></dd>
   <%= render_document_partial @document, :show %>
 
   <%# mysql fields-%>
