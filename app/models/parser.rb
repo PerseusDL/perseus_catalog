@@ -640,10 +640,10 @@ class Parser
         unless raw_urls.empty?
           raw_urls.each do |x|
             part = x.split("|")
-            url_row = ExpressionUrl.find_by_url(part[1])
-              unless url_row
-                url_row = ExpressionUrl.new
-              end
+            url_row = ExpressionUrl.find_url_match(expression.id, part[1])
+            unless url_row
+              url_row = ExpressionUrl.new
+            end
             url_row.exp_id = expression.id
             url_row.url = part[1]
             url_row.display_label = part[0]

@@ -6,6 +6,7 @@ class Expression < ActiveRecord::Base
 
   belongs_to :series
 
+  has_many :expression_url
 
   def self.get_info(id)
     doc = Expression.find_by_cts_urn(id)
