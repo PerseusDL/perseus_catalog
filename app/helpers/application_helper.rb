@@ -27,7 +27,7 @@ module ApplicationHelper
       tg_arr = Textgroup.find(:all, :conditions => {:urn_end => [phi, tlg, stoa]})
       ids = []
       tg_arr.each {|row| ids << row["id"]}
-      works = Work.find(:all, :conditions => {:textgroup_id => ids})
+      works = Work.find(:all, :conditions => {:textgroup_id => ids}, :order => 'title')
       return works
     end
 
@@ -37,4 +37,39 @@ module ApplicationHelper
     error_works = AtomError.find(:all, :conditions => {:author_id => author["id"]})
     return error_works
   end
+
+#methods for the url_render partial
+  def get_urls (type)
+    if type == "expression" 
+      rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 0 and exp_id = ?", id]) 
+    elsif type == "author" 
+      rows = AuthorUrl.find(:all, :conditions => [ "author_id = ?", id]) 
+    elsif type == "host" 
+      rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 1 and exp_id = ?", id]) 
+    end 
+    return rows
+  end
+
+  def render_url_list (rows, type)
+  end
+=begin    content_tag(:dt, url_list_intro(type)) + content_tag(:dd, )
+
+     if 
+  <dt>"Find the text here:"</dt>
+   rows.each do |row| 
+     url = row["url"] 
+     label = row["display_label"] 
+     if url 
+       unless url == " " or url =="" 
+         if type == "expression" 
+
+        <dd> link_to label, url, :target => "_blank" </dd>
+       end 
+     end 
+   end 
+
+  def url_list_intro (type)
+
+  end
+=end
 end

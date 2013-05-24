@@ -1,20 +1,6 @@
 <%# partial to display nicely formatted list of url links no matter the document type-%>
-<% if type == "expression" %>
-  <% rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 0 and exp_id = ?", id]) %>
-<% elsif type == "author" %>
-  <% rows = AuthorUrl.find(:all, :conditions => [ "author_id = ?", id]) %>
-<% elsif type == "host" %>
-  <% rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 1 and exp_id = ?", id]) %>
-<% end %>
+<% rows = get_urls(type) %>
 
 <% if rows %>
-  <% rows.each do |row| %>
-    <% url = row["url"] %>
-    <% label = row["display_label"] %>
-    <% if url %>
-      <% unless url == " " or url =="" %>
-        <dd><%= link_to label, url, :target => "_blank" %></dd>
-      <% end %>
-    <% end %>
-  <% end %>
+  <%= render_url_list(rows, type) %>
 <% end %>
