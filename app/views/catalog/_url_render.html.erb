@@ -1,5 +1,5 @@
 <%# partial to display nicely formatted list of url links no matter the document type-%>
-<% rows = get_urls(type) %>
+<% rows = get_urls(type, id) %>
 
 <% if rows %>
   <%= render_url_list(rows, type) %>

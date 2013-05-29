@@ -148,7 +148,7 @@ class Parser
               person.stoa_id = id
             when id =~ /viaf|uri/
               uri_strip = id.gsub(/uri/, "")
-              nicer = uri_strip.gsub(/\/\/viaf\//, "//viaf.org")
+              nicer = uri_strip.gsub(/\/\/viaf\//, "//viaf.org/")
               urls_arr << "VIAF|#{nicer}"
             else
               alt_ids << id

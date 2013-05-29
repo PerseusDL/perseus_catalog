@@ -11,7 +11,7 @@
   <dl class="dl-horizontal  dl-invert">
 
     <%# item urls-%>
-
+      
       <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression"} %>
 
 
@@ -23,7 +23,7 @@
    
     <%# host urls-%>   
    
-      <dt><%= "Host work location:" %></dt>
+      
       <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host"} %>
 
     
