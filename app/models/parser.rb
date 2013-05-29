@@ -101,10 +101,6 @@ class Parser
           prob_mads_id = ids[ix] if ix
         end
       end
-
-      #if record has none of the main id types, grab the first identifier
-      frst_id = doc.xpath("//mads:identifier")[0]
-      prob_mads_id = "#{frst_id.attribute('type').value}#{frst_id.inner_text}" unless prob_mads_id
       
       #first try to find by name or id
       if file_type == "author"
@@ -150,12 +146,17 @@ class Parser
               uri_strip = id.gsub(/uri/, "")
               nicer = uri_strip.gsub(/\/\/viaf\//, "//viaf.org/")
               urls_arr << "VIAF|#{nicer}"
+              viaf_num = nicer.match(/\d+/)[0]
+              alt_ids << "viaf#{viaf_num}"
             else
-              alt_ids << id
+              id = id.gsub(/lccnn\s/, "lccn n")
+              alt_ids << id unless id.empty?
           end
         end
 
         person.alt_id = alt_ids.join(";")
+        #if record has none of the main id types, grab the first alt_id
+        prob_mads_id = "#{alt_ids[0]}" unless prob_mads_id
         person.urn = prob_mads_id
 
         person.save
@@ -315,7 +316,7 @@ class Parser
 
   def self.atom_parse(doc)
     #importing of information from atom feeds, will populate several tables
-    start_time = Date.today
+    start_time = DateTime.now
     #Keeping these error files lines for potential use locally
     #missing_auth = File.new("/Users/anna/catalog_errors/missing_auth#{start_time}.txt", 'a')
     #atom_error_log = File.new("/Users/anna/catalog_errors/atom_error_log#{start_time}.txt", 'a')
@@ -358,6 +359,13 @@ class Parser
         textgroup.urn = tg_id
         textgroup.urn_end = tg_id.split(":").last
         textgroup.save
+      end
+
+      if textgroup 
+        if (textgroup.group_name == nil or textgroup.group_name.empty?)
+          textgroup.group_name = tg_raw unless tg_raw.empty?
+          textgroup.save
+        end
       end
 
       auth_match = Author.find(:first, :conditions => ["? in (phi_id, tlg_id, stoa_id)", textgroup.urn_end])

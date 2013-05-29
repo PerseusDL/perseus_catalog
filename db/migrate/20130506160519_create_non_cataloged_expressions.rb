@@ -3,7 +3,7 @@ class CreateNonCatalogedExpressions < ActiveRecord::Migration
     create_table :non_cataloged_expressions do |t|
       t.string :cts_urn, :null => false
       t.integer :work_id, :null => false
-      t.string :title
+      t.string :cts_label
       t.string :ed_trans
       t.string :var_type
       t.timestamps
