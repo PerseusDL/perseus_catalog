@@ -23,12 +23,12 @@
             <% end %>
             <% field_list = ["publisher", "date_publ", "language"] %>
             <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => ed} %>
+            <%= link_to "Click here for #{type} record", :id => ed.cts_urn %>
           <% else %>
             <dt><%= "Info:" %></dt>
             <dd><%= ed.ed_trans %></dd>
           <% end %>
-          <%= link_to "Click here for #{type} record", :id => ed.cts_urn %>
-          
+                   
         </ul>
       </div>
       

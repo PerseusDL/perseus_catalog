@@ -16,9 +16,10 @@ module ApplicationHelper
       return work, tg
     elsif object.attribute_present?("standard_id")
       #work, find author and expressions
-      exps = Expression.find(:all, :conditions => {:work_id => object.id}, :order => 'title, date_publ')
+      exps = Expression.find(:all, :conditions => {:work_id => object.id}, :order => 'cts_label, date_publ')
       auth = Author.find(:first, :conditions => ["id = (SELECT auth_id from tg_auth_works where work_id = ?)", object.id])
-      return exps, auth
+      non_cat = NonCatalogedExpression.find(:all, :conditions => {:work_id => object.id}, :order => 'cts_label')
+      return exps, auth, non_cat
     else
       #author, find works
       phi = object.phi_id
