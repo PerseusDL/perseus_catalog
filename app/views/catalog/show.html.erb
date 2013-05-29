@@ -24,8 +24,10 @@
           <%= render 'show_exp'%>
         <% elsif @document.has?("work_urn") %>
           <%= render 'show_work' %>
-        <% else @document.has?("auth_facet") %>
+        <% elsif @document.has?("auth_facet") %>
           <%= render 'show_auth' %>
+        <% else @document.has?("group_name") %>
+          <%= render 'show_tg' %>
         <% end %>
 
         
