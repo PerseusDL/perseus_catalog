@@ -1,0 +1,37 @@
+<%# default partial to generate and display the list of editions and translations-%>
+
+<%# I've utilized the facet code here to make easy collapsable lists. Might want to override the css to give it different styling, make a special class for it-%>
+<% unless eds.empty? %>
+  <div id="facets" class="facets sidenav">
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "#{type}s for this Work, Click to Expand" %></h4>
+
+    <% eds.each do |ed| %>
+      <% e_id = ed.cts_urn %>
+      <div class="facets-collapse">
+        <h5><%= ed.cts_label %></h5>
+        <ul>
+          <dt><%= "URN:" %></dt>
+          <dd><%= e_id %></dd>
+          <% unless type == "Uncataloged Version" %>
+            <% if ed.editor_id %>
+              <dt><%= "Editor:" %></dt>
+              <dd><%= EditorsOrTranslator.find(ed.editor_id).name %></dd>
+            <% end %>
+            <% if ed.translator_id %>
+              <dt><%= "Translator:" %></dt>
+              <dd><%= EditorsOrTranslator.find(ed.translator_id).name %></dd>
+            <% end %>
+            <% field_list = ["publisher", "date_publ", "language"] %>
+            <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => ed} %>
+          <% else %>
+            <dt><%= "Info:" %></dt>
+            <dd><%= ed.ed_trans %></dd>
+          <% end %>
+          <%= link_to "Click here for #{type} record", :id => ed.cts_urn %>
+          
+        </ul>
+      </div>
+      
+    <% end %>
+  </div>
+<% end %>

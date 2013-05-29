@@ -364,10 +364,13 @@ class Parser
       unless auth_match
         #missing_auth << "#{tg_id}, #{tg_raw}\n"
       end
-      
+
       #grab the first word count, since right now all word counts are really work level
-      w_c = doc.xpath("//mods:part/mods:extent/mods:total", ns)
-      words = w_c.first.inner_text if w_c.first
+      words = 0
+      if ns.has_key?("xmlns:mods")
+        w_c = doc.xpath("//mods:part/mods:extent/mods:total", ns)
+        words = w_c.first.inner_text if w_c.first
+      end
 
       #find if there is a row for this work already, if not, create a new one and populate the row
       work = Work.find_by_standard_id(id)
@@ -383,7 +386,7 @@ class Parser
         w_set = doc.xpath("//cts:work", ns)
         work.title = w_set.xpath("cts:title", ns).inner_text
         work.language = w_set.attribute('lang').value
-        work.word_count = words
+        work.word_count = words == 0 ? nil : words
         work.save
       else
         puts "Missing a work or textgroup entry in the tables, something is wrong, check the file for #{tg_raw} and/or #{id}"
@@ -409,16 +412,15 @@ class Parser
       #find items in the cts inventory without MODS
       inventory.each do |index, item|
         if item[3] == false
-          exp = NonCatalogedExpression.find_by_urn(index)
+          exp = NonCatalogedExpression.find_by_cts_urn(index)
           unless exp
             exp = NonCatalogedExpression.new
-            exp.urn = index
+            exp.cts_urn = index
           end
           exp.work_id = Work.find_by_standard_id(id).id
-          exp.title = item[0]
+          exp.cts_label = item[0]
           exp.ed_trans = item[1]
-          exp.exp_edition = item[2] == "cts:edition"
-          exp.exp_translation = item[2] == "cts:translation"
+          exp.var_type = item[2]
           exp.save
         end
       end
@@ -460,7 +462,8 @@ class Parser
           arr = inventory[cts] 
           expression.var_type = arr[2] == "cts:edition" ? "edition" : "translation"
           inventory[cts][3] = true
-
+          expression.cts_label = arr[0]
+          expression.cts_descr = arr[1]
         end
 
         #find the uniform, abbreviated and alternative titles
@@ -477,14 +480,17 @@ class Parser
         
         #find editors and translators
         mods_rec.xpath(".//mods:name", ns).each do |names|
-          raw_name = names.xpath("mods:namePart[not(@type='date')]", ns).inner_text
-          role_term = names.xpath(".//mods:roleTerm", ns).inner_text
+          name_node = names.xpath("mods:namePart[not(@type='date')]", ns)
+          raw_name = name_node.inner_text if name_node
+          role_node = names.xpath(".//mods:roleTerm", ns)
+          role_term = role_node.inner_text if role_node
           if role_term =~ /editor|compiler|translator/i
             person = EditorsOrTranslator.find_by_name_or_alt_name(raw_name)
             unless person
               person = EditorsOrTranslator.new
               person.name = raw_name
-              person.dates = names.xpath("mods:namePart[@type='date']", ns).inner_text
+              dates_node = names.xpath("mods:namePart[@type='date']", ns)
+              person.dates = dates_node.inner_text if dates_node
               person.save
             end
 
@@ -520,14 +526,18 @@ class Parser
         mods_rec.xpath(".//mods:publisher", ns).each {|pu| raw_pub << pu.inner_text}
         expression.publisher = raw_pub.join("; ")
 
-        pub_date = mods_rec.xpath(".//mods:dateIssued", ns).first.inner_text.to_i
+        pub_node = mods_rec.xpath(".//mods:dateIssued", ns).first
+        pub_date = pub_node.inner_text.to_i if pub_node
         expression.date_publ = pub_date unless pub_date == 0 or pub_date == nil
-        mod_date = mods_rec.xpath(".//mods:dateModified", ns).inner_text.to_i        
+        mod_node = mods_rec.xpath(".//mods:dateModified", ns)
+        mod_date = mod_node.inner_text.to_i if mod_node    
         expression.date_mod = mod_date unless mod_date == 0 or mod_date == nil
 
-        expression.edition = mods_rec.xpath(".//mods:edition", ns).inner_text
+        edition_node = mods_rec.xpath(".//mods:edition", ns)
+        expression.edition = edition_node.inner_text if edition_node
 
-        raw_des = mods_rec.xpath(".//mods:physicalDescription", ns).inner_text
+        des_node = mods_rec.xpath(".//mods:physicalDescription", ns)
+        raw_des = des_node.inner_text if des_node
         expression.phys_descr =  raw_des.strip.gsub(/\s*\n\s*/,'; ')
         
         #compile all note tags
@@ -619,7 +629,8 @@ class Parser
 
           #get page ranges and word counts
           mods_rec.xpath("mods:part/mods:extent", ns).each do |ex_tag|
-            unit_attr = ex_tag.attribute('unit').value
+            attrib = ex_tag.attribute('unit')
+            unit_attr = attrib.value if attrib
             if unit_attr == "pages"
               expression.page_start = ex_tag.xpath("mods:start", ns).inner_text
               expression.page_end = ex_tag.xpath("mods:end", ns).inner_text
@@ -629,7 +640,8 @@ class Parser
           end
 
           #get oclc id
-          expression.oclc_id = rel_item.xpath("mods:identifier[@type='oclc']", ns).inner_text
+          oclc_node = rel_item.xpath("mods:identifier[@type='oclc']", ns)
+          expression.oclc_id = oclc_node.inner_text if oclc_node
 
           #HAVE IGNORED CONSTITUENT ITEMS FOR NOW UNTIL I FIGURE OUT HOW TO HANDLE THEM
         end

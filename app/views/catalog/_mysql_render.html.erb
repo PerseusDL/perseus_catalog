@@ -1,6 +1,7 @@
 <%# displays mysql fields from an array of field names-%>  
+  <% hash = doc.attributes %>
   <% field_list.each do |key| %>
-    <% val = doc.fetch(key)%>
+    <% val = hash[key] %>
     <% if (val && val != "")%>
       
       <dt><%= "#{key.gsub("_", " ").capitalize}:"%></dt>

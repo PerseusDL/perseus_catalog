@@ -9,24 +9,24 @@ module ApplicationHelper
 
   def find_related (object)
     #REWORK THIS TO USE THE TG_AUTH_WORKS TABLE
-    if object.key?("cts_urn")
+    if object.attribute_present?("cts_urn")
       #expression, find work and author
-      work = Work.find_by_id(object["work_id"])
-      tg = Textgroup.find_by_id(work["textgroup_id"])
+      work = Work.find_by_id(object.work_id)
+      tg = Textgroup.find_by_id(work.textgroup_id)
       return work, tg
-    elsif object.key?("standard_id")
+    elsif object.attribute_present?("standard_id")
       #work, find author and expressions
-      exps = Expression.find(:all, :conditions => {:work_id => object["id"]})
-      auth = Author.find(:first, :conditions => ["id = (SELECT auth_id from tg_auth_works where work_id = ?)", object["id"]])
+      exps = Expression.find(:all, :conditions => {:work_id => object.id}, :order => 'title, date_publ')
+      auth = Author.find(:first, :conditions => ["id = (SELECT auth_id from tg_auth_works where work_id = ?)", object.id])
       return exps, auth
     else
       #author, find works
-      phi = object["phi_id"]
-      tlg = object["tlg_id"]
-      stoa = object ["stoa_id"]
+      phi = object.phi_id
+      tlg = object.tlg_id
+      stoa = object.stoa_id
       tg_arr = Textgroup.find(:all, :conditions => {:urn_end => [phi, tlg, stoa]})
       ids = []
-      tg_arr.each {|row| ids << row["id"]}
+      tg_arr.each {|row| ids << row.id}
       works = Work.find(:all, :conditions => {:textgroup_id => ids}, :order => 'title')
       return works
     end
@@ -34,7 +34,7 @@ module ApplicationHelper
   end
 
   def find_missing_works (author)  
-    error_works = AtomError.find(:all, :conditions => {:author_id => author["id"]})
+    error_works = AtomError.find(:all, :conditions => {:author_id => author.id})
     return error_works
   end
 

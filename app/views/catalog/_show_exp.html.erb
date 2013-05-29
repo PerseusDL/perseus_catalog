@@ -12,7 +12,7 @@
 
     <%# item urls-%>
 
-      <%= render :partial => "url_render", :locals => {:id => doc.fetch("id"), :type => "expression"} %>
+      <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression"} %>
 
 
     <%# show fields-%>
@@ -24,7 +24,7 @@
     <%# host urls-%>   
    
       <dt><%= "Host work location:" %></dt>
-      <%= render :partial => "url_render", :locals => {:id => doc.fetch("id"), :type => "host"} %>
+      <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host"} %>
 
     
   </dl>

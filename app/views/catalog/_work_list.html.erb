@@ -9,10 +9,14 @@
       <% w_id = work_hash["standard_id"] %>
 
       <div class="facets-collapse">
-        <h5><%="Title: #{work_hash["title"]}"%> <br/> <%="Work ID:  #{w_id}"%></h5>
+        <h5><%="#{work_hash["title"]}"%></h5>
         <ul>
           <%# getting rid of the dt dd lists here because of the two column set up, the formatting looks bad-%>
           <table cellpadding="10">
+            <tr>
+              <td class="muted" align='right'><%= "URN:"%></td>
+              <td><%= w_id %></td>
+            </tr>
             <tr>
               <td class="muted" align='right'><%= "Word Count:"%></td> 
               <td><%=work_hash["word_count"] %></td>
@@ -38,12 +42,12 @@
         <% e_work_hash = e_work.attributes %>
         <% w_id = e_work_hash["standard_id"] %>
         <div class="facets-collapse">
-          <h5><%= "Work ID:  #{w_id}" %></h5>
+          <h5><%= e_work_hash["title"] %></h5>
           <ul>
             <table cellpadding="10">
               <tr> 
-              <td class="muted"><%= "Title:"%></td>
-              <td><%= e_work_hash["title"] %></td>
+              <td class="muted"><%= "URN:"%></td>
+              <td><%= w_id %></td>
               </tr>
             </table>
           </ul>

@@ -14,6 +14,6 @@ class Author < ActiveRecord::Base
 
   def self.get_info(id)
     doc = Author.find_by_name_or_alt_name(id)
-    doc_hash = doc.attributes
+    return doc
   end
 end

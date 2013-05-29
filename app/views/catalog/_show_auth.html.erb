@@ -13,11 +13,11 @@
 
   <%# host urls-%>         
   <dt><%= "Author info:" %></dt>
-  <%= render :partial => "url_render", :locals => {:id => doc.fetch("id"), :type => "author"} %>
+  <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "author"} %>
 
   <%# list works-%> 
   &nbsp
-  <h4> <%="Works by #{doc.fetch("name")}"%></h4>
+  <h4> <%="Works by #{doc.name}"%></h4>
   <HR SIZE="3" NOSHADE>
   <%= render :partial => "work_list", :locals => {:doc => doc} %>
 

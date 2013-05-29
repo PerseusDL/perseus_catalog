@@ -11,56 +11,23 @@
   <dd><%= d_id %></dd>
   <dt><%= "Work title:" %></dt>
   <dd><%= @document.values_at("work_title")[0] %></dd>
-
-  <%# This is not very pretty... There is probably a better way-%>
   <dt><%= "Author:" %></dt>
-  <dd><%= link_to auth.attributes["name"], :id => auth.attributes["urn"]%></dd>
+  <dd><%= link_to auth.name, :id => auth.urn%></dd>
   
 
 </dl>
 
 <div>
   &nbsp
+  <% eds = exprs.select{|e| e.var_type == "edition"} %>
+  <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Edition'} %>
 
-<%# I've utilized the facet code here to make easy collapsable lists. Might want to override the css to give it different styling, make a special class for it-%>
+  <% eds = exprs.select{|e| e.var_type == "translation"} %>
+  <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Translation'} %>
 
-  <div id="facets" class="facets sidenav">
-    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Editions for this Work, Click to Expand" %></h4>
+  <% eds = NonCatalogedExpression.find_by_work_id(doc.id) %>
+  <% if eds %>
+    <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Uncataloged Version'} %>
+  <% end %>
 
-    <% exprs.each do |expr| %>
-      
-      <% expr_hash = expr.attributes %>
-      <% e_id = expr_hash["cts_urn"] %>
-      <% if expr_hash["var_type"] == "edition"%>
-        <div class="facets-collapse">
-          <h5><%= "Edition ID:" %>
-          <%= e_id %></h5>
-          <ul>
-            <%= link_to "Click here for Edition record", :id => e_id %>
-            
-          </ul>
-        </div>
-      <% end %>
-    <% end %>
-  </div>
-
-  <div id="facets" class="facets sidenav">
-    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Translations for this Work, Click to Expand" %></h4>
-
-    <% exprs.each do |expr| %>
-      
-      <% expr_hash = expr.attributes %>
-      <% e_id = expr_hash["cts_urn"] %>
-      <% if expr_hash["var_type"] == "translation" %>
-        <div class="facets-collapse">
-          <h5><%= "Translation ID:" %>
-          <%= e_id %></h5>
-          <ul>
-            <%= link_to "Click here for Translation record", :id => e_id %>
-            
-          </ul>
-        </div>
-      <% end %>
-    <% end %>
-  </div>
 </div>

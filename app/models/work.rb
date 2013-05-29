@@ -10,7 +10,7 @@ class Work < ActiveRecord::Base
 
   def self.get_info(id)
     doc = Work.find_by_standard_id(id)
-    doc_hash = doc.attributes
+    return doc
   end
 
 

@@ -103,6 +103,8 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
     t.text     "notes"
     t.string   "subjects"
     t.string   "cts_urn",       :null => false
+    t.string   "cts_label"
+    t.string   "cts_descr"
     t.integer  "series_id"
     t.integer  "page_start"
     t.integer  "page_end"
@@ -119,14 +121,13 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
   add_index "expressions", ["work_id"], :name => "e_work_idx"
 
   create_table "non_cataloged_expressions", :force => true do |t|
-    t.string   "urn",             :null => false
-    t.integer  "work_id",         :null => false
+    t.string   "urn",        :null => false
+    t.integer  "work_id",    :null => false
     t.string   "title"
     t.string   "ed_trans"
-    t.boolean  "exp_edition"
-    t.boolean  "exp_translation"
-    t.datetime "created_at",      :null => false
-    t.datetime "updated_at",      :null => false
+    t.string   "var_type"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
   end
 
   add_index "non_cataloged_expressions", ["work_id"], :name => "nce_w_idx"
