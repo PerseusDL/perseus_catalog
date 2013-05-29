@@ -2,7 +2,7 @@
 <dl class="dl-horizontal  dl-invert">
   <% d_id = @document.values_at("work_urn")[0]%>
   <% doc = Work.get_info(d_id) %>
-  <% exprs, auth = find_related(doc) %>
+  <% exprs, auth, non_cat = find_related(doc) %>
 
   <dl class="dl-horizontal  dl-invert">
 
@@ -25,9 +25,7 @@
   <% eds = exprs.select{|e| e.var_type == "translation"} %>
   <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Translation'} %>
 
-  <% eds = NonCatalogedExpression.find_by_work_id(doc.id) %>
-  <% if eds %>
-    <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Uncataloged Version'} %>
-  <% end %>
+  <%= render :partial => 'ed_list', :locals => {:eds => non_cat, :type => 'Uncataloged Version'} %>
+
 
 </div>
