@@ -24,10 +24,10 @@
           <%= render 'show_exp'%>
         <% elsif @document.has?("work_urn") %>
           <%= render 'show_work' %>
-        <% elsif @document.has?("phi_id") %>
-          <%= render 'show_auth' %>
-        <% else @document.has?("tg_urn") %>
+        <% elsif @document.has?("tg_urn") %>
           <%= render 'show_tg' %>
+        <% else %>
+          <%= render 'show_auth' %>
         <% end %>
 
         
