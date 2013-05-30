@@ -52,7 +52,9 @@ class CatalogController < ApplicationController
     #
     # :show may be set to false if you don't want the facet to be drawn in the 
     # facet bar
-    config.add_facet_field 'auth_facet', :label => 'Author', :limit => 20, :sort => 'index' 
+    
+    #config.add_facet_field 'tg_facet', :label => 'Author Group', :limit => 20, :sort => 'index' 
+    config.add_facet_field 'auth_facet', :label => 'Author Group', :limit => 20, :sort => 'index' 
     config.add_facet_field 'work_facet', :label => 'Work', :limit => 20, :sort => 'index'
     config.add_facet_field 'year_facet', :label => 'Year', :limit => 20, :sort => 'index' 
     config.add_facet_field 'exp_language', :label => 'Language'
@@ -76,7 +78,12 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display
-    config.add_index_field 'uid', :label => 'URN:'
+    config.add_index_field 'tg_urn', :label => 'URN:'
+    config.add_index_field 'work_urn', :label => 'URN:'
+    config.add_index_field 'exp_urn', :label => 'URN:'
+    config.add_index_field 'phi_id', :label => 'Identifier:'
+    config.add_index_field 'tlg_id', :label => 'Identifier:'
+    config.add_index_field 'stoa_id', :label => 'Identifier:'
     config.add_index_field 'work_auth_name', :label => 'Author:'
     config.add_index_field 'exp_auth_name', :label => 'Author:'  
     config.add_index_field 'ed_name', :label => 'Editor:'
@@ -84,14 +91,16 @@ class CatalogController < ApplicationController
     config.add_index_field 'exp_year', :label => 'Year Published:'
     config.add_index_field 'work_lang', :label => 'Language:'
     config.add_index_field 'exp_language', :label => 'Language:'
+    config.add_index_field 'tg_name', :label => 'Author Group:'
+    config.add_index_field 'tg_auth_names', :label => 'Associated Authors:'
 
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
-    config.add_show_field 'uid', :label => 'URN:'
+    config.add_show_field 'tg_urn', :label => 'URN:'
+    config.add_show_field 'work_urn', :label => 'URN:'
+    config.add_show_field 'exp_urn', :label => 'URN:'
     config.add_show_field 'exp_alt_title', :label => 'Alternate title:'
-    config.add_show_field 'work_auth_name', :label => 'Author:'
-    config.add_show_field 'exp_auth_name', :label => 'Author:' 
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
     config.add_show_field 'exp_language', :label => 'Language:'

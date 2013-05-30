@@ -13,7 +13,7 @@ class Author < ActiveRecord::Base
   end
 
   def self.get_info(id)
-    doc = Author.find_by_name_or_alt_name(id)
+    doc = Author.find_by_unique_id(id)
     return doc
   end
 end

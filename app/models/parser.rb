@@ -48,6 +48,7 @@ class Parser
 
       #grab the ids
       ids = []
+      work_ids = []
       count = ["", 0, false]
       doc.xpath("mads:mads/mads:identifier").each do |id|
         if id.attribute('type')
@@ -70,6 +71,7 @@ class Parser
 
               rw_set = doc.xpath("mads:mads/mads:extension/identifier")
               count[2] = true unless rw_set.empty?
+
               type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
               if type_set
                 tl = type_set.length 
@@ -83,9 +85,28 @@ class Parser
         end
       end
 
+      rw_set = doc.xpath("mads:mads/mads:extension/identifier")
+      rw_set.each do |rel_id|
+        if rel_id.attribute('type')
+          val = rel_id.attribute('type').value
+          val = id_type if (val.empty? or val == nil)
+          id_num = rel_id.inner_text
+          parts = id_num.split(/\.|-/)
+          unless parts == nil or parts.empty?
+            #this is a pain...
+            parts.each_with_index {|part, index| parts[index] = part.gsub(/\D+/, "") if part =~ /tlg|phi/}
+            parts[0] = sprintf("%04d", parts[0]) if !(parts[0] =~ /\s|[a-z]|\d{4}/)
+            parts[1] = sprintf("%03d", parts[1]) if !(parts[1] =~ /\s|[a-z]|\d{3}/)
+            parts.collect! {|part| part.strip}
+            unless parts[0] =~ /stoa/
+              work_ids << "#{val}#{parts[0]}.#{val}#{parts[1]}"
+            else
+              work_ids << parts.join(".")
+            end
+          end
+        end
+      end
       
-      
-
       prob_mads_id = nil
       unless count[0] == ""
         best_id = ids.select{|x| x =~ /#{count[0]}/}
@@ -131,6 +152,8 @@ class Parser
 
         person.notes = turn_to_list(doc, "//mads:note", "; ")
 
+        person.related_works = work_ids.join(";")
+
         #take the ids array and plug them into the appropriate fields
         alt_ids =[]
         urls_arr = []
@@ -157,7 +180,8 @@ class Parser
         person.alt_id = alt_ids.join(";")
         #if record has none of the main id types, grab the first alt_id
         prob_mads_id = "#{alt_ids[0]}" unless prob_mads_id
-        person.urn = prob_mads_id
+        name_part = auth_name.gsub(/\s+|,|\./, "")[0, 5]
+        person.unique_id = "M#{prob_mads_id.gsub(/\s/, '')}#{name_part}"
 
         person.save
           
@@ -228,7 +252,7 @@ class Parser
         author = Author.find_by_major_ids(arr[2])
         if author
           clean_urn = arr[0].match(/urn:cite:perseus:primauth\.\d+/)[0]
-          author.urn = clean_urn
+          author.cite_urn = clean_urn
           author.save
         end
       rescue Exception => e
@@ -361,15 +385,43 @@ class Parser
         textgroup.save
       end
 
+      auth_match = Author.find(:all, :conditions => ["? in (phi_id, tlg_id, stoa_id)", textgroup.urn_end])
+
       if textgroup 
         if (textgroup.group_name == nil or textgroup.group_name.empty?)
           textgroup.group_name = tg_raw unless tg_raw.empty?
-          textgroup.save
+          if textgroup.group_name.empty?
+            unless auth_match.empty?
+              textgroup.group_name = auth_match[0].name
+            else
+              #if there is absolutely no name, supply the work name
+              textgroup.group_name = doc.xpath("cts:work/cts:title", ns).inner_text
+            end
+          end 
+        else
+          unless (textgroup.group_name == tg_raw and tg_raw.empty?)
+            textgroup.group_name = tg_raw
+          end
         end
+        textgroup.save
       end
 
-      auth_match = Author.find(:first, :conditions => ["? in (phi_id, tlg_id, stoa_id)", textgroup.urn_end])
-      unless auth_match
+      
+      if auth_match.empty?
+        auth = Author.new
+        case 
+        when textgroup.urn_end =~ /phi/
+          auth.phi_id = textgroup.urn_end
+        when textgroup.urn_end =~ /tlg/
+          auth.tlg_id = textgroup.urn_end
+        when textgroup.urn_end =~ /stoa/
+          auth.stoa_id = textgroup.urn_end
+        end
+        auth.name = textgroup.group_name
+        name_part = auth.name.gsub(/\s+|,|\./, "")[0, 5]
+        auth.unique_id = "A#{textgroup.urn_end}#{name_part}"
+        auth.save
+        auth_match << auth
         #missing_auth << "#{tg_id}, #{tg_raw}\n"
       end
 
@@ -399,17 +451,29 @@ class Parser
       else
         puts "Missing a work or textgroup entry in the tables, something is wrong, check the file for #{tg_raw} and/or #{id}"
       end
-      taw_auth = auth_match ? auth_match.id : nil
+
+      std_work = id.split(":")
+      a_match = []
+      auth_match.each do |a| 
+        if a.related_works =~ /#{std_work.last}/ 
+          a_match << a
+        end
+      end
+      if a_match.empty?
+        #if no related works list or it is wrong, just take the first author returned and deal with it
+        a_match << auth_match[0]
+      end
+      taw_auth = a_match[0].id 
       taw_work = work.id
       taw_tg = textgroup.id
       taw = TgAuthWork.find_row(taw_auth, taw_work, taw_tg)
       unless taw
         taw = TgAuthWork.new
-        taw.tg_id = taw_tg
-        taw.auth_id = taw_auth
-        taw.work_id = taw_work
-        taw.save
       end
+      taw.tg_id = taw_tg
+      taw.auth_id = taw_auth
+      taw.work_id = taw_work
+      taw.save
 
       #run through the MODS records contained in the feed to create expressions and series
       mods_parse(doc, ns, work.id, textgroup.id, inventory)
@@ -425,7 +489,7 @@ class Parser
             exp = NonCatalogedExpression.new
             exp.cts_urn = index
           end
-          exp.work_id = Work.find_by_standard_id(id).id
+          exp.work_id = work.id
           exp.cts_label = item[0]
           exp.ed_trans = item[1]
           exp.var_type = item[2]

@@ -12,7 +12,7 @@
   <dt><%= "Work title:" %></dt>
   <dd><%= @document.values_at("work_title")[0] %></dd>
   <dt><%= "Author:" %></dt>
-  <dd><%= link_to auth.name, :id => auth.urn%></dd>
+  <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
   
 
 </dl>

@@ -1,7 +1,8 @@
 class CreateAuthor < ActiveRecord::Migration
   def change
     create_table :authors do |t|
-      t.string :urn, :null => false
+      t.string :unique_id, :null => false
+      t.string :cite_urn
       t.string :phi_id
       t.string :tlg_id
       t.string :stoa_id
@@ -11,7 +12,8 @@ class CreateAuthor < ActiveRecord::Migration
       t.string :dates
       t.string :alt_names      
       t.string :field_of_activity
-      t.text :notes    
+      t.text :notes  
+      t.string :related_works  
       t.timestamps
     end
   end

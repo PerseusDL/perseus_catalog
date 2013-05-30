@@ -3,7 +3,7 @@
 <%# I've utilized the facet code here to make easy collapsable lists. Might want to override the css to give it different styling, make a special class for it-%>
 <% unless eds.empty? %>
   <div id="facets" class="facets sidenav">
-    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "#{type}s for this Work, Click to Expand" %></h4>
+    <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "#{type}s of this Work, Click to Expand" %></h4>
 
     <% eds.each do |ed| %>
       <% e_id = ed.cts_urn %>

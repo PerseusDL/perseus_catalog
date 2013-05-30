@@ -1,59 +1,23 @@
 <%# partial to display nicely formatted list of works for author pages-%>  
-<div class="row">  
-  <div class="span4">
-    <% works = find_related(doc) %>
-    <div id="facets" class="facets sidenav">
+<div class="row"> <!-- I have no idea why it wants this, but if it isn't there then the formatting gets messed up...-->
+  <div id="facets" class="facets sidenav">
     <h4 data-toggle="collapse" data-target=".facets-collapse"><%= "Works Currently Cataloged" %></h4>
     <% works.each do |work| %>
       <% work_hash = work.attributes %>
-      <% w_id = work_hash["standard_id"] %>
+      <% w_id = work.standard_id %>
 
       <div class="facets-collapse">
-        <h5><%="#{work_hash["title"]}"%></h5>
+        <h5><%="#{work.title}"%></h5>
         <ul>
-          <%# getting rid of the dt dd lists here because of the two column set up, the formatting looks bad-%>
-          <table cellpadding="10">
-            <tr>
-              <td class="muted" align='right'><%= "URN:"%></td>
-              <td><%= w_id %></td>
-            </tr>
-            <tr>
-              <td class="muted" align='right'><%= "Word Count:"%></td> 
-              <td><%=work_hash["word_count"] %></td>
-            </tr>
-            <tr>
-              <td colspan="2"><%= link_to "Click here for Work record", :id => w_id %></td>
-            </tr>
-          </table>
-          <li></li>
+          <dt><%= "URN:"%></dt>
+          <dd><%= w_id %></dd>
+          <dt><%= "Word Count:"%></dt>
+          <dd><%= work.word_count %></dd>
+          <%= link_to "Click here for Work record", :id => w_id %>
         </ul>
       </div>
     <% end %>
     </div>
   </div>
 
-<div class="row">  
-  <div class="span4 offset1">
-    <% err_works = find_missing_works(doc) %>
-    <% unless err_works.empty? %>
-    <div id="facets" class="facets sidenav">
-    <h4 data-toggle="collapse" data-target=".facets-collapse"><%="Works Not Yet Cataloged"%></h4>
-      <% err_works.each do |e_work| %>       
-        <% e_work_hash = e_work.attributes %>
-        <% w_id = e_work_hash["standard_id"] %>
-        <div class="facets-collapse">
-          <h5><%= e_work_hash["title"] %></h5>
-          <ul>
-            <table cellpadding="10">
-              <tr> 
-              <td class="muted"><%= "URN:"%></td>
-              <td><%= w_id %></td>
-              </tr>
-            </table>
-          </ul>
-        </div>
-      <% end %>
-    </div>
-    <% end %>
-  </div>
-</div>
+
