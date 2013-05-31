@@ -2,7 +2,7 @@
   
   <% d_id = @document.values_at("uid")[0]%>
   <% doc = Expression.get_info(d_id) %>
-
+  <% work, auths, tgs = find_related(doc) %>
      
 
 
@@ -10,21 +10,28 @@
 
   <dl class="dl-horizontal  dl-invert">
 
-    <%# item urls-%>
-      
-      <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression"} %>
+    <%# item urls-%>      
+    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression"} %>
 
-
+    <dt><%= "URN:" %></dt>
+    <dd><%= d_id %></dd>
+    <dt><%= "Work:" %></dt>
+    <dd><%= link_to work.title, :id => work.standard_id %></dd>
+    <% tgs.each do |tg| %>
+      <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
+    <% end %>
+    <dt><%= "Author:" %></dt>
+    <% auths.each do |auth| %>
+      <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
+    <% end %>
     <%# show fields-%>
     <%= render_document_partial @document, :show %>
 
     <%# mysql fields-%>
     <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
    
-    <%# host urls-%>   
-   
-      
-      <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host"} %>
+    <%# host urls-%>         
+    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host"} %>
 
     
   </dl>

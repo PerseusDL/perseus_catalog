@@ -22,7 +22,7 @@
   </div>
 </div>
 <% type = params[:id] %>
-<% if type == "auth_facet" or type == "work_facet" %>
+<% if type == "auth_facet" or type == "work_facet" or type == "tg_facet" %>
   <%= render :partial => 'alph_btns', :locals => {:type => type} %>
 <% end %>
 

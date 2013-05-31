@@ -8,23 +8,32 @@ module ApplicationHelper
   end
 
   def find_related (object)
-    #REWORK THIS TO USE THE TG_AUTH_WORKS TABLE
     if object.attribute_present?("cts_urn")
       #expression, find work and author
       work = Work.find_by_id(object.work_id)
-      tg = Textgroup.find_by_id(work.textgroup_id)
-      return work, tg
+      taw_arr = TgAuthWork.find(:all, :conditions => {:work_id => object.id})
+      auth = Author.find(taw_arr.collect {|a| a.auth_id})
+      tg = Textgroup.find(taw_arr.collect {|d| d.tg_id})
+      return work, auth, tg
     elsif object.attribute_present?("standard_id")
       #work, find author and expressions
+      taw_arr = TgAuthWork.find(:all, :conditions => {:work_id => object.id})
       exps = Expression.find(:all, :conditions => {:work_id => object.id}, :order => 'cts_label')
-      auth = Author.find(:first, :conditions => ["id = (SELECT auth_id from tg_auth_works where work_id = ?)", object.id])
+      auth = Author.find(taw_arr.collect {|a| a.auth_id})
+      tg = Textgroup.find(taw_arr.collect {|d| d.tg_id})
       non_cat = NonCatalogedExpression.find(:all, :conditions => {:work_id => object.id}, :order => 'cts_label')
-      return exps, auth, non_cat
+      return exps, auth, tg, non_cat
+    elsif object.attribute_present?("urn_end")
+      #textgroup, find associated author(s) and works
+      taw_arr = TgAuthWork.find(:all, :conditions => {:tg_id => object.id})
+      auths = Author.find(taw_arr.collect {|a| a.auth_id})
+      works = Work.find(taw_arr.collect {|w| w.work_id}, :order => "title")
+      return auths, works
     else
-      #author, find works
-      tg_arr = TgAuthWork.find(:all, :conditions => {:auth_id => object.id})
-      tgs = Textgroup.find(tg_arr.collect {|d| d.tg_id})
-      works = Work.find(tg_arr.collect {|d| d.work_id}, :order => "title")
+      #author, find works and associated textgroup(s)
+      taw_arr = TgAuthWork.find(:all, :conditions => {:auth_id => object.id})
+      tgs = Textgroup.find(taw_arr.collect {|d| d.tg_id})
+      works = Work.find(taw_arr.collect {|d| d.work_id}, :order => "title")
       return works, tgs
     end
 
@@ -88,19 +97,32 @@ module ApplicationHelper
 #label text for url list
   def type_text_display (type)
     text = nil
-    case 
-      when type == "author"
+    case type
+      when "author"
         text = "Author info:"
-      when type == "expression"
+      when "expression"
         text = "Find text here:"
-      when type == "expression_info"
+      when "expression_info"
         text = "Other catalog records"
-      when type == "host"
+      when "host"
         text = "Host work text:"
-      when type == "host_info"
+      when "host_info"
         text = "Host catalog records:"
     end
     text
   end
 
+
+  def facet_buttons_type(type)
+    q_type = nil
+    case type
+      when "auth_facet"
+        q_type = "auth_no_token"
+      when "work_facet"
+        q_type = "work_no_token"
+      when "tg_facet"
+        q_type = "tg_no_token"      
+    end
+    return q_type
+  end
 end

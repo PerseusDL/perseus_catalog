@@ -1,3 +1,23 @@
 <%# default partial to display textgroup info-%>
+<dl class="dl-horizontal  dl-invert">
+  <% d_id = @document.values_at("uid")[0]%>
+  <% doc = Textgroup.get_info(d_id) %>
+  <% auths, works = find_related(doc) %>
 
-<p>Coming soon...</p>
+  <dl class="dl-horizontal  dl-invert">
+
+    <%= render_document_partial @document, :show %>
+    
+    <dt><%= "Author:" %></dt>
+    <% auths.each do |auth| %>
+      <dd><%= link_to auth.name, :id => auth.unique_id %></dd>
+    <% end %>
+
+  </dl>
+
+      <div>
+    &nbsp
+
+    <%= render :partial => "work_list", :locals => {:works => works} %>
+
+    </div>
