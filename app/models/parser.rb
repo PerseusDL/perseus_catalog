@@ -391,15 +391,21 @@ class Parser
         if (textgroup.group_name == nil or textgroup.group_name.empty?)
           textgroup.group_name = tg_raw unless tg_raw.empty?
           if textgroup.group_name.empty?
-            unless auth_match.empty?
+            if ( !auth_match.empty? and !auth_match[0].name.empty?)
               textgroup.group_name = auth_match[0].name
             else
-              #if there is absolutely no name, supply the work name
-              textgroup.group_name = doc.xpath("cts:work/cts:title", ns).inner_text
+              #if there is absolutely no name, parse the description line
+              desc = doc.xpath("//cts:work/cts:edition/cts:description", ns)
+              desc_arr = desc[0].inner_text.split(/,,|,/)
+              poss_name = []
+              desc_arr.each do |a| 
+                poss_name << a if a =~ /^[A-Z]/                  
+              end
+              textgroup.group_name = poss_name.join(",")
             end
           end 
         else
-          unless (textgroup.group_name == tg_raw and tg_raw.empty?)
+          if (textgroup.group_name != tg_raw and !tg_raw.empty?)
             textgroup.group_name = tg_raw
           end
         end
