@@ -26,7 +26,7 @@
             <%= link_to "Click here for #{type} record", :id => ed.cts_urn %>
           <% else %>
             <dt><%= "Info:" %></dt>
-            <dd><%= ed.ed_trans %></dd>
+            <dd><%= ed.ed_trans.html_safe %></dd>
           <% end %>
                    
         </ul>

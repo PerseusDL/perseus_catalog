@@ -18,10 +18,11 @@
     <dt><%= "Work:" %></dt>
     <dd><%= link_to work.title, :id => work.standard_id %></dd>
     <% tgs.each do |tg| %>
+      <dt><%= "Textgroup:"%>
       <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
     <% end %>
-    <dt><%= "Author:" %></dt>
     <% auths.each do |auth| %>
+      <dt><%= "Author:" %></dt>
       <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
     <% end %>
     <%# show fields-%>

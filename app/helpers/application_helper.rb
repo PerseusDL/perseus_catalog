@@ -11,7 +11,7 @@ module ApplicationHelper
     if object.attribute_present?("cts_urn")
       #expression, find work and author
       work = Work.find_by_id(object.work_id)
-      taw_arr = TgAuthWork.find(:all, :conditions => {:work_id => object.id})
+      taw_arr = TgAuthWork.find(:all, :conditions => {:work_id => object.work_id})
       auth = Author.find(taw_arr.collect {|a| a.auth_id})
       tg = Textgroup.find(taw_arr.collect {|d| d.tg_id})
       return work, auth, tg
