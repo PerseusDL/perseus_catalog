@@ -1,4 +1,5 @@
-module Blacklight::BlacklightHelperBehavior
+module BlacklightHelper
+  include Blacklight::BlacklightHelperBehavior
 
   def render_index_field_value args
     value = args[:value]
