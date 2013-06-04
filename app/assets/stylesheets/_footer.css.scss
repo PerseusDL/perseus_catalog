@@ -1,0 +1,29 @@
+
+
+/* Wrapper for page content to push down footer */
+#wrap {
+  padding-top: 9em;
+  min-height: 100%;
+  height: auto !important;
+  height: 100%;
+  /* Negative indent footer by it's height */
+  margin: 0 auto -60px;
+}
+
+/* Set the fixed height of the footer here */
+#push{
+  height: 100px;
+}
+
+#footer-navbar-fixed-bottom {
+  height: 100px;
+  background-image: linear-gradient(to top, #f6f6f6, #bb8a5c);
+  border-top: 1px solid $navbarBorder;
+}
+
+
+
+#footer_img {
+  padding-top: 10px;
+
+}

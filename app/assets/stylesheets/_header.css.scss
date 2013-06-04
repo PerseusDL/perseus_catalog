@@ -4,8 +4,8 @@
 
 
 .navbar .brand {
-  height: 65px;
-  width: 100px;
+  height: 100px;
+  width: 275px;
   background:transparent url(logo.png) no-repeat left;
   display: inline-block;
   text-indent: 100%;
@@ -42,13 +42,14 @@
   */
   .desktop-search-bar {
     opacity: 1 !important;
-    padding-top: 0.5em;
+    padding-top: 2em;
 
   }
 }
 
+
 #searchbar {
-  padding-top:5px;
+  padding-top:30px;
 }
 
 .search-query-form {
