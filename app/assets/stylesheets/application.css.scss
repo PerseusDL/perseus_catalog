@@ -12,10 +12,18 @@
 @import "header";
 
 .perseus_canonical_uri { 
-  font-size: small;
+  font-size: smaller;
 }
+
+.perseus_canonical_uri .uri {
+  color: #333333;
+  font-weight: bold;
+  float: left;
+}
+
 .perseus_canonical_uri .title {
   color: #888888;
   padding-right: .5em;
+  float: left;
 }
 

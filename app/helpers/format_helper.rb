@@ -51,9 +51,9 @@ module FormatHelper
   def render_canonical_link(document=@document, options = {})
     uri = get_canonical_uri(document.id)
     span_contents = ""
-    span_contents <<  content_tag(:span,t('blacklight.views.perseus_canonical_uri_title'),{:class => 'title'}) 
-    span_contents <<  content_tag(:span,uri,{:class => 'uri'}) 
-    content_tag(:div,span_contents.html_safe,{:class=>'perseus_canonical_uri'})
+    span_contents <<  content_tag(:div,t('blacklight.views.perseus_canonical_uri_title'),{:class => 'title'}) 
+    span_contents <<  content_tag(:div,uri,{:class => 'uri'}) 
+    content_tag(:div,span_contents.html_safe,{:class=>'perseus_canonical_uri clearfix'})
   end
   
   # renders an html nav block for display of a document's export formats
