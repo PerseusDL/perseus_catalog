@@ -17,8 +17,8 @@
 
 #footer-navbar-fixed-bottom {
   height: 100px;
-  background-image: linear-gradient(to top, #f6f6f6, #bb8a5c);
-  border-top: 1px solid $navbarBorder;
+  background-image: linear-gradient(to bottom, #f6f6f6, #bb8a5c);
+  /*border-top: 1px solid $navbarBorder;*/
 }
 
 
@@ -26,4 +26,8 @@
 #footer_img {
   padding-top: 10px;
 
+}
+
+#footer_links {
+  padding-top: 30px;
 }
