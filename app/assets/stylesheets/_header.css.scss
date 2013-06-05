@@ -4,7 +4,7 @@
 
 
 .navbar .brand {
-  height: 100px;
+  height: 85px;
   width: 275px;
   background:transparent url(logo.png) no-repeat left;
   display: inline-block;
@@ -67,5 +67,6 @@
 }
 
 .util-links-login, .util-links-other {
+  padding-top: 15px;
   font-size: 0.9em;
 }

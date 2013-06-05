@@ -11,4 +11,7 @@ en:
     views:
       perseus_alt_links_title: 'Alternate Representations'
       perseus_canonical_uri_title: 'Record Canonical URI:' 
+    header_links:
+      search_history: 'Search History'
+      help: 'Help'
       

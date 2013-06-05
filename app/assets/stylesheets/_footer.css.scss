@@ -2,7 +2,7 @@
 
 /* Wrapper for page content to push down footer */
 #wrap {
-  padding-top: 9em;
+  padding-top: 8em;
   min-height: 100%;
   height: auto !important;
   height: 100%;
@@ -12,11 +12,11 @@
 
 /* Set the fixed height of the footer here */
 #push{
-  height: 100px;
+  height: 80px;
 }
 
 #footer-navbar-fixed-bottom {
-  height: 100px;
+  height: 80px;
   background-image: linear-gradient(to bottom, #f6f6f6, #bb8a5c);
   /*border-top: 1px solid $navbarBorder;*/
 }
