@@ -1,36 +1,9 @@
-<%#This is horrible and I hate myself... Need to make better eventually... %>
 
-<% q_field = facet_buttons_type(type) %>
 <div class="alpha btn-toolbar pagination-centered" style="margin-top: 65px">
-<div class="alpha btn-group">
-      
-      <%= link_to "A", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[a TO b]"), :class=> "btn" %>
-      <%= link_to "B", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[b TO c]"), :class=> "btn" %>
-      <%= link_to "C", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[c TO d]"), :class=> "btn" %>
-      <%= link_to "D", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[d TO e]"), :class=> "btn" %>
-      <%= link_to "E", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[e TO f]"), :class=> "btn" %>
-      <%= link_to "F", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[f TO g]"), :class=> "btn" %>
-      <%= link_to "G", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[g TO h]"), :class=> "btn" %>
-      <%= link_to "H", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[h TO i]"), :class=> "btn" %>
-      <%= link_to "I", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[i TO j]"), :class=> "btn" %>
-      <%= link_to "J", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[j TO k]"), :class=> "btn" %>
-      <%= link_to "K", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[k TO l]"), :class=> "btn" %>
-      <%= link_to "L", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[l TO m]"), :class=> "btn" %>
-      <%= link_to "M", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[m TO n]"), :class=> "btn" %>
-      <%= link_to "N", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[n TO o]"), :class=> "btn" %>
-</div>
-<div class="alpha btn-group">      
-      <%= link_to "O", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[o TO p]"), :class=> "btn" %>
-      <%= link_to "P", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[p TO q]"), :class=> "btn" %>
-      <%= link_to "Q", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[q TO r]"), :class=> "btn" %>
-      <%= link_to "R", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[r TO s]"), :class=> "btn" %>
-      <%= link_to "S", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[s TO t]"), :class=> "btn" %>
-      <%= link_to "T", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[t TO u]"), :class=> "btn" %>
-      <%= link_to "U", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[u TO v]"), :class=> "btn" %>
-      <%= link_to "V", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[v TO w]"), :class=> "btn" %>
-      <%= link_to "W", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[w TO x]"), :class=> "btn" %>
-      <%= link_to "X", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[x TO y]"), :class=> "btn" %>
-      <%= link_to "Y", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[y TO z]"), :class=> "btn" %>
-      <%= link_to "Z", params.merge(:id => type, :action => "facet", :q => "#{q_field}:[z TO *]"), :class=> "btn" %>
-    </div>
+   
+    <%= render_facet_alph_btns(type, "A".."N") %>
+
+       
+    <%= render_facet_alph_btns(type, "O".."Z") %>
+ 
 </div>

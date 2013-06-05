@@ -70,9 +70,9 @@ module ApplicationHelper
       h_info = []
       rows.each do |r|
         unless r.display_label =~ /WorldCat|LC/i
-          h_text << (content_tag :dd, (link_to r.display_label, r.url))
+          h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
         else
-          h_info << (content_tag :dd, (link_to r.display_label, r.url))
+          h_info << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
         end
       end
 
@@ -112,17 +112,4 @@ module ApplicationHelper
     text
   end
 
-
-  def facet_buttons_type(type)
-    q_type = nil
-    case type
-      when "auth_facet"
-        q_type = "auth_no_token"
-      when "work_facet"
-        q_type = "work_no_token"
-      when "tg_facet"
-        q_type = "tg_no_token"      
-    end
-    return q_type
-  end
 end
