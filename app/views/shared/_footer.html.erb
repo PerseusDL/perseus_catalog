@@ -1,32 +1,29 @@
 <div id="footer-navbar-fixed-bottom" class="navbar navbar-fixed-bottom">
   <div class="container">
     <div class="row">
-      <div class="span3 text-left">
-        <div id="footer-text">
-          <span>
-            The Perseus Catalog, Version 1.0<br>
-            <strong>The Perseus Digital Library</strong><br>
-            At Tufts University<br>
-            Medford, Massachusetts
-          </span>
+      <div class="span3 pull-left">
+        <div id="footer-img">
+          <div class="media">
+            <%= link_to image_tag('running_man.png'), "http://www.perseus.tufts.edu", :class => "pull-left", :target => "_blank"%>
+          </div>
         </div>
       </div>
 
       <div class="span6 pagination-centered">
         <div id="footer-links" >
           <ul class="inline">
-            <li><%= link_to "About the Catalog", "http://sites.tufts.edu/perseuscatalog/documentation/" %></li>
+            <li><%= link_to "About the Catalog", "http://sites.tufts.edu/perseuscatalog/documentation/", :target => "_blank" %></li>
             <li></li>
             <li><%= link_to "Contact Us"%></li>
           </ul>
         </div>
       </div>
       
-      <div class="span3 pull-right">
-        <div id="footer-img">
-          <div class="media">
-            <%= link_to image_tag('running_man.png'), "http://www.perseus.tufts.edu", :class => "pull-right"%>
-          </div>
+      <div class="span3 text-right">
+        <div id="footer-text">
+          <span>
+            The Perseus Catalog, Version 1.0<br>
+          </span>
         </div>
       </div>
 
