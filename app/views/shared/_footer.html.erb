@@ -14,7 +14,7 @@
           <ul class="inline">
             <li><%= link_to "About the Catalog", "http://sites.tufts.edu/perseuscatalog/documentation/", :target => "_blank" %></li>
             <li></li>
-            <li><%= link_to "Contact Us"%></li>
+            <li><%= mail_to "perseus_catalog@tufts.edu", "Contact Us", :encode => 'javascript'%></li>
           </ul>
         </div>
       </div>
