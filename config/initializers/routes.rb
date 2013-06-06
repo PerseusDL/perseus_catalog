@@ -24,7 +24,7 @@ module Blacklight
     end
 
     def default_route_sets
-      [:bookmarks, :search_history, :saved_searches, :catalog, :solr_document, :feedback]
+      [:bookmarks, :search_history, :saved_searches, :catalog, :solr_document, :feedback, :browse]
     end
 
     module RouteSets
@@ -81,7 +81,15 @@ module Blacklight
         end
       end
   
-    
+      def browse
+        add_routes do |options|
+
+          match 'browse', :to => 'browse#index', :as => 'browse'
+
+        end
+      end
+
+
       # Feedback
       def feedback
         add_routes do |options|

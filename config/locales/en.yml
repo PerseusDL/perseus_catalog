@@ -7,7 +7,7 @@ en:
   blacklight:
     search:
       facets:
-        title: 'Browse for Works by'
+        title: 'Browse by'
     views:
       perseus_alt_links_title: 'Alternate Representations'
       perseus_canonical_uri_title: 'Record Canonical URI:' 

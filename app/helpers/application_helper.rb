@@ -112,4 +112,30 @@ module ApplicationHelper
     text
   end
 
+#methods to help the browse list
+  def render_author_list
+    auth_arr = Author.all(:order => 'name')
+    results = ""
+    auth_arr.each do |auth|
+      auth_name = auth.name
+      solr_id = auth.unique_id
+      unless auth_name == ""      
+        works_link = link_to "Search for Works", "/?f[auth_facet][]=#{auth_name}"
+      else
+        auth_name = "[Unnamed]"
+        works_link = link_to "Search for Works", "/?f[auth_facet][]="
+      end
+      auth_link = link_to "View Authority Record", catalog_path(:id => solr_id)
+      auth_record = content_tag(:li, auth_link)
+      spacer = content_tag(:li, " ")
+      works_search = content_tag(:li, works_link)
+      list = content_tag(:ul, auth_record.html_safe + spacer + works_search.html_safe, :class => 'inline')
+      results << content_tag(:dt, auth_name) + content_tag(:dd, list)
+
+    end
+    content_tag(:dl, results.html_safe)
+  end
+
+
+
 end
