@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    xmlns:ti="http://chs.harvard.edu/xmlns/cts3/ti"
+    xmlns:ti="http://chs.harvard.edu/xmlns/cts/ti"
     xmlns:mods="http://www.loc.gov/mods/v3"
     xmlns:dc="http://purl.org/dc/elements/1.1/"
     exclude-result-prefixes="xs"
@@ -22,14 +22,14 @@
             <xsl:when test="starts-with(@urn,$testurn)">
                 <xsl:copy>
                     <xsl:attribute name="urn"><xsl:value-of select="$newurn"/></xsl:attribute>
-                    <xsl:attribute name="projid"><xsl:value-of select="concat($e_ns,':','opp-',$e_lang,$e_newVer)"/></xsl:attribute>
+                    <!--xsl:attribute name="projid"><xsl:value-of select="concat($e_ns,':','opp-',$e_lang,$e_newVer)"/></xsl:attribute-->
                     <xsl:apply-templates select="@*[not(local-name(.) = 'urn') and not(local-name(.) = 'projid')]"/>
                     <xsl:apply-templates select="node()"/>
                 </xsl:copy>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:copy>
-                    <xsl:apply-templates select="@*"/>
+                    <xsl:apply-templates select="@*[not(local-name(.) = 'projid')]"/>
                     <xsl:apply-templates select="node()"/>
                 </xsl:copy>
             </xsl:otherwise>

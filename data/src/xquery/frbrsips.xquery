@@ -1,7 +1,7 @@
 module namespace frbr = "http://perseus.org/xquery/frbr";
 
 declare namespace mods="http://www.loc.gov/mods/v3";
-declare namespace cts="http://chs.harvard.edu/xmlns/cts3/ti";
+declare namespace cts="http://chs.harvard.edu/xmlns/cts/ti";
 declare namespace atom="http://www.w3.org/2005/Atom";
 declare namespace dc = "http://purl.org/dc/elements/1.1/";
 declare namespace xsi ="http://www.w3.org/2001/XMLSchema-instance";
@@ -169,7 +169,7 @@ declare function frbr:exclude-mods($a_nodes as node()*) as node()*
         then ()
         else if ($node instance of element()) then
             element { node-name($node) } {
-                $node/@*,
+                $node/@*[not(local-name(.) = 'projid')],
                 frbr:exclude-mods($node/node())
             }
         else 
@@ -234,9 +234,9 @@ declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods a
         $perseusInv//cts:TextInventory/@*,
         $perseusInv//cts:TextInventory/node()[not(local-name() = 'textgroup')],
         element cts:textgroup {
-            attribute projid {
+            (:attribute projid {
                 $textgroup_id
-            },
+            },:)
             attribute urn {
                 concat('urn:cts:',$textgroup_id)
             },
@@ -245,9 +245,9 @@ declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods a
                 $groupname  
             },            
             element cts:work {
-                attribute projid {
+                (:attribute projid {
                     $work_id
-                },              
+                },:)              
                 attribute urn {
                     concat('urn:cts:',$a_ns,':',$a_id)
                 },
@@ -267,7 +267,7 @@ declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods a
                                     attribute urn {
                                         concat('urn:cts:', $a_ns,':',$a_id,'.',substring-after($expression/@projid,':'))
                                     },
-                                    $expression/@*,
+                                    $expression/@*[not(local-name(.) = 'projid')],
                                     $expression/*
                                 }
                 ),
@@ -284,7 +284,7 @@ declare function frbr:make_cts($a_lang as xs:string,$a_id as xs:string,$a_mods a
                         (for $mods in $all_opp[@modsonly]
                         return $mods/*,
                         for $thislang in $opplangs 
-                            for $mods at $a_i in $all_opp[*[contains(@projid,concat('opp-',$thislang))]]
+                            for $mods at $a_i in $all_opp[*[contains(@urn,concat('opp-',$thislang))]]
                                 let $renumbered :=
                                     existtx:transform($mods,doc('/db/xslt/fixoppver.xsl'),
                                         <parameters>
@@ -339,7 +339,7 @@ declare function frbr:make_opp_version($a_id,$a_ns,$a_perseusExpressions,$a_lang
                     if ($type = 'edition') 
                     then () 
                     else attribute xml:lang { if ($lang) then $lang else $a_lang },
-                    attribute projid { $projid },
+                    (:attribute projid { $projid },:)
                     attribute urn { $urn },
                     element cts:label {
                        (: if we have no or multiple languages just say eng :)
