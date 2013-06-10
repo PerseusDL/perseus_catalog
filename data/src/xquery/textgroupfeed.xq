@@ -21,8 +21,7 @@ let $allgroups :=
                     $entry/atom:author,
                     $entry/atom:title
                 }
-        (: TODO  remove hack of pulling urn:cts: out of textgroup with next feed build (after 20130513):)                
-        let $distinct_mads := distinct-values($allfeeds//atom:entry[atom:id[matches(.,concat('.*?/',substring-after($textgroup,'urn:cts:') ,'\..*/atom#mads.*'))]]/atom:link[@rel='alternate']/@href)
+        let $distinct_mads := distinct-values($allfeeds//atom:entry[atom:id[matches(.,concat('.*?/',$textgroup ,'\..*/atom#mads.*'))]]/atom:link[@rel='alternate']/@href)
         let $all_mads :=
             for $author at $a_i in $distinct_mads return
                 let $proto_mads :=

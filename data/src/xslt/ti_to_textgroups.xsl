@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    xmlns:cts="http://chs.harvard.edu/xmlns/cts3/ti"
+    xmlns:cts="http://chs.harvard.edu/xmlns/cts/ti"
     xmlns:atom="http://www.w3.org/2005/Atom"
     exclude-result-prefixes="xs cts"
     version="2.0">
@@ -20,7 +20,6 @@
             <xsl:variable name="baseUri" select="concat($e_baseUriDir,@urn)"/>
             <xsl:result-document href="{$file}">
                 <atom:feed xmlns:atom="http://www.w3.org/2005/Atom">
-                    <!-- TODO final id decision -->
                     <atom:id><xsl:value-of select="concat($baseUri,'/atom')"/></atom:id>
                     <atom:title>The Perseus Catalog: atom feed for CTS textgroup <xsl:value-of select="@urn"/></atom:title>
                     <xsl:copy-of select="$updated"/>
@@ -35,10 +34,10 @@
                         <atom:link href="{concat($baseUri,'/html')}"
                             type="text/html" rel="alternate"/>
                         <atom:content type="text/xml">
-                            <TextInventory xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
+                            <TextInventory xmlns="http://chs.harvard.edu/xmlns/cts/ti">
                                 <xsl:copy-of select="//cts:TextInventory/@*"/>
                                 <xsl:copy-of select="//cts:TextInventory/*[not(local-name(.) = 'textgroup')]" copy-namespaces="yes"/>
-                                <textgroup xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
+                                <textgroup xmlns="http://chs.harvard.edu/xmlns/cts/ti">
                                     <xsl:copy-of select="@*"/>
                                     <xsl:copy-of select="*[not(local-name(.) = 'entry')]"  exclude-result-prefixes="#all" copy-namespaces="no"/>
                                 </textgroup>

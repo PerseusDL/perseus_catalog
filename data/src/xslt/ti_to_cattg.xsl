@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    xmlns:cts="http://chs.harvard.edu/xmlns/cts3/ti"
+    xmlns:cts="http://chs.harvard.edu/xmlns/cts/ti"
     xmlns:atom="http://www.w3.org/2005/Atom"
     exclude-result-prefixes="xs cts"
     version="2.0">

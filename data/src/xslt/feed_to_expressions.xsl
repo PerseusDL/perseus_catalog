@@ -4,7 +4,7 @@
     exclude-result-prefixes="xs"
     version="2.0"
     xmlns:mods="http://www.loc.gov/mods/v3"
-    xmlns:cts="http://chs.harvard.edu/xmlns/cts3/ti"
+    xmlns:cts="http://chs.harvard.edu/xmlns/cts/ti"
     xmlns:atom="http://www.w3.org/2005/Atom"
     >
     <xsl:param name="e_inputDir"/>
@@ -67,12 +67,12 @@
             <xsl:copy-of select="$parententry/atom:author"/>
             <xsl:copy-of select="$parententry/atom:updated"/>
             <atom:content type="text/xml">
-              <TextInventory xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
+              <TextInventory xmlns="http://chs.harvard.edu/xmlns/cts/ti">
                 <xsl:copy-of select="$parententry/atom:content/cts:TextInventory/@*" exclude-result-prefixes="cts" copy-namespaces="no"/>
                 <xsl:copy-of select="$parententry/atom:content/cts:TextInventory/*[local-name(.) != 'textgroup']" exclude-result-prefixes="cts" copy-namespaces="no"/>
-                <textgroup xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
+                <textgroup xmlns="http://chs.harvard.edu/xmlns/cts/ti">
                   <xsl:copy-of select="$parententry/atom:content/cts:TextInventory/cts:textgroup/@*" exclude-result-prefixes="cts" copy-namespaces="no"/>
-                  <work xmlns="http://chs.harvard.edu/xmlns/cts3/ti">
+                  <work xmlns="http://chs.harvard.edu/xmlns/cts/ti">
                     <xsl:copy-of select="../@*" exclude-result-prefixes="cts" copy-namespaces="no"/>
                     <xsl:copy-of select="." exclude-result-prefixes="cts" copy-namespaces="no"/>
                   </work>
@@ -83,11 +83,10 @@
           <!--these are the MODS file entries -->
           <xsl:copy-of select="$parentfeed/atom:entry[atom:id[matches(.,concat('.*',$versionurn,'/atom#mods'))]]"/>
           <!-- these are the MADS file entries we need to change the id to match the version -->
-          <!-- TODO remove hack sfor urn:cts: after 20130513 feed -->
-          <xsl:for-each select="$parentfeed/atom:entry[atom:id[matches(.,concat('.*',substring-after($workurn,'urn:cts:'),'/atom#mads'))]]">
+          <xsl:for-each select="$parentfeed/atom:entry[atom:id[matches(.,concat('.*',$workurn,'/atom#mads'))]]">
             <atom:entry>
                 <atom:id><xsl:value-of select="replace(atom:id,substring-after($workurn,'urn:cts:'),$versionurn)"/></atom:id>
-              <atom:link rel="self" type="application/atom+xml" href="{replace(atom:link[@rel='self']/@href,substring-after($workurn,'urn:cts:'),$versionurn)}"/>
+              <atom:link rel="self" type="application/atom+xml" href="{replace(atom:link[@rel='self']/@href,$workurn,$versionurn)}"/>
                 <xsl:copy-of select="atom:link[@rel='alternate']" exclude-result-prefixes="#all" copy-namespaces="no"/>
                 <xsl:copy-of select="atom:author" exclude-result-prefixes="#all" copy-namespaces="no"/>
                 <xsl:copy-of select="atom:title" exclude-result-prefixes="#all" copy-namespaces="no"/>
