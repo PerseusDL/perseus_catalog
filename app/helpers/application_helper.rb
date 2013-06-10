@@ -70,9 +70,9 @@ module ApplicationHelper
       h_info = []
       rows.each do |r|
         unless r.display_label =~ /WorldCat|LC/i
-          h_text << (content_tag :dd, (link_to r.display_label, r.url))
+          h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
         else
-          h_info << (content_tag :dd, (link_to r.display_label, r.url))
+          h_info << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
         end
       end
 
@@ -112,17 +112,30 @@ module ApplicationHelper
     text
   end
 
+#methods to help the browse list
+  def render_author_list
+    auth_arr = Author.all(:order => 'name')
+    results = ""
+    auth_arr.each do |auth|
+      auth_name = auth.name
+      solr_id = auth.unique_id
+      unless auth_name == ""      
+        works_link = link_to "Search for Works", "/?f[auth_facet][]=#{auth_name}"
+      else
+        auth_name = "[Unnamed]"
+        works_link = link_to "Search for Works", "/?f[auth_facet][]="
+      end
+      auth_link = link_to "View Authority Record", catalog_path(:id => solr_id)
+      auth_record = content_tag(:li, auth_link)
+      spacer = content_tag(:li, " ")
+      works_search = content_tag(:li, works_link)
+      list = content_tag(:ul, auth_record.html_safe + spacer + works_search.html_safe, :class => 'inline')
+      results << content_tag(:dt, auth_name) + content_tag(:dd, list)
 
-  def facet_buttons_type(type)
-    q_type = nil
-    case type
-      when "auth_facet"
-        q_type = "auth_no_token"
-      when "work_facet"
-        q_type = "work_no_token"
-      when "tg_facet"
-        q_type = "tg_no_token"      
     end
-    return q_type
+    content_tag(:dl, results.html_safe)
   end
+
+
+
 end

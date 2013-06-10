@@ -57,8 +57,9 @@ class CatalogController < ApplicationController
     config.add_facet_field 'tg_facet', :label => 'Author Group', :limit => 20, :sort => 'index'
     config.add_facet_field 'auth_facet', :label => 'Author Name', :limit => 20, :sort => 'index' 
     config.add_facet_field 'work_facet', :label => 'Work Title', :limit => 20, :sort => 'index'
-    config.add_facet_field 'year_facet', :label => 'Year Published', :limit => 20, :sort => 'index' 
-    config.add_facet_field 'exp_language', :label => 'Language'
+    config.add_facet_field 'work_lang', :label => 'Work Original Language'
+    config.add_facet_field 'year_facet', :label => 'Edition or Translation Year Published', :limit => 20, :sort => 'index' 
+    config.add_facet_field 'exp_language', :label => 'Edition or Translation Language'
     config.add_facet_field 'exp_series', :label => 'Series' , :limit => 10 
     config.add_facet_field 'auth_no_token', :show => false
     config.add_facet_field 'tg_no_token', :show => false

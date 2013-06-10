@@ -11,29 +11,30 @@
 // -------------------------
 $black:                 #000 !default;
 $grayDarker:            #222 !default;
-$grayDark:              #333 !default;
-$gray:                  #555 !default;
+$grayDark:              #161616 !default;
+$gray:                  #353535 !default;
 $grayLight:             #999 !default;
-$grayLighter:           #eee !default;
+$grayLighter:           #EEEEEE !default;
 $white:                 #fff !default;
 
 
 // Accent colors
 // -------------------------
-$blue:                  #0063AC !default;
-$blueDark:              #0064cd !default;
-$green:                 #1C9B47 !default;
-$red:                   #9c0001 !default;
-$yellow:                #ffc40d !default;
+$blue:                  #074149 !default;
+$blueDark:              #022A2F !default;
+$blueLight:             #B0F5FF !default;
+$green:                 #023B0C !default;
+$red:                   #771109 !default;
+$yellow:                #BB8A5C !default;
 $orange:                #f89406 !default;
-$pink:                  #c3325f !default;
+$pink:                  #BB635C !default;
 $purple:                #7a43b6 !default;
 
 
 // Scaffolding
 // -------------------------
 $bodyBackground:        #F6F6F6 !default;
-$textColor:             $grayDark !default;
+$textColor:             $grayDarker !default;
 
 
 // Links
@@ -182,7 +183,7 @@ $navbarCollapseDesktopWidth:      $navbarCollapseWidth + 1 !default;
 
 $navbarHeight:                    40px !default;
 $navbarBackgroundHighlight:       $bodyBackground !default;
-$navbarBackground:                $bodyBackground !default;
+$navbarBackground:                $yellow !default;
 $navbarBorder:                    darken($navbarBackground, 12%) !default;
 
 $navbarText:                      $textColor !default;

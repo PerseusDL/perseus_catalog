@@ -10,6 +10,7 @@
 @import 'blacklight/blacklight';
 
 @import "header";
+@import "footer";
 
 .perseus_canonical_uri { 
   font-size: smaller;
@@ -25,5 +26,10 @@
   color: #888888;
   padding-right: .5em;
   float: left;
+}
+
+html, body {
+  height: auto;
+  padding-top: 0em;
 }
 

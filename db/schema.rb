@@ -34,7 +34,8 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
   add_index "author_urls", ["author_id"], :name => "url_auth_idx"
 
   create_table "authors", :force => true do |t|
-    t.string   "urn",               :null => false
+    t.string   "unique_id",         :null => false
+    t.string   "cite_urn"
     t.string   "phi_id"
     t.string   "tlg_id"
     t.string   "stoa_id"
@@ -45,6 +46,7 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
     t.string   "alt_names"
     t.string   "field_of_activity"
     t.text     "notes"
+    t.string   "related_works"
     t.datetime "created_at",        :null => false
     t.datetime "updated_at",        :null => false
   end
@@ -121,9 +123,9 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
   add_index "expressions", ["work_id"], :name => "e_work_idx"
 
   create_table "non_cataloged_expressions", :force => true do |t|
-    t.string   "urn",        :null => false
+    t.string   "cts_urn",    :null => false
     t.integer  "work_id",    :null => false
-    t.string   "title"
+    t.string   "cts_label"
     t.string   "ed_trans"
     t.string   "var_type"
     t.datetime "created_at", :null => false
