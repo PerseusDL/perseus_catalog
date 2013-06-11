@@ -5,7 +5,9 @@ module FormatHelper
   require "open-uri"
   
   def self.extended(document)
-      document.will_export_as(:atom,"application/atom+xml")
+      if document.id =~ /^urn:cts:/
+        document.will_export_as(:atom,"application/atom+xml")
+      end
   end
   
   # implementing the atom feeds as an export format even though
