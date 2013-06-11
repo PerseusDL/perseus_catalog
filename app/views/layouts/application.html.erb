@@ -18,6 +18,7 @@
   <%= stylesheet_link_tag    "application", :media => "all" %>
   <%= javascript_include_tag "application" %>
   <%= csrf_meta_tags %>
+  <link rel="shortcut icon" href="/assets/favicon.ico" >
 </head>
 <% onload_text = "$('input#q').focus();" if params[:q].to_s.empty? and params[:f].to_s.empty? and params[:id].nil? %>
   <body onload="<%= onload_text %>" class="<%= render_body_class %>">
@@ -51,5 +52,6 @@
     
 
     <%= render :partial => 'shared/footer' %>
+    <%= render :partial => 'layouts/google_analytics' if Rails.env == 'production' %>
   </body>
 </html>

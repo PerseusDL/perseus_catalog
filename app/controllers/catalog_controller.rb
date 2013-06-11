@@ -163,6 +163,7 @@ class CatalogController < ApplicationController
     end
 
     config.add_search_field('urn') do |field|
+      field.label = 'URN'
       field.solr_local_parameters = {
         :type => 'dismax',
         :qf => 'tg_urn^10.0 phi_id^5.0 tlg_id^5.0 stoa_id^5.0 work_urn^2.0 exp_urn'

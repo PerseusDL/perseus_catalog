@@ -173,8 +173,8 @@ class Parser
               alt_ids << "viaf#{viaf_num}"
             else
               id = id.gsub(/lccnn\s/, "lccn n")
-              alt_ids << id unless id.empty?
           end
+          alt_ids << id unless id.empty?
         end
 
         person.alt_id = alt_ids.join(";")
@@ -249,7 +249,7 @@ class Parser
         importer = XmlImporter.new
         #this is assuming the PrimaryAuthors directory is in the perseus_catalog directory
         importer.import("#{Dir.pwd}/#{URI.decode(file_name)}", "author")
-        author = Author.find_by_major_ids(arr[2])
+        author = Author.find_by_major_ids(arr[2])[0]
         if author
           clean_urn = arr[0].match(/urn:cite:perseus:primauth\.\d+/)[0]
           author.cite_urn = clean_urn
@@ -385,7 +385,7 @@ class Parser
         textgroup.save
       end
 
-      auth_match = Author.find(:all, :conditions => ["? in (phi_id, tlg_id, stoa_id)", textgroup.urn_end])
+      auth_match = Author.find_by_major_ids(textgroup.urn_end)
 
       if textgroup 
         if (textgroup.group_name == nil or textgroup.group_name.empty?)
