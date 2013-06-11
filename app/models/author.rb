@@ -8,7 +8,8 @@ class Author < ActiveRecord::Base
   end
 
   def self.find_by_major_ids(id)
-    found_id = Author.find(:first, :conditions => ["? in (phi_id, tlg_id, stoa_id)", id])
+    found_id = Author.find(:all, :conditions => ["? in (phi_id, tlg_id, stoa_id)", id])    
+    found_id = Author.find(:all, :conditions => ["alt_id rlike ?", id]) if found_id.empty?
     return found_id
   end
 

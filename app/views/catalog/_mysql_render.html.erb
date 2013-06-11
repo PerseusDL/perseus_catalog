@@ -2,9 +2,10 @@
   <% hash = doc.attributes %>
   <% field_list.each do |key| %>
     <% val = hash[key] %>
+    <% is_lang = key =~ /lang/i %>
     <% if (val && val != "")%>
       
       <dt><%= "#{key.gsub("_", " ").capitalize}:"%></dt>
-      <dd><%= val %></dd>
+      <dd><%= render_field_value(val, is_lang) %></dd>
     <% end%>
   <% end %>
