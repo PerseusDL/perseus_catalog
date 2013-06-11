@@ -1,5 +1,5 @@
 declare namespace mods="http://www.loc.gov/mods/v3";
-declare namespace cts="http://chs.harvard.edu/xmlns/cts3/ti";
+declare namespace cts="http://chs.harvard.edu/xmlns/cts/ti";
 declare namespace atom="http://www.w3.org/2005/Atom";
 
 
@@ -25,12 +25,11 @@ let $allgroups :=
         let $all_mads :=
             for $author at $a_i in $distinct_mads return
                 let $proto_mads :=
-                    (: TODO  remove hack of pulling urn:cts: out of textgroup with next feed build (after 20130513):)                
-                    ($allfeeds//atom:entry[atom:link[@rel='alternate' and @href = $author]])[1]
-                let $proto_id := substring-before(substring-before($proto_mads/atom:id,'/atom#mads'),substring-after($textgroup,'urn:cts:'))
+                   ($allfeeds//atom:entry[atom:link[@rel='alternate' and @href = $author]])[1]
+                let $proto_id := substring-before(substring-before($proto_mads/atom:id,'/atom#mads'),$textgroup)
                 return 
                     element atom:entry {
-                        element atom:id { concat( $proto_id,$textgroup,'/atom-#mads',$a_i) },
+                        element atom:id { concat( $proto_id,$textgroup,'/atom#mads-',$a_i) },
                         $proto_mads/atom:link[@rel='alternate'],
                         $proto_mads/atom:author,
                         element atom:title { 
@@ -48,7 +47,7 @@ let $allgroups :=
             }
 let $ti :=
     element cts:TextInventory {
-        attribute tiversion {"3.0.rc1"},
+        attribute tiversion {"4.0"},
         ($collection//cts:TextInventory)[1]/*[not(local-name(.) = 'textgroup')],
         for $group in $allgroups
         order by $group/@urn

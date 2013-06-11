@@ -52,18 +52,18 @@ while (<FILE>)
         $lang = $e_lang;
 
         $author_url = $cols[0]
-		unless !($cols[0]) || $cols[0] =~ /\bnone\b/i;
+		unless !($cols[0]) || $cols[0] =~ /\b(none|suppressed)\b/i;
         $author_id = $cols[1]
-		unless !($cols[1]) || $cols[1] =~ /\bnone\b/i;
+		unless !($cols[1]) || $cols[1] =~ /\b(none|suppressed)\b/i;
 	for (my $i=2; $i<9; $i++)
 	{
 	    push @author_names, $cols[$i] 
-		unless !($cols[$i]) || $cols[$i] =~ /\bnone\b/i;
+		unless !($cols[$i]) || $cols[$i] =~ /\b(none|suppressed)\b/i;
 	}
 	for (my $i=9; $i<13; $i++)
 	{
 	    push @titles, $cols[$i]
-		unless !($cols[$i]) || $cols[$i] =~ /\bnone\b/i;
+		unless !($cols[$i]) || $cols[$i] =~ /\b(none|suppressed)\b/i;
 	}
         # override for Seneca the Younger to use stoa over phi
         # See Bug 1159
@@ -130,7 +130,7 @@ while (<FILE>)
         $format_tried = 'idmatches';
         push @author_names, $cols[$author_col];
         push @titles, $cols[$title_col];	
-	$perseus = $cols[$perseus_col] =~ /none/i ? 0 : 1;
+	$perseus = $cols[$perseus_col] =~ /(none|suppressed)/i ? 0 : 1;
         # override for Suetonius to use abo
         # See Bug 1159
         if ($cols[$abo_col] && $cols[$abo_col] =~ /phi,1348/) {
@@ -153,13 +153,13 @@ while (<FILE>)
 	    format_stoa($cols[$stoa_col],\@ids,\@id_types);
             $lang = 'lat';
         }
-        elsif ($cols[$phi_col] && $cols[$phi_col] !~ /none/ && $cols[$phi_col] !~ /no/) 
+        elsif ($cols[$phi_col] && $cols[$phi_col] !~ /(none|suppressed)/ && $cols[$phi_col] !~ /no/) 
         {
             $format_tried = 'phi';
 	    format_phi($cols[$phi_col],\@ids,\@id_types);
             $lang = 'lat';
         } 
-        elsif ($cols[$stoa_col] && $cols[$stoa_col] !~ /none/ && $cols[$stoa_col] !~ /no/) 
+        elsif ($cols[$stoa_col] && $cols[$stoa_col] !~ /(none|suppressed)/ && $cols[$stoa_col] !~ /no/) 
         {
             $format_tried = 'stoa';
 	    format_stoa($cols[$stoa_col],\@ids,\@id_types);
@@ -224,7 +224,7 @@ while (<FILE>)
         } else {
             ($ctsurn) = $decoded =~ /<atom:id>http:\/\/data.perseus.org\/catalog\/urn:cts:(?:.*?):(.*?)\/atom/;
 	    print qq!$orig\turn:cts:$ctsurn\n!;
-            open XML, ">$e_dir/$ctsurn.xml" or die $!;
+            open XML, ">$e_dir/$ctsurn.atom.xml" or die $!;
             print XML encode_utf8($decoded);
             close XML;
         }

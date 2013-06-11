@@ -14,7 +14,12 @@
             <xsl:variable name="id" select="concat('urn:cite:perseus:cattg.',xs:string(position()),'.1')"/>
             <xsl:variable name="urn" select="@urn"/>
             <xsl:variable name="groupname_eng" select="cts:groupname"/>
-            <xsl:variable name="has_mads" select="'false'"/>
+            <xsl:variable name="has_mads">
+                <xsl:choose>
+                    <xsl:when test="//atom:id[. = concat('http://data.perseus.org/catalog/', $urn, '/atom#mads-1')]">true</xsl:when>
+                    <xsl:otherwise>false</xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
             <xsl:variable name="mads_possible" select="'true'"/>
             <xsl:variable name="notes" select="''"/>
             <xsl:variable name="urn_status" select="'published'"/>
