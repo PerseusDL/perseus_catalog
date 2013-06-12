@@ -12,11 +12,11 @@ class XmlImporter
     if file_type == "atom"
       if file =~ /\.csv/
         Parser.cite_parse(raw_xml) if file =~ /mads\.cite\.import/
-      elsif file =~ /\.atom\.xml/
-        puts "atom file, skipping"
-      else
+      elsif file =~ /[a-z]+\d{4}\.[a-z]+\d{3}\.atom\.xml/
         puts "sending to atom parser"
-        Parser.atom_parse(doc)
+        Parser.atom_parse(doc)       
+      else
+        puts "atom file, skipping"
       end
     elsif file_type == "error"
       puts "sending to atom error parser"
