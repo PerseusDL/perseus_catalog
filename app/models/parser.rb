@@ -14,23 +14,24 @@ class Parser
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
 
-  def self.mads_parse(doc, file_type)
+  def self.mads_parse(doc, file_type, ns=nil)
 
     #MADS maps to the authors table, the fields in the table are
     #id, name, alt_parts, birth_date, death_date, alt_names, field_of_activity
     #notes, urls, mads_id
     start_time = Date.today
+    ns = doc.collect_namespaces unless ns
     #person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'a')
     begin
-      
+
       #pull the author authority name
-      auth_set = doc.xpath("//mads:authority//mads:namePart[not(@type='date')]")
+      auth_set = doc.xpath("//mads:authority//mads:namePart[not(@type='date')]", ns)
       name_arr=[]
       auth_set.each {|node| name_arr << node.inner_text}
       auth_name = name_arr.join(" ")
 
-      rel_set = doc.xpath("//mads:related")
-      var_set = doc.xpath("//mads:variant")
+      rel_set = doc.xpath("//mads:related", ns)
+      var_set = doc.xpath("//mads:variant", ns)
       name_var = []
       rel_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
       var_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
@@ -50,7 +51,7 @@ class Parser
       ids = []
       work_ids = []
       count = ["", 0, false]
-      doc.xpath("mads:mads/mads:identifier").each do |id|
+      doc.xpath("//mads:identifier", ns).each do |id|
         if id.attribute('type')
           id_type = id.attribute('type').value 
           id_type = "stoa" if id_type =~ /stoa/
@@ -69,7 +70,7 @@ class Parser
             else
               ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
 
-              rw_set = doc.xpath("mads:mads/mads:extension/identifier")
+              rw_set = doc.xpath("//mads:extension/identifier", ns)
               count[2] = true unless rw_set.empty?
 
               type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
@@ -85,7 +86,7 @@ class Parser
         end
       end
 
-      rw_set = doc.xpath("mads:mads/mads:extension/identifier")
+      rw_set = doc.xpath("//mads:extension/identifier", ns)
       rw_set.each do |rel_id|
         if rel_id.attribute('type')
           val = rel_id.attribute('type').value
@@ -146,11 +147,11 @@ class Parser
         person.alt_names = other_names
         temp = name_arr.drop(1)
         person.alt_parts = temp.join("; ")
-        person.dates = doc.xpath("//mads:authority//mads:namePart[@type='date']").inner_text
+        person.dates = doc.xpath("//mads:authority//mads:namePart[@type='date']", ns).inner_text
 
-        person.field_of_activity = turn_to_list(doc, "//mads:fieldOfActivity", "; ")
+        person.field_of_activity = turn_to_list(doc, "//mads:fieldOfActivity", ns, "; ")
 
-        person.notes = turn_to_list(doc, "//mads:note", "; ")
+        person.notes = turn_to_list(doc, "//mads:note", ns, "; ")
 
         person.related_works = work_ids.join(";")
 
@@ -188,7 +189,7 @@ class Parser
       end
 
       #Save all listed urls to the author_urls table
-      url_list = doc.xpath("//mads:url")
+      url_list = doc.xpath("//mads:url", ns)
       if url_list
         url_list.each do |node|
           if node.attribute('displayLabel')
@@ -228,9 +229,9 @@ class Parser
 
 
 
-  def self.turn_to_list(doc, path, join_type)
+  def self.turn_to_list(doc, path, ns, join_type)
 
-    node_set = doc.xpath(path)
+    node_set = doc.xpath(path, ns)
     node_list = []
     node_set.each {|node| node_list << node.inner_text}
     node_string = node_list.join(join_type)
@@ -347,7 +348,11 @@ class Parser
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
-
+      if ns.has_key?("xmlns:mads")
+        doc.xpath("//mads:mads", ns).each do |mads_rec|
+          mads_parse(mads_rec, 'author', ns)
+        end
+      end
       #begin with identifying the work
       raw_id = doc.xpath("//cts:work", ns)
       id = raw_id.attribute('urn').value
