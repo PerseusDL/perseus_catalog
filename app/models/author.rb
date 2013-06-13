@@ -13,6 +13,13 @@ class Author < ActiveRecord::Base
     return found_id
   end
 
+  def self.find_all_potential_authors(id)
+    found_id = []
+    found_id << Author.find_by_major_ids(id)    
+    found_id << Author.find(:all, :conditions => ["related_works rlike ?", id]) 
+    return found_id
+  end
+
   def self.get_info(id)
     doc = Author.find_by_unique_id(id)
     return doc

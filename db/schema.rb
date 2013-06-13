@@ -43,7 +43,7 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
     t.string   "name",              :null => false
     t.string   "alt_parts"
     t.string   "dates"
-    t.string   "alt_names"
+    t.text     "alt_names"
     t.string   "field_of_activity"
     t.text     "notes"
     t.string   "related_works"

@@ -12,11 +12,9 @@ class XmlImporter
     if file_type == "atom"
       if file =~ /\.csv/
         Parser.cite_parse(raw_xml) if file =~ /mads\.cite\.import/
-      elsif file =~ /[a-z]+\d{4}\.[a-z]+\d{3}\.atom\.xml/
+      else
         puts "sending to atom parser"
         Parser.atom_parse(doc)       
-      else
-        puts "atom file, skipping"
       end
     elsif file_type == "error"
       puts "sending to atom error parser"
@@ -35,7 +33,7 @@ class XmlImporter
     d = Dir.new(directory_path)
     d.each do |file|
       if File.directory?("#{directory_path}/#{file}")  
-          multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS/
+          multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS|greekLit|latinLit/
       else
         if file_type == ("author" or "edtrans")
           import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/

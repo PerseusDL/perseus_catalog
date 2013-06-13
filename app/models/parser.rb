@@ -14,24 +14,24 @@ class Parser
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
 
-  def self.mads_parse(doc, file_type, ns=nil)
+  def self.mads_parse(doc, file_type)
 
     #MADS maps to the authors table, the fields in the table are
     #id, name, alt_parts, birth_date, death_date, alt_names, field_of_activity
     #notes, urls, mads_id
     start_time = Date.today
-    ns = doc.collect_namespaces unless ns
+
     #person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'a')
     begin
 
       #pull the author authority name
-      auth_set = doc.xpath("//mads:authority//mads:namePart[not(@type='date')]", ns)
+      auth_set = doc.xpath("//mads:authority//mads:namePart[not(@type='date')]")
       name_arr=[]
       auth_set.each {|node| name_arr << node.inner_text}
       auth_name = name_arr.join(" ")
 
-      rel_set = doc.xpath("//mads:related", ns)
-      var_set = doc.xpath("//mads:variant", ns)
+      rel_set = doc.xpath("//mads:related")
+      var_set = doc.xpath("//mads:variant")
       name_var = []
       rel_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
       var_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
@@ -51,7 +51,7 @@ class Parser
       ids = []
       work_ids = []
       count = ["", 0, false]
-      doc.xpath("//mads:identifier", ns).each do |id|
+      doc.xpath("//mads:identifier").each do |id|
         if id.attribute('type')
           id_type = id.attribute('type').value 
           id_type = "stoa" if id_type =~ /stoa/
@@ -70,7 +70,7 @@ class Parser
             else
               ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
 
-              rw_set = doc.xpath("//mads:extension/identifier", ns)
+              rw_set = doc.xpath("//mads:extension/identifier")
               count[2] = true unless rw_set.empty?
 
               type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
@@ -86,7 +86,7 @@ class Parser
         end
       end
 
-      rw_set = doc.xpath("//mads:extension/identifier", ns)
+      rw_set = doc.xpath("//mads:extension/identifier")
       rw_set.each do |rel_id|
         if rel_id.attribute('type')
           val = rel_id.attribute('type').value
@@ -97,7 +97,7 @@ class Parser
             #this is a pain...
             parts.each_with_index {|part, index| parts[index] = part.gsub(/\D+/, "") if part =~ /tlg|phi/}
             parts[0] = sprintf("%04d", parts[0]) if !(parts[0] =~ /\s|[a-z]|\d{4}/)
-            parts[1] = sprintf("%03d", parts[1]) if !(parts[1] =~ /\s|[a-z]|\d{3}/)
+            parts[1] = sprintf("%03d", parts[1]) if !(parts[1] =~ /\s|[a-z]|\d{3}|\?/)
             parts.collect! {|part| part.strip}
             unless parts[0] =~ /stoa/
               work_ids << "#{val}#{parts[0]}.#{val}#{parts[1]}"
@@ -147,11 +147,11 @@ class Parser
         person.alt_names = other_names
         temp = name_arr.drop(1)
         person.alt_parts = temp.join("; ")
-        person.dates = doc.xpath("//mads:authority//mads:namePart[@type='date']", ns).inner_text
+        person.dates = doc.xpath("//mads:authority//mads:namePart[@type='date']").inner_text
 
-        person.field_of_activity = turn_to_list(doc, "//mads:fieldOfActivity", ns, "; ")
+        person.field_of_activity = turn_to_list(doc, "//mads:fieldOfActivity", "; ")
 
-        person.notes = turn_to_list(doc, "//mads:note", ns, "; ")
+        person.notes = turn_to_list(doc, "//mads:note", "; ")
 
         person.related_works = work_ids.join(";")
 
@@ -189,7 +189,7 @@ class Parser
       end
 
       #Save all listed urls to the author_urls table
-      url_list = doc.xpath("//mads:url", ns)
+      url_list = doc.xpath("//mads:url")
       if url_list
         url_list.each do |node|
           if node.attribute('displayLabel')
@@ -229,9 +229,9 @@ class Parser
 
 
 
-  def self.turn_to_list(doc, path, ns, join_type)
+  def self.turn_to_list(doc, path, join_type)
 
-    node_set = doc.xpath(path, ns)
+    node_set = doc.xpath(path)
     node_list = []
     node_set.each {|node| node_list << node.inner_text}
     node_string = node_list.join(join_type)
@@ -242,14 +242,13 @@ class Parser
 
   def self.cite_parse(file)
     puts "importing mads from cite collection"
+    importer = XmlImporter.new
+    #this is assuming the PrimaryAuthors directory is in the perseus_catalog directory
+    importer.multi_import("#{Dir.pwd}/PrimaryAuthors", "author")
     file.each do |line|
       begin
         arr = line.split(/\|/)
-        #0urn 1authority_name 2canonical_id 3mads_file 4alt_ids 5related_works 6urn_status 7redirect_to 8created_by 9edited_by
-        file_name = arr[3].gsub(/"/, "")
-        importer = XmlImporter.new
-        #this is assuming the PrimaryAuthors directory is in the perseus_catalog directory
-        importer.import("#{Dir.pwd}/#{URI.decode(file_name)}", "author")
+        #0urn 1authority_name 2canonical_id 3mads_file 4alt_ids 5related_works 6urn_status 7redirect_to 8created_by 9edited_by        
         author = Author.find_by_major_ids(arr[2])[0]
         if author
           clean_urn = arr[0].match(/urn:cite:perseus:primauth\.\d+/)[0]
@@ -348,11 +347,12 @@ class Parser
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
-      if ns.has_key?("xmlns:mads")
+=begin      if ns.has_key?("xmlns:mads")
         doc.xpath("//mads:mads", ns).each do |mads_rec|
           mads_parse(mads_rec, 'author', ns)
         end
       end
+=end
       #begin with identifying the work
       raw_id = doc.xpath("//cts:work", ns)
       id = raw_id.attribute('urn').value
@@ -465,10 +465,9 @@ class Parser
 
       std_work = id.split(":")
       a_match = []
-      auth_match.each do |a| 
-        if a.related_works =~ /#{std_work.last}/ 
-          a_match << a
-        end
+      full_auths = Author.find_all_potential_authors(textgroup.urn_end)
+      full_auths.each do |a| 
+        a.each {|b| a_match << b if b.related_works =~ /#{std_work.last}/} unless a.empty?
       end
       if a_match.empty?
         #if no related works list or it is wrong, just take the first author returned and deal with it
