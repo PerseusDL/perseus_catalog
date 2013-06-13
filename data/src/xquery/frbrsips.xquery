@@ -24,6 +24,7 @@ declare variable $e_updateDate as xs:string external;
 
 declare variable $frbr:e_pidBase := 'http://data.perseus.org/catalog/';
 declare variable $frbr:e_catalogBase := 'http://catalog.perseus.org/catalog/';
+declare variable $frbr:e_collectionsBase := 'http://data.perseus.org/collections/';
 
 
 declare function frbr:make_sip($a_collection as xs:string, $a_lang as xs:string,$a_id as xs:string, $a_mods as node()*,$a_related as node()*,$a_titles as xs:string,$a_updateDate) as node()
@@ -149,9 +150,9 @@ declare function frbr:make_sip($a_collection as xs:string, $a_lang as xs:string,
                         attribute href { concat($frbr:e_pidBase, $ns, ':',$a_id, '/atom#mads-',$a_i) }
                     },
                     element atom:link {
-                        attribute type { 'text/html'},
+                        attribute type { 'text/xml'},
                         attribute rel { 'alternate' },
-                        attribute href { concat($frbr:e_catalogBase,$mads/@urn) }
+                        attribute href { concat($frbr:e_collectionsBase,$mads/@urn) }
                     },
             	    element atom:content{
                             attribute type { "text/xml" },
