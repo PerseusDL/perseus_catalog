@@ -9,9 +9,9 @@ let $collection := collection($e_dir)
 let $textgroups := distinct-values($collection//cts:textgroup/@urn)
 let $proto_feed := ($collection/atom:feed)[1]
 let $allgroups :=
-    for $textgroup in $textgroups
+    for $textgroup in $textgroups 
         let $allfeeds := $collection/atom:feed[//cts:textgroup[@urn = $textgroup]]
-        let $allworks := $allfeeds//cts:work
+        let $allworks := for $w in $allfeeds//cts:work order by $w/@urn return $w
         let $all_mods := 
             for $entry in $allfeeds//atom:entry[atom:id[matches(.,concat('.*?/',$textgroup ,'\..*/atom#mods'))]]
             return 

@@ -55,12 +55,12 @@
           <atom:id><xsl:value-of select="concat($baseUri,$versionurn,'/atom')"/></atom:id>
           <atom:title>Perseus Catalog: atom feed for CTS <xsl:value-of select="local-name(.)"/><xsl:text> </xsl:text><xsl:value-of select="@urn"/></atom:title>
         <atom:link rel="self" type="application/atom+xml" href="{concat($baseUri,$versionurn,'/atom')}"/>
-          <atom:link rel="alternate" type="text/html" href="{concat($baseUri,'/html')}"/>
+          <atom:link rel="alternate" type="text/html" href="{concat($baseUri,$versionurn,'/html')}"/>
           <xsl:copy-of select="$parententry/atom:author"/>
           <xsl:copy-of select="$parententry/atom:updated"/>
           <!-- this is the CTS Text Inventory entry -->
           <atom:entry>
-            <atom:id><xsl:value-of select="concat($baseUri,@urn,'/atom')"/></atom:id>
+            <atom:id><xsl:value-of select="concat($baseUri,@urn,'/atom#ctsi')"/></atom:id>
             <atom:title>Perseus Catalog: Text Inventory excerpt for CTS <xsl:value-of select="local-name(.)"/><xsl:text> </xsl:text><xsl:value-of select="@urn"/></atom:title>
             <atom:link rel="self" type="application/atom+xml" href="{concat($baseUri,$versionurn,'/atom#ctsti')}"/>
             <atom:link rel="alternate" type="text/html" href="{replace($parententry/atom:link[@type='text/html']/@href,$workurn,@urn)}"/>
