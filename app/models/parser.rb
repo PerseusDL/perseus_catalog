@@ -14,7 +14,7 @@ class Parser
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
 
-  def self.mads_parse(doc, file_type)
+  def self.mads_parse(doc, file_type, ns, tg_end)
 
     #MADS maps to the authors table, the fields in the table are
     #id, name, alt_parts, birth_date, death_date, alt_names, field_of_activity
@@ -23,15 +23,16 @@ class Parser
 
     #person_error_log = File.new("/Users/anna/catalog_errors/person_error_log#{start_time}.txt", 'a')
     begin
-
+      link = doc.xpath("atom:link[@rel='alternate']", ns)
+      cite_urn = link.attribute('href').value unless link.empty?
       #pull the author authority name
-      auth_set = doc.xpath("//mads:authority//mads:namePart[not(@type='date')]")
+      auth_set = doc.xpath(".//mads:authority//mads:namePart[not(@type='date')]", ns)
       name_arr=[]
       auth_set.each {|node| name_arr << node.inner_text}
       auth_name = name_arr.join(" ")
 
-      rel_set = doc.xpath("//mads:related")
-      var_set = doc.xpath("//mads:variant")
+      rel_set = doc.xpath(".//mads:related", ns)
+      var_set = doc.xpath(".//mads:variant", ns)
       name_var = []
       rel_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
       var_set.each {|node| name_var << node.inner_text.strip.gsub(/\n\s+/, ", ")}
@@ -50,8 +51,9 @@ class Parser
       #grab the ids
       ids = []
       work_ids = []
+      id_type = nil
       count = ["", 0, false]
-      doc.xpath("//mads:identifier").each do |id|
+      doc.xpath(".//mads:identifier", ns).each do |id|
         if id.attribute('type')
           id_type = id.attribute('type').value 
           id_type = "stoa" if id_type =~ /stoa/
@@ -70,7 +72,7 @@ class Parser
             else
               ids << (id_type=~/stoa/ ? "#{nums}" : "#{id_type}#{nums}")
 
-              rw_set = doc.xpath("//mads:extension/identifier")
+              rw_set = doc.xpath(".//mads:extension/identifier", ns)
               count[2] = true unless rw_set.empty?
 
               type_set = rw_set.find_all {|node| node.attribute('type').value =~ /#{id_type}/}
@@ -86,7 +88,7 @@ class Parser
         end
       end
 
-      rw_set = doc.xpath("//mads:extension/identifier")
+      rw_set = doc.xpath(".//mads:extension/identifier", ns)
       rw_set.each do |rel_id|
         if rel_id.attribute('type')
           val = rel_id.attribute('type').value
@@ -126,16 +128,14 @@ class Parser
       
       #first try to find by name or id
       if file_type == "author"
-        person = Author.find_by_name_or_alt_name(auth_name)
-
+        person = Author.find_by_cite_urn(cite_urn)
       else
         person = EditorsOrTranslator.find_by_name_or_alt_name(auth_name)
         unless person
           person = EditorsOrTranslator.find_by_mads_id(prob_mads_id)
         end
       end
-
-
+      
       #determine if author already in the table, if not, make a new row
       unless person
         file_type == "author" ? person = Author.new : person = EditorsOrTranslator.new
@@ -147,11 +147,11 @@ class Parser
         person.alt_names = other_names
         temp = name_arr.drop(1)
         person.alt_parts = temp.join("; ")
-        person.dates = doc.xpath("//mads:authority//mads:namePart[@type='date']").inner_text
+        person.dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']", ns).inner_text
 
-        person.field_of_activity = turn_to_list(doc, "//mads:fieldOfActivity", "; ")
+        person.field_of_activity = turn_to_list(doc, ".//mads:fieldOfActivity", "; ", ns)
 
-        person.notes = turn_to_list(doc, "//mads:note", "; ")
+        person.notes = turn_to_list(doc, ".//mads:note", "; ", ns)
 
         person.related_works = work_ids.join(";")
 
@@ -183,13 +183,13 @@ class Parser
         prob_mads_id = "#{alt_ids[0]}" unless prob_mads_id
         name_part = auth_name.gsub(/\s+|,|\./, "")[0, 5]
         person.unique_id = "M#{prob_mads_id.gsub(/\s/, '')}#{name_part}"
-
+        person.cite_urn = cite_urn if cite_urn
         person.save
           
       end
 
       #Save all listed urls to the author_urls table
-      url_list = doc.xpath("//mads:url")
+      url_list = doc.xpath(".//mads:url", ns)
       if url_list
         url_list.each do |node|
           if node.attribute('displayLabel')
@@ -217,7 +217,7 @@ class Parser
       end
 
       puts "MADS record imported!"
-
+      return person
     rescue Exception => e
       puts "Something went wrong! #{$!}" 
       #person_error_log << "Error for #{auth_name}\n"
@@ -229,36 +229,13 @@ class Parser
 
 
 
-  def self.turn_to_list(doc, path, join_type)
+  def self.turn_to_list(doc, path, join_type, ns)
 
-    node_set = doc.xpath(path)
+    node_set = doc.xpath(path, ns)
     node_list = []
     node_set.each {|node| node_list << node.inner_text}
     node_string = node_list.join(join_type)
     return node_string
-
-  end
-
-
-  def self.cite_parse(file)
-    puts "importing mads from cite collection"
-    importer = XmlImporter.new
-    #this is assuming the PrimaryAuthors directory is in the perseus_catalog directory
-    importer.multi_import("#{Dir.pwd}/PrimaryAuthors", "author")
-    file.each do |line|
-      begin
-        arr = line.split(/\|/)
-        #0urn 1authority_name 2canonical_id 3mads_file 4alt_ids 5related_works 6urn_status 7redirect_to 8created_by 9edited_by        
-        author = Author.find_by_major_ids(arr[2])[0]
-        if author
-          clean_urn = arr[0].match(/urn:cite:perseus:primauth\.\d+/)[0]
-          author.cite_urn = clean_urn
-          author.save
-        end
-      rescue Exception => e
-        puts "issue with #{line}, #{$!}"
-      end
-    end
 
   end
 
@@ -347,132 +324,73 @@ class Parser
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
-=begin      if ns.has_key?("xmlns:mads")
-        doc.xpath("//mads:mads", ns).each do |mads_rec|
-          mads_parse(mads_rec, 'author', ns)
-        end
-      end
-=end
-      #begin with identifying the work
-      raw_id = doc.xpath("//cts:work", ns)
-      id = raw_id.attribute('urn').value
+    
+      #get and save the work and tg urns
+      atom_title = doc.xpath("atom:feed/atom:title", ns).inner_text
+      sect_parse = atom_title.split(" ")
+      w_urn = sect_parse.last
+      tg_urn = w_urn.split(".").first
+      authors = []
+      work = nil
+      textgroup = nil
+      tg_end = tg_urn.split(":").last
 
-      #find the textgroup
-      tg_raw = doc.xpath("//cts:groupname", ns).inner_text
-      #grab textgroup id
-      tg_id_raw = doc.xpath("//cts:textgroup", ns)
-      tg_id = tg_id_raw.attribute('urn').value
-      
       #save editions and translations
       inventory = {}
       inv_tags = ["cts:edition", "cts:translation"]
       inv_tags.each do |tag|
-        tg_id_raw.xpath("//#{tag}", ns).each do |vers| 
+        doc.xpath("//cts:work/#{tag}", ns).each do |vers| 
           urn = vers.attribute("urn").value
           label = vers.xpath("cts:label", ns).inner_text
           description = vers.xpath("cts:description", ns).inner_text
           inventory[urn] = [label, description, tag, false]
         end
-      end   
-
-      #search for the textgroup by id
-      textgroup = Textgroup.find_by_urn(tg_id)
-        
-
-
-    #if the textgroup can not be found by id or alt_id, then create a new textgroup in the table
-     
-      unless textgroup
-        textgroup = Textgroup.new
-        textgroup.group_name = tg_raw
-        textgroup.urn = tg_id
-        textgroup.urn_end = tg_id.split(":").last
-        textgroup.save
       end
 
-      auth_match = Author.find_by_major_ids(textgroup.urn_end)
+      doc.xpath("//atom:entry", ns).each do |file_sect|
+        sect_title = file_sect.xpath("atom:title", ns).inner_text
+        if sect_title =~ /Text Inventory for CTS work/
+          work, textgroup = work_parse(file_sect, ns, w_urn, tg_urn)
+        elsif sect_title =~ /MODS file for CTS version/
+          mods_parse(file_sect, ns, w_urn, tg_urn, inventory)
+        elsif sect_title =~ /MADS file for author of CTS work/
+          authors << mads_parse(file_sect, "author", ns, tg_end)
+        end
+      end
 
-      if textgroup 
-        if (textgroup.group_name == nil or textgroup.group_name.empty?)
-          textgroup.group_name = tg_raw unless tg_raw.empty?
-          if textgroup.group_name.empty?
-            if ( !auth_match.empty? and !auth_match[0].name.empty?)
-              textgroup.group_name = auth_match[0].name
-            else
-              #if there is absolutely no name, parse the description line
-              desc = doc.xpath("//cts:work/cts:edition/cts:description", ns)
-              desc_arr = desc[0].inner_text.split(/,,|,/)
-              poss_name = []
-              desc_arr.each do |a| 
-                poss_name << a if a =~ /^[A-Z]/
-                poss_name << a.gsub(/\[|\]/, "") if a =~ /^\[[A-Z]/                  
-              end
-              textgroup.group_name = poss_name.join(",")
-            end
-          end 
-        else
-          if (textgroup.group_name != tg_raw and !tg_raw.empty?)
-            textgroup.group_name = tg_raw
+      if authors.empty?
+        auth = Author.find_by_major_ids(tg_end)[0]
+        unless auth
+          auth = Author.new
+          case 
+          when textgroup.urn_end =~ /phi/
+            auth.phi_id = textgroup.urn_end
+          when textgroup.urn_end =~ /tlg/
+            auth.tlg_id = textgroup.urn_end
+          when textgroup.urn_end =~ /stoa/
+            auth.stoa_id = textgroup.urn_end
           end
+          auth.name = textgroup.group_name
+          name_part = auth.name.gsub(/\s+|,|\./, "")[0, 5]
+          auth.unique_id = "A#{textgroup.urn_end}#{name_part}"
+          auth.save
         end
-        textgroup.save
-      end
-
-      
-      if auth_match.empty?
-        auth = Author.new
-        case 
-        when textgroup.urn_end =~ /phi/
-          auth.phi_id = textgroup.urn_end
-        when textgroup.urn_end =~ /tlg/
-          auth.tlg_id = textgroup.urn_end
-        when textgroup.urn_end =~ /stoa/
-          auth.stoa_id = textgroup.urn_end
-        end
-        auth.name = textgroup.group_name
-        name_part = auth.name.gsub(/\s+|,|\./, "")[0, 5]
-        auth.unique_id = "A#{textgroup.urn_end}#{name_part}"
-        auth.save
-        auth_match << auth
+        authors << auth
         #missing_auth << "#{tg_id}, #{tg_raw}\n"
       end
 
-      #grab the first word count, since right now all word counts are really work level
-      words = 0
-      if ns.has_key?("xmlns:mods")
-        w_c = doc.xpath("//mods:part/mods:extent/mods:total", ns)
-        words = w_c.first.inner_text if w_c.first
-      end
-
-      #find if there is a row for this work already, if not, create a new one and populate the row
-      work = Work.find_by_standard_id(id)
-
-      unless work
-        work = Work.new
-      end
-
-      if work and textgroup
-        
-        work.standard_id = id
-        work.textgroup_id = textgroup.id
-        w_set = doc.xpath("//cts:work", ns)
-        work.title = w_set.xpath("cts:title", ns).inner_text
-        work.language = w_set.attribute('lang').value
-        work.word_count = words == 0 ? nil : words
-        work.save
-      else
-        puts "Missing a work or textgroup entry in the tables, something is wrong, check the file for #{tg_raw} and/or #{id}"
-      end
-
-      std_work = id.split(":")
+      std_work = w_urn.split(":")
       a_match = []
-      full_auths = Author.find_all_potential_authors(textgroup.urn_end)
-      full_auths.each do |a| 
-        a.each {|b| a_match << b if b.related_works =~ /#{std_work.last}/} unless a.empty?
+      authors.each do |a| 
+        if a
+          a_match << a if a.related_works =~ /#{std_work.last}/
+        end
       end
+
       if a_match.empty?
         #if no related works list or it is wrong, just take the first author returned and deal with it
-        a_match << auth_match[0]
+        a_match[0] = authors[0] if authors[0]
+        a_match[0] = authors[1] if authors[1]
       end
       taw_auth = a_match[0].id 
       taw_work = work.id
@@ -485,12 +403,6 @@ class Parser
       taw.auth_id = taw_auth
       taw.work_id = taw_work
       taw.save
-
-      #run through the MODS records contained in the feed to create expressions and series
-      mods_parse(doc, ns, work.id, textgroup.id, inventory)
-
-      #run through the MADS records in the feed
-      #atom_mads(doc, ns, work, textgroup)
 
       #find items in the cts inventory without MODS
       inventory.each do |index, item|
@@ -513,12 +425,94 @@ class Parser
       #atom_error_log << "#{$!}\n#{e.backtrace}\n\n"
       puts e.backtrace
     end
+  end      
+
+
+
+  def self.work_parse(doc, ns, w_id, tg_id)
+    begin
+
+      #find the groupname
+      tg_raw = doc.xpath("atom:content/cts:TextInventory/cts:textgroup", ns)
+      tg_name = tg_raw.xpath("cts:groupname", ns).inner_text   
+
+      #search for the textgroup by id
+      textgroup = Textgroup.find_by_urn(tg_id)
+        
+
+    #if the textgroup can not be found by id, then create a new textgroup in the table
+     
+      unless textgroup
+        textgroup = Textgroup.new
+        textgroup.group_name = tg_name
+        textgroup.urn = tg_id
+        textgroup.urn_end = tg_id.split(":").last
+        textgroup.save
+      end
+
+      if textgroup 
+        if (textgroup.group_name == nil or textgroup.group_name.empty?)
+          #if there is no name, parse the description line
+          desc = tg_raw.xpath("cts:work/cts:edition/cts:description", ns)
+          desc_arr = desc[0].inner_text.split(/,,|,/)
+          poss_name = []
+          desc_arr.each do |a| 
+            poss_name << a if a =~ /^[A-Z]/
+            poss_name << a.gsub(/\[|\]/, "") if a =~ /^\[[A-Z]/                  
+          end
+          textgroup.group_name = poss_name.join(",")
+          if textgroup.group_name.empty?
+            textgroup.group_name = tg_id
+          end
+          textgroup.save 
+        end        
+      end      
+      
+      #grab the first word count, since right now all word counts are really work level
+      words = 0
+      if ns.has_key?("xmlns:mods")
+        w_c = doc.xpath("//mods:part/mods:extent/mods:total", ns)
+        words = w_c.first.inner_text if w_c.first
+      end
+
+      #find if there is a row for this work already, if not, create a new one and populate the row
+      work = Work.find_by_standard_id(w_id)
+
+      unless work
+        work = Work.new
+      end
+
+      if work and textgroup
+        
+        work.standard_id = w_id
+        work.textgroup_id = textgroup.id
+        w_set = tg_raw.xpath("cts:work", ns)
+        work.title = w_set.xpath("cts:title", ns).inner_text
+        work.language = w_set.attribute('lang').value
+        work.word_count = words == 0 ? nil : words
+        work.save
+      else
+        puts "Missing a work or textgroup entry in the tables, something is wrong, check the file for #{tg_raw} and/or #{id}"
+      end
+
+      
+    return work, textgroup
+    rescue Exception => e
+      puts "Something went wrong for the work parse! #{$!}"
+      #atom_error_log << "#{$!}\n#{e.backtrace}\n\n"
+      puts e.backtrace
+    end
     #missing_auth.close
   end
 
 
-  def self.mods_parse(doc, ns, work_id, tg_id, inventory)
-    doc.xpath("//mods:mods", ns).each do |mods_rec|
+
+  def self.mods_parse(doc, ns, w_urn, tg_urn, inventory)
+    
+    work_id = Work.get_info(w_urn).id
+    tg_id = Textgroup.get_info(tg_urn).id
+
+    doc.xpath("atom:content/mods:mods", ns).each do |mods_rec|
       #check if a related item
       begin
         #we are organizing and identifying expressions with the cts_urns
@@ -754,44 +748,6 @@ class Parser
     end
   end
 
-
-  def self.atom_mads(doc, ns, work, textgroup)
-
-    begin
-      doc.xpath("//atom:entry", ns).each do |atom_rec|
-        
-        if atom_rec.children[1].inner_text =~ /mads/ 
-          link_item = atom_rec.xpath("atom:link[@type='text/html']")
-          val = link_item.attribute('href').value
-          auth_urn = val.match(/urn:cite:perseus:primauth\.\d+/)[0]
-          auth_name = atom_rec.xpath("//mads:namePart", ns).first.inner_text
-
-          match_auth = Author.find_by_name_or_alt_name(auth_name)
-          match_auth = Author.find(:first, :conditions => ["name RLIKE ?", auth_name]) unless match_auth
-          match_auth =
-          if match_auth
-            match_auth.urn = auth_urn
-            match_auth.save
-
-            taw = TgAuthWork.where(["tg_id=? and auth_id=? and work_id=?", textgroup.id, match_auth.id, work.id])
-
-            if taw.empty?
-              taw = TgAuthWork.new
-              taw.tg_id = textgroup.id
-              taw.auth_id = match_auth.id
-              taw.work_id = work.id
-            end
-          else
-            throw "Can't find author #{auth_name} in authors table!"
-          end
-        end
-      end
-
-    rescue Exception => e
-      puts "Something went wrong for the atom mads #{$!}"
-      puts e.backtrace
-    end
-  end
 
 
 end
