@@ -11,7 +11,7 @@
   <dd><%= d_id %></dd>
   <dt><%= "Work title:" %></dt>
   <dd><%= @document.values_at("work_title")[0] %></dd>
-  <dt><%= "Author group:" %></dt>
+  <dt><%= "Textgroup:" %></dt>
   <% tgs.each do |tg| %>
     <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
   <% end %>
