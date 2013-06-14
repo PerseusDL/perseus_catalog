@@ -404,7 +404,8 @@ class Parser
               desc_arr = desc[0].inner_text.split(/,,|,/)
               poss_name = []
               desc_arr.each do |a| 
-                poss_name << a if a =~ /^[A-Z]/                  
+                poss_name << a if a =~ /^[A-Z]/
+                poss_name << a.gsub(/\[|\]/, "") if a =~ /^\[[A-Z]/                  
               end
               textgroup.group_name = poss_name.join(",")
             end
