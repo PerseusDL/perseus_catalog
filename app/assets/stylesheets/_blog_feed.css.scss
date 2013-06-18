@@ -1,0 +1,17 @@
+/*
+Stylesheet for the blog feed featured on the main page
+*/
+
+#feed-content{
+  
+  border: 1px solid $red;
+  border-radius: 6px;
+  @include box-shadow(0 1px 0 rgba(0,0,0,.25));
+
+  .feed-list{
+  list-style: none;
+  font-size: 15px;
+  line-height: 20px;
+  }
+}
+

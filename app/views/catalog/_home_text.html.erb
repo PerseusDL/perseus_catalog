@@ -1,16 +1,12 @@
 <div class="hero-unit">
-  <h2> Welcome! </h2>
-
+  
+  <h3>Welcome!</h3>
   <p>To search, please enter your query in the search box above. If you'd like to immediately browse works, editions, or translations, take a look at the limiting fields to the right. To browse authors, please see <%= link_to "this list", browse_path%>.</p>
-  <p>The 'All Fields' search will query the full text of each catalog record and return results that are ranked by relevance.  Frequently, your desired record may appear a few pages into the search results. For more exact results you can use the 'Browse by' fields in the sidebar to narrow the results, or you can search using one of the additional search fields. The search fields behave in the following ways:</p>
-    <dl class="dl-invert">
-      <dt>Title</dt>
-        <dd>The title search field will search and return work titles exclusively.</dd>
-      <dt>Author</dt>
-        <dd>The author search field searches all author standardized and alternate names.  It will return only author authority records, not a listing of their works.</dd>
-      <dt>URN</dt>
-        <dd>The URN search field accepts the standardized identifiers utilized by the Canonical Text Services (CTS) for text groups/authors, works, and versions.  The version level records, consisting of editions in the original language and translations in various languages, are identified by their full CTS URN.  <br>
-        e.g. The text group Homer has the URN urn:cts:greekLit:tlg0012; the work <em>Iliad</em> has the URN urn:cts:greekLit:tlg0012.tlg001; and lastly, the edition of the <em>Iliad</em>, published in 1931 and edited by Thomas W. Allen, has the URN urn:cts:greekLit:tlg0012.tlg001.perseus-grcX1.  <br>
-        When tlg0012 is searched on, it will return the text group, works, and version records.  tlg0012.tlg001 will return the works and versions.</dd>
+  <p>The 'All Fields' search will query the full text of each catalog record and return results that are ranked by relevance.  Frequently, your desired record may appear a few pages into the search results. To narrow your results you can use the 'Browse by' fields in the sidebar, or you can search using one of the additional search fields. For further details on the search field behaviors, please see <%= link_to "this page", 'http://sites.tufts.edu/perseuscatalog/documentation/user-guide/searching/'%>.</p>
+  
+  <h3>News and Announcements</h3>
+  <%= render 'blog_feed' %>
+  
+
 </div>
 

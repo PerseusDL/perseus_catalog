@@ -1,6 +1,9 @@
 module ApplicationHelper
   include BlacklightHelper
 
+  require 'rss'
+  require 'open-uri'
+
   def should_render_show_field? document, solr_field
     
     (document.has?(solr_field.field) && !(document.values_at(solr_field.field)[0].empty?))||
@@ -137,5 +140,39 @@ module ApplicationHelper
   end
 
 
+  def render_rss_feed
+
+    url = 'http://sites.tufts.edu/perseuscatalog/feed/'
+    
+    feed_title = ""
+    things_list = ""
+    open(url) do |rss|
+      feed = RSS::Parser.parse(rss)
+      feed_title = content_tag(:h4, "#{feed.channel.title}")
+      things = ""
+      feed.items.each_with_index do |item, index|
+        if index < 2
+          title = item.title
+          link = item.link
+          title_link = link_to "<strong>#{title}</strong>".html_safe, link, :target => "_blank"
+          
+          description = item.description          
+          des_array = description.split("</p>")
+          link_out = content_tag(:p, (link_to "Read more...", link, :target => "_blank"))
+          frst = des_array[0]+'</p>'
+          content = 
+          things << content_tag(:li, title_link + frst.html_safe + link_out.html_safe, :class => 'feed-list')
+        else
+          break
+        end
+      end
+      blog_link = link_to "<strong>See more posts</strong>".html_safe, 'http://sites.tufts.edu/perseuscatalog/', :target => "_blank"
+      things << content_tag (:li, blog_link, :class => 'feed-list')
+      
+      things_list = content_tag(:ul, things.html_safe)
+      
+    end
+    return feed_title.html_safe + things_list.html_safe
+  end
 
 end
