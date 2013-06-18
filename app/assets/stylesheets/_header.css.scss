@@ -3,10 +3,9 @@
 */
 
 
-.navbar .brand {
-  height: 85px;
+.navbar .logo {
   width: 275px;
-  background:transparent url(logo.png) no-repeat left;
+  background:transparent url(logo.png) no-repeat top left;
   display: inline-block;
   text-indent: 100%;
   white-space: nowrap;
@@ -14,6 +13,10 @@
   padding-right:0;
   margin-right:20px;
   padding-left: 0;
+
+  .image {
+  max-width: 100%
+  }
 }
 
 
@@ -30,7 +33,8 @@
 #header-navbar-fixed-top {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
   min-width: 395px;
-
+  max-height: 100%;
+  margin-bottom: 26px;
   .navbar-inner {
     padding-top: 0.5em;
     padding-bottom: 0.5em;
