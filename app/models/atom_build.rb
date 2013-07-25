@@ -1,5 +1,11 @@
 class AtomBuild
   require 'nokogiri'
+  require 'mechanize'
+
+  def cite_base
+    cite_url = "http://sosol.perseus.tufts.edu/testcoll/"
+    return cite_url
+  end
 
   def process_pending
     #go through both mads and mods directories in catalog_pending
@@ -18,34 +24,46 @@ class AtomBuild
 
   def process_works
     #using CITE works_collection
-    #Fusion tables API, 
-    works_arr = find_works
-    #iterate through works
-    works_arr.each do |work|
+    works_xml = find_works
+    #iterate through urn list
+    works_xml.children.each do |work_tag|
+      cite_urn = work_tag.inner_text
+      raw_obj = @agent.get("#{cite_base}api?req=GetObject&urn=#{cite_urn}")
+      #pull out the urn we really care about
+      work_urn = raw_obj.search("citeProperty[@label='CTS Work URN']").inner_text
+      #cut off the end to get the textgroup id
+      tg_id = work_urn[/urn:cts:(latinLit|greekLit):\D+\d{4}/]
       #find out if textgroup is in textgroup_collection
       textgroup = find_textgroup(tg_id)
       if textgroup
 
         #look at list returned from process_pending, iterate through that, looking for mods files
         find_mods(work, textgroup)
+      end
     end
 
   end
 
 
   def find_works
-    #for now using googlefusion table
-    #result = https://www.googleapis.com/fusiontables/v1/tables/1PQY6nVHZV8Ng42-qrbiLKXwDz9XoNlStKi3xKfU?alt=csv
-    #process resulting csv into an array of arrays
+    #CITE collection
+    debugger
     
-    #return array of arrays
+    result = @agent.get("#{cite_base}api?req=GetValidReff&urn=urn:cite:perseus:catwk")
+    #'result' will be a Mechanize::XML document which is based upon Nokogiri::XML::Document
+    #before returning we have to dig to get to the level we want, namely the result, get a nokogiri NodeSet
+    works_list = result.search("result")
+    
+    return works_list
   end
 
 
   def find_textgroup (tg_id)
     #locates and matches textgroup id input
-    #https://www.googleapis.com/fusiontables/v1/query?sql=SELECT * FROM 1I0Zkm1mAfydn6TfFEWH2h0D3boAd4q7zC-4vuUY WHERE textgroup="#{tg_id}"?alt=csv
-    #returns row or nothing
+    tg = @agent.get("http://sosol.perseus.tufts.edu/testcoll/list?withXslt=citequery.xsl&coll=urn:cite:perseus:cattg&prop=textgroup&textgroup=#{tg_id}")
+    #for some strange reason, can't use search method on a cite query page to pull out the tg_urn....
+    #going to have to navigate via children 
+    
   end
 
 
@@ -58,7 +76,8 @@ class AtomBuild
 
   def process_mods
     #does the mods record have a urn?
-    #if yes, search
+    #if yes, search the catalog_data for it
+
     #make processed tag, use mods:extension tag?
   end
 
