@@ -63,8 +63,10 @@ module ApplicationHelper
   def render_url_list (rows, type)
     dt_tag = content_tag :dt, type_text_display(type)
     if type == "author"
-      a = rows.collect do |r| 
-        content_tag :dd, (link_to r.display_label, r.url) 
+      a = rows.collect do |r|
+        unless r.url == "" 
+          content_tag :dd, (link_to r.display_label, r.url) 
+        end
       end
       b = a.join.html_safe
       return (dt_tag + b) unless b.empty?
@@ -72,10 +74,12 @@ module ApplicationHelper
       h_text = []
       h_info = []
       rows.each do |r|
-        unless r.display_label =~ /WorldCat|LC/i
-          h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
-        else
-          h_info << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
+        unless r.url == ""
+          unless r.display_label =~ /WorldCat|LC/i
+            h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
+          else
+            h_info << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
+          end
         end
       end
 
