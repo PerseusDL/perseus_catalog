@@ -64,7 +64,7 @@ module ApplicationHelper
     dt_tag = content_tag :dt, type_text_display(type)
     if type == "author"
       a = rows.collect do |r|
-        unless r.url == "" 
+        unless r.url == "" or r.url == nil
           content_tag :dd, (link_to r.display_label, r.url) 
         end
       end
@@ -74,7 +74,7 @@ module ApplicationHelper
       h_text = []
       h_info = []
       rows.each do |r|
-        unless r.url == ""
+        unless r.url == "" or r.url == nil
           unless r.display_label =~ /WorldCat|LC/i
             h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
           else
