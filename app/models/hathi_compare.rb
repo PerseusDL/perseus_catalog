@@ -34,20 +34,13 @@ class HathiCompare
 
       #if not in the hash, save expression cts_urn to a seperate "not there" list to be saved
 
-
-#this is not the best way to do it, but it does a quick and dirty comparison to create a list of hathi ids
-#that you can then feed into the 
-  def hathi_quick
-    ids_file = File.open('/Users/anna/hathi/new_ids')
-    ids = ids_file.read
-    id_arr = ids.split(",") #DOUBLE CHECK THIS IF GIVING NEW INPUT FILE!
-    
+  def create_h_hash
     #create hash of hathi file
     #file is tab separated
-    #0hathi_id ... 7oclc_id
-
+    #0hathi_id ... 7oclc_id...17lang_code
     hathi_hash = {}
     count = 0
+    #change file, not sure what the viaf was...
     File.foreach('/Users/anna/Downloads/viaf-20130417-links.txt').each do |line|
       debugger
       arr = line.split("\t")
@@ -58,6 +51,28 @@ class HathiCompare
       puts "adding record #{count}"
     end
     puts "#{count} files from hathi trust will be searched"
+    returns hathi_hash
+  end
+
+  def make_csv
+    csv = File.open("ENV['HOME']/hathi_csv.csv")
+    debugger
+    #oclc_auht
+    ids = 
+
+  end
+
+
+#this is not the best way to do it, but it does a quick and dirty comparison to create a list of hathi ids
+#that you can then feed into the 
+  def hathi_quick
+    ids_file = File.open('/Users/anna/hathi/new_ids')
+    ids = ids_file.read
+    id_arr = ids.split(",") #DOUBLE CHECK THIS IF GIVING NEW INPUT FILE!
+    
+    
+
+    hathi_hash = create_h_hash
    
     found_ids = []
     missing_ids = File.new('/Users/anna/hathi/still_missing_ids', 'w+')
