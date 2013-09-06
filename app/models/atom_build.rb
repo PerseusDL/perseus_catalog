@@ -1,3 +1,12 @@
+#Copyright 2013 The Perseus Project, Tufts University, Medford MA
+#This free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
+#published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+#This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+#without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+#See the GNU General Public License for more details.
+#See http://www.gnu.org/licenses/.
+#=============================================================================================
+
 class AtomBuild
   require 'nokogiri'
   require 'mechanize'
@@ -15,19 +24,11 @@ class AtomBuild
 
   def process_pending
     debugger
-    start_time = Time.now
     pending_dir = "#{ENV['HOME']}/catalog_pending"
+    update_git_dir("catalog_pending")
     #go through both mads and mods directories in catalog_pending
     #need a chron job to update catalog_pending from github?
     #what are we going to save the info in these as?
-    unless File.directory?(pending_dir)
-      `git clone https://github.com/PerseusDL/catalog_pending.git $HOME/catalog_pending`
-    end
-
-    if File.mtime(pending_dir) < start_time
-      puts "Pulling the latest files from the catalog_pending GitHub directory"
-      `git --git-dir=#{pending_dir}/.git pull`
-    end
     
     #after the pull, iterate through files
       #check if processed or have error tag, 
@@ -72,9 +73,9 @@ class AtomBuild
   end
 
 
-  def find_textgroup (tg_id)
-    #locates and matches textgroup id input
-    tg_raw = @agent.get("http://sosol.perseus.tufts.edu/testcoll/list?withXslt=citequery.xsl&coll=urn:cite:perseus:cattg&prop=textgroup&textgroup=#{tg_id}")
+  def find_textgroup
+    #locates and matches textgroup urn input
+    tg_raw = @agent.get("http://sosol.perseus.tufts.edu/testcoll/list?withXslt=citequery.xsl&coll=urn:cite:perseus:cattg&prop=textgroup&textgroup=#{@tg_urn}")
     #for some strange reason, can't use search method on a cite query page to pull out the tg_urn....
     noko_tg = tg_raw.search("reply")
     unless noko_tg.empty?
@@ -101,6 +102,41 @@ class AtomBuild
   end
 
 
+  def update_git_dir(dir_name)
+    start_time = Time.now
+    data_dir = "#{ENV['HOME']}/#{dir_name}"
+    unless File.directory?(data_dir)
+      `git clone https://github.com/PerseusDL/#{dir_name}.git $HOME/#{dir_name}`
+    end
+    
+    if File.mtime(data_dir) < start_time
+      puts "Pulling the latest files from the #{dir_name} GitHub directory"
+      `git --git-dir=#{data_dir}/.git --work-tree=#{data_dir} pull`
+    end
+
+  end
+
+
+  def make_dir_and_feed(dir, type)
+    Dir.mkdir(dir) unless File.directory?(dir)
+     
+    #constructing textgroup feed head
+    if type == "textgroup"
+      atom_name = "#{dir}/#{@tg_id}.atom.xml"
+    elsif type == "work"
+      atom_name = "#{dir}/#{@tg_id}.#{@work_id}.atom.xml"
+    end 
+
+    unless File.exists?(atom_name)  
+      feed = feed_head(type, args)
+      feed_file = File.new(atom_name, 'w')
+      feed_file << feed
+      feed_file.close
+    end
+  end
+
+
+
   def build_feeds
     
     st = Time.now
@@ -119,62 +155,67 @@ class AtomBuild
     #iterate through urn list
     works_xml.children.each do |work_tag|
       
-      work_info = []
+      
       cite_urn = work_tag.inner_text
       unless cite_urn == "\n"
         raw_obj = @agent.get("#{cite_base}api?req=GetObject&urn=#{cite_urn}")
         #pull out the urn we really care about
-        work_urn = raw_obj.search("citeProperty[@label='CTS Work URN']").inner_text
-        work_title = raw_obj.search("citeProperty[@label='Uniform Title (English)']").inner_text
-        puts "Saved work #{work_urn}"
-        work_info << work_urn
+        @work_urn = raw_obj.search("citeProperty[@label='CTS Work URN']").inner_text
+        @work_title = raw_obj.search("citeProperty[@label='Uniform Title (English)']").inner_text
+        puts "Saved work #{@work_urn}"
+        
       else
         next
       end
 
-      work_id = work_urn[/(tlg|phi|stoa)\d{3}(x\d{2})?$/]
-      tg_urn = work_urn[/urn:cts:(latinLit|greekLit):\D+\d{4}/]
-      lit_type = tg_urn[/(latinLit|greekLit)/]
-      tg_id = tg_urn[/(tlg|phi|stoa)\d{4}/]
-      tg_name = find_textgroup(tg_urn)
+      @tg_urn = @work_urn[/urn:cts:(latinLit|greekLit):\D+\d{4}/]
+      @lit_type = @tg_urn[/(latinLit|greekLit)/]      
+      @tg_id = @tg_urn[/(tlg|phi|stoa)\d{4}/]
+      @tg_name = find_textgroup
+      @work_id = @work_urn[/(tlg|phi|stoa)\d{3}(x\d{2})?$/]
+
+
       
-      tg_dir = "#{feed_directories}/#{lit_type}/#{tg_id}"
-        
-      Dir.mkdir(tg_dir) unless File.directory?(tg_dir)
-     
-    #might want to create an args [], feed in the work_id and such and get rid of the XML merge here
-      unless File.exists?("#{tg_dir}/#{tg_id}.atom.xml")  
-        tg_feed = feed_head('textgroup', tg_urn)
-        ns = tg_feed.doc.collect_namespaces
-        node = tg_feed.doc.xpath('//cts:TextInventory', ns).first
-        addition = Nokogiri::XML::Builder.with(node) do |xml|
-          xml.textgroup(:urn => tg_urn){
-            xml.groupname('xmlns:cts' => "http://chs.harvard.edu/xmlns/cts/ti", 'xml:lang' => "eng"){
-              xml.parent.namespace = xml.parent.namespace_definitions.find{|ns|ns.prefix=="cts"}
-              xml.text(tg_name)
-            }
-          }
-        end
-        
-        tg_feed = addition.to_xml
-        tg_file = File.new("#{tg_dir}/#{tg_id}.atom.xml", 'w')
-        tg_file << tg_feed
-        tg_file.close
-      end
+      tg_dir = "#{feed_directories}/#{@lit_type}/#{@tg_id}"  
+      
+      make_dir_and_feed(tg_dir, "textgroup")
+
       #from here need to go into the work info and iterate through the mods files
       #create a work feed file
       #create mods feed files
       #create info for mads files
       #add info from each mods file to the work feed
       #add info from work feed file to the textgroup feed 
-      tg_file = File.open("#{tg_dir}/#{tg_id}.atom.xml", 'r+')
-      tg_xml = Nokogiri::XML::Document.parse(tg_xml)
+      tg_file = File.open("#{tg_dir}/#{@tg_id}.atom.xml", 'r+')
+      tg_xml = Nokogiri::XML::Document.parse(tg_file)
 
-      work_dir = "#{tg_dir}/#{work_id}"
-      Dir.mkdir(work_dir) unless File.directory?(work_dir)
+      work_dir = "#{tg_dir}/#{@work_id}"
+      make_dir_and_feed(work_dir, "work")
+      
+      catalog_dir = "#{ENV['HOME']}/catalog_data"
+      update_git_dir("catalog_data")
 
+      #grab all mods files for that work
+      #iterate through
 
+      work_mods_dir = "#{catalog_dir}/mods/#{@lit_type}/#{@tg_id}/#{@work_id}"
+      if File.directory?(work_mods_dir)
+        entries_arr = Dir.entries("#{work_mods_dir}")
+        entries_arr.each do |sub_dir|
+          unless sub_dir == "." or sub_dir ==".."
+            mods_arr = Dir.entries("#{work_mods_dir}/#{sub_dir}")
+            mods_arr.each do |m_f|
+              debugger
+              mods_file = File.open("#{work_mods_dir}/#{sub_dir}/#{m_f}", 'r+') if m_f =~ /\.xml/
+              mods_xml = Nokogiri::XML::Document.parse(mods_file)
+              puts "testing"
+              #need to get into the perseuscts.xml to grab the tei structure info where appropriate, <online> section
+              #but the descriptions are horrible
+            end
+          end
+        end
 
+      end
 
       #Does the TG directory exist in the atom feed file system? and is there a TG feed file?
         #if no, create TG labeled directory and create TG feed file
@@ -234,8 +275,8 @@ class AtomBuild
   end
 
 
-  def feed_head(feed_type, urn)
-    atom_id = "http://data.perseus.org/catalog/#{urn}/atom"
+  def feed_head(feed_type)
+    atom_id = "http://data.perseus.org/catalog/#{@tg_urn}/atom"
     builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |a_feed|
 
       #the first section, before the actual text inventory begins is the same for all feed levels
@@ -245,22 +286,23 @@ class AtomBuild
         a_feed['atom'].id_(atom_id)
         a_feed['atom'].author('Perseus Digital Library')
         a_feed['atom'].rights('This data is licensed under a Creative Commons Attribution-ShareAlike 3.0 United States License')
-        a_feed['atom'].title("The Perseus Catalog: atom feed for CTS #{feed_type} #{urn}") 
+        a_feed['atom'].title("The Perseus Catalog: atom feed for CTS #{feed_type} #{@tg_urn}") 
         a_feed['atom'].link(:type => 'application/atom+xml', :rel => 'self', :href => atom_id) 
-        a_feed['atom'].link(:type => 'text/html', :rel => 'alternate', :href => "http://catalog.perseus.org/catalog/#{urn}")
+        a_feed['atom'].link(:type => 'text/html', :rel => 'alternate', :href => "http://catalog.perseus.org/catalog/#{@tg_urn}")
         a_feed['atom'].updated(Time.now)
         a_feed['atom'].entry {
           a_feed['atom'].id_("#{atom_id}#ctsti")
           a_feed['atom'].author('Perseus Digital Library')
           a_feed['atom'].link(:type => 'application/atom+xml', :rel => 'self', :href => "#{atom_id}#ctsti")
-          a_feed['atom'].link(:type => 'text/html', :rel => 'alternate', :href => "http://catalog.perseus.org/catalog/#{urn}")
+          a_feed['atom'].link(:type => 'text/html', :rel => 'alternate', :href => "http://catalog.perseus.org/catalog/#{@tg_urn}")
           a_feed['atom'].title {
             a_feed.text( if feed_type =~ /work|textgroup/
-              "The Perseus Catalog: Text Inventory for CTS #{feed_type} #{urn}"
+              "The Perseus Catalog: Text Inventory for CTS #{feed_type} #{@tg_urn}"
             else
-              "The Perseus Catalog: Text Inventory excerpt for CTS #{feed_type} #{urn}"
+              "The Perseus Catalog: Text Inventory excerpt for CTS #{feed_type} #{@tg_urn}"
             end)
           }
+          #Text inventory start
           a_feed['atom'].content(:type => 'text/xml') {
             a_feed.TextInventory('xmlns:cts' => "http://chs.harvard.edu/xmlns/cts/ti", :tiversion => "4.0") {
               a_feed.parent.namespace = a_feed.parent.namespace_definitions.find{|ns|ns.prefix=="cts"}
@@ -290,6 +332,12 @@ class AtomBuild
                 a_feed.descripton('xmlns' => 'http://purl.org/dc/elements/1.1/', 'xml:lang' => 'eng'){a_feed.text('Primary and secondary sources for the study of ancient Greece
       and Rome')}
                 a_feed.rights('xmlns' => 'http://purl.org/dc/elements/1.1/', 'xml:lang' => 'eng'){a_feed.text('Content is under copyright.')}
+              }
+              #Textgroup name
+              a_feed.textgroup(:urn => @tg_urn){
+                a_feed.groupname('xmlns:cts' => "http://chs.harvard.edu/xmlns/cts/ti", 'xml:lang' => "eng"){
+                  a_feed.text(@tg_name)
+                }
               }
             }
           }
