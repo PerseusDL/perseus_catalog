@@ -9,7 +9,7 @@ development:
   database: perseus_blacklight
   pool: 5
   username: root
-  password: 0ne sh0t
+  password:
   socket: /tmp/mysql.sock
 
 # Warning: The database defined as "test" will be erased and
@@ -21,7 +21,7 @@ test:
   database: perseus_test
   pool: 5
   username: root
-  password: 0ne sh0t
+  password:
   socket: /tmp/mysql.sock
 
 production:
@@ -30,5 +30,5 @@ production:
   database: perseus_blacklight
   pool: 5
   username: root
-  password: 0ne sh0t
+  password:
   socket: /var/lib/mysql/mysql.sock
