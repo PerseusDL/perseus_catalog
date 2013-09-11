@@ -3,13 +3,16 @@
 #
 #   Ensure the SQLite 3 gem is defined in your Gemfile
 #   gem 'sqlite3'
+
+#This is only a sample file, fill in your own values for your database, username, password, and socket
+#then save as database.yml
 development:
   adapter: mysql2
   encoding: utf8
   database: perseus_blacklight
   pool: 5
   username: root
-  password:
+  password: 
   socket: /tmp/mysql.sock
 
 # Warning: The database defined as "test" will be erased and
