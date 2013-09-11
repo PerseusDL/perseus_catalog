@@ -1,7 +1,7 @@
 perseus_catalog
 ===============
 
-This is the code base for The Perseus Catalog.
+This is the code base for [The Perseus Catalog](http://catalog.perseus.org/).
 
 The Catalog utilizes the [Blacklight gem](https://github.com/projectblacklight/blacklight). Please find the full documentation for the Catalog here: http://sites.tufts.edu/perseuscatalog/documentation/
 
