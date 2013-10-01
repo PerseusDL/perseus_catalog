@@ -1,0 +1,141 @@
+<!--<dataConfig>
+    <dataSource driver="org.hsqldb.jdbcDriver" url="jdbc:hsqldb:./example-DIH/hsqldb/ex" user="sa" />
+    <document>
+        <entity name="item" query="select * from item"
+                deltaQuery="select id from item where last_modified > '${dataimporter.last_index_time}'">
+            <field column="NAME" name="name" />
+
+            <entity name="feature"  
+                    query="select DESCRIPTION from FEATURE where ITEM_ID='${item.ID}'"
+                    deltaQuery="select ITEM_ID from FEATURE where last_modified > '${dataimporter.last_index_time}'"
+                    parentDeltaQuery="select ID from item where ID=${feature.ITEM_ID}">
+                <field name="features" column="DESCRIPTION" />
+            </entity>
+            
+            <entity name="item_category"
+                    query="select CATEGORY_ID from item_category where ITEM_ID='${item.ID}'"
+                    deltaQuery="select ITEM_ID, CATEGORY_ID from item_category where last_modified > '${dataimporter.last_index_time}'"
+                    parentDeltaQuery="select ID from item where ID=${item_category.ITEM_ID}">
+                <entity name="category"
+                        query="select DESCRIPTION from category where ID = '${item_category.CATEGORY_ID}'"
+                        deltaQuery="select ID from category where last_modified > '${dataimporter.last_index_time}'"
+                        parentDeltaQuery="select ITEM_ID, CATEGORY_ID from item_category where CATEGORY_ID=${category.ID}">
+                    <field column="description" name="cat" />
+                </entity>
+            </entity>
+        </entity>
+    </document>
+</dataConfig>
+
+<dataConfig>
+    <dataSource type="FileDataSource"/>
+    <document>
+        <entity
+            name="document"
+            processor="FileListEntityProcessor"
+            baseDir="/Users/anna/ex-feeds"
+            fileName=".*.xml$"
+            recursive="false"
+            rootEntity="false"
+            dataSource="null">
+            <entity
+                name="xml"
+                processor="XPathEntityProcessor"
+                url="${document.fileAbsolutePath}"
+                useSolrAddSchema="true"
+                stream="true"
+                xsl="xslt/feed2solr.xsl">
+            </entity>
+        </entity>
+    </document>
+</dataConfig>-->
+
+<dataConfig>
+    <dataSource type="JdbcDataSource"
+        driver="com.mysql.jdbc.Driver"
+        url="Jdbc:mysql://localhost/perseus_blacklight"
+        user="root"
+        password=""/>
+    <document>
+        <entity name="expressions" rootEntity="true" query="SELECT * FROM expressions">
+            <field column="cts_urn" name="uid"/>
+            <field column="cts_urn" name="exp_urn"/>
+            <field column="title" name="title_display"/>
+            <field column="title" name="exp_title"/>
+            <field column="alt_title" name="exp_alt_title"/>
+            <field column="host_title" name="exp_host_title"/>            
+            <field column="subjects" name="exp_subject"/>
+            <field column="language" name="exp_language"/>
+            <field column="date_publ" name="exp_year"/>
+            <field column="var_type" name="exp_type"/>
+     
+            <entity name="works_sub" rootEntity="false" query="SELECT standard_id FROM works where id='${expressions.work_id}'">
+                <field column="standard_id" name="exp_work_urn"/>
+            </entity>   
+            
+            <entity name="exp_auth_sub" rootEntity="false" query="SELECT a.name FROM authors a, tg_auth_works taw where taw.work_id='${expressions.work_id}' and a.id=taw.auth_id">
+                <field column="name" name="exp_auth_name"/>
+            </entity>
+              
+            <entity name="editors_or_translators" rootEntity="false" query="SELECT name, alt_names FROM editors_or_translators where id='${expressions.editor_id}'">
+                <field column="name" name="ed_name"/>
+                <field column="alt_names" name="ed_alt_name"/>
+            </entity>
+            
+            <entity name="editors_or_translators" rootEntity="false" query="SELECT name, alt_names FROM editors_or_translators where id='${expressions.translator_id}'">
+                <field column="name" name="trans_name"/>
+                <field column="alt_names" name="trans_alt_name"/>
+            </entity>
+            
+            <entity name="series" rootEntity="false" query="SELECT clean_title FROM series where id='${expressions.series_id}'">
+                <field column="clean_title" name="exp_series"/>
+            </entity>
+            
+        </entity>
+        
+        
+        <entity name="works" rootEntity="true" query="SELECT * FROM works">
+            <field column="standard_id" name="uid"/>
+            <field column="standard_id" name="work_urn"/>
+            <field column="title" name="work_title"/>
+            <field column="title" name="title_display"/>
+            <field column="title" name="work_facet"/>
+            <field column="title" name="work_no_token"/>
+            <field column="language" name="work_lang"/>
+            <entity name="authors_sub" rootEntity="false" query="SELECT a.name, a.alt_names FROM authors a where a.id=(select taw.auth_id from tg_auth_works taw where taw.work_id='${works.id}')">
+                <field column="name" name="work_auth_name"/>
+                <field column="alt_names" name="work_auth_alt_name"/>
+            </entity>
+            <entity name="facet_sub" rootEntity="false" query="SELECT a.name, a.alt_names FROM authors a where a.id=(select taw.auth_id from tg_auth_works taw where taw.work_id='${works.id}') and a.unique_id like 'm%'">
+                <field column="name" name="auth_facet"/>
+            </entity>
+            <entity name="tgs_sub" rootEntity="false" query="SELECT t.urn, t.group_name FROM textgroups t where t.id=(select taw.tg_id from tg_auth_works taw where taw.work_id='${works.id}')">
+                <field column="group_name" name="work_tg_name"/>
+                <field column="group_name" name="tg_facet"/>               
+                <field column="urn" name="work_tg_urn"/>
+            </entity>
+        </entity>
+        
+        <entity name="textgroups" rootEntity="true" query="SELECT * FROM textgroups">
+            <field column="urn" name="uid"/>
+            <field column="urn" name="tg_urn"/>
+            <field column="urn_end" name="title_display"/>
+            <field column="group_name" name="tg_name"/>
+            <entity name="tg_authors" rootEntity="false" query="SELECT name FROM authors where '${textgroups.urn_end}' in (phi_id, tlg_id, stoa_id)">
+                <field column="name" name="tg_auth_names" splitBy=";"/>
+            </entity>
+        </entity>
+        
+        <entity name="authors" rootEntity="true" query="SELECT * FROM authors">
+            <field column="unique_id" name="uid"/>
+            <field column="name" name="title_display"/>
+            <field column="phi_id" name="phi_id"/>
+            <field column="tlg_id" name="tlg_id"/>
+            <field column="stoa_id" name="stoa_id"/>
+            <field column="alt_id" name="auth_alt_id"/>
+            <field column="name" name="auth_name"/>
+            <field column="alt_names" name="auth_alt_name"/>
+        </entity>
+        
+    </document>
+</dataConfig>
