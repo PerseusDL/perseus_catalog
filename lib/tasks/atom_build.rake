@@ -13,8 +13,8 @@
 desc "Build Atom feed"
 task :build_atom_feed => :environment do
   builder = AtomBuild.new
-  builder.set_agent
+  builder.multi_agents
   builder.build_feeds
-  builder.process_pending
-  builder.process_works
+  #builder.process_pending
+  #builder.process_works
 end

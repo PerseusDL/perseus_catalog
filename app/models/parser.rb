@@ -20,9 +20,11 @@ class Parser
   require 'textgroup.rb'
   require 'expression_url.rb'
   require 'xml_importer.rb'
+  include CiteColls
 
 
   #FOR ALL: NEED TO ADD IN A LAST MODIFIED CHECK, PREVENT CONSTANT RE-WRITING OF ENTIRE TABLE ONCE EVERYTHING IS SET
+
 
   def self.mads_parse(doc, file_type, ns, tg_end)
 
@@ -49,12 +51,12 @@ class Parser
       other_names = name_var.join("; ")
 
       #just in case we have an author without an authority name
-      if auth_name == nil or auth_name == " " or auth_name.empty?
+      if auth_name == nil || auth_name == " " || auth_name.empty?
         sub_name = name_var[0].match(/\w+,\w+,/)
         auth_name = sub_name.chop if sub_name
       end
 
-      if auth_name == nil or auth_name.empty? or auth_name == " "
+      if auth_name == nil || auth_name.empty? || auth_name == " "
         throw "Error!  This author doesn't have a name! Abort!"
       end
 
@@ -70,7 +72,7 @@ class Parser
           nums = nil
           nums = id.inner_text.gsub(/\.\w+|-\w+/, "")
           #standardize the numbers, pad with 0s if needed
-          unless nums == nil or nums == ""
+          unless nums == nil || nums == ""
             nums = sprintf("%04d", nums) if !(nums =~ /\s|[a-z]|\d{4}/)
             #a little extra cleaning, just in case...
             nums = nums.strip
@@ -102,10 +104,10 @@ class Parser
       rw_set.each do |rel_id|
         if rel_id.attribute('type')
           val = rel_id.attribute('type').value
-          val = id_type if (val.empty? or val == nil)
+          val = id_type if (val.empty? || val == nil)
           id_num = rel_id.inner_text
           parts = id_num.split(/\.|-/)
-          unless parts == nil or parts.empty?
+          unless parts == nil || parts.empty?
             #this is a pain...
             parts.each_with_index {|part, index| parts[index] = part.gsub(/\D+/, "") if part =~ /tlg|phi/}
             parts[0] = sprintf("%04d", parts[0]) if !(parts[0] =~ /\s|[a-z]|\d{4}/)
@@ -237,6 +239,10 @@ class Parser
     #person_error_log.close
   end
 
+  def self.find_cite_col_id(id)
+
+  
+  end
 
 
   def self.turn_to_list(doc, path, join_type, ns)
@@ -461,7 +467,7 @@ class Parser
       end
 
       if textgroup 
-        if (textgroup.group_name == nil or textgroup.group_name.empty?)
+        if (textgroup.group_name == nil || textgroup.group_name.empty?)
           #if there is no name, parse the description line
           desc = tg_raw.xpath("cts:work/cts:edition/cts:description", ns)
           desc_arr = desc[0].inner_text.split(/,,|,/)
@@ -492,7 +498,7 @@ class Parser
         work = Work.new
       end
 
-      if work and textgroup
+      if work && textgroup
         
         work.standard_id = w_id
         work.textgroup_id = textgroup.id
@@ -527,14 +533,14 @@ class Parser
       begin
         #we are organizing and identifying expressions with the cts_urns
         raw_urn = mods_rec.xpath("mods:identifier[@type='ctsurn']", ns)
-        if (raw_urn != nil and !raw_urn.empty?)
+        if (raw_urn != nil && !raw_urn.empty?)
           cts = raw_urn.first.inner_text
         else
           raise "Lacks a ctsurn, can not save!!"
         end
 
         #double check we've got a cts urn
-        if cts == nil or cts == ""
+        if cts == nil || cts == ""
           raise "Lacks a ctsurn, can not save!!"
         end
         expression = Expression.find_by_cts_urn(cts)
@@ -615,10 +621,10 @@ class Parser
 
         pub_node = mods_rec.xpath(".//mods:dateIssued", ns).first
         pub_date = pub_node.inner_text.to_i if pub_node
-        expression.date_publ = pub_date unless pub_date == 0 or pub_date == nil
+        expression.date_publ = pub_date unless pub_date == 0 || pub_date == nil
         mod_node = mods_rec.xpath(".//mods:dateModified", ns)
         mod_date = mod_node.inner_text.to_i if mod_node    
-        expression.date_mod = mod_date unless mod_date == 0 or mod_date == nil
+        expression.date_mod = mod_date unless mod_date == 0 || mod_date == nil
 
         edition_node = mods_rec.xpath(".//mods:edition", ns)
         expression.edition = edition_node.inner_text if edition_node
@@ -658,7 +664,7 @@ class Parser
         mods_rec.xpath("mods:relatedItem", ns).each do |rel_item|
           #get host work info
           type_attr = rel_item.attribute('type')
-          if type_attr and type_attr.value == "host"
+          if type_attr && type_attr.value == "host"
             raw_ht =[]
             rel_item.xpath("mods:titleInfo", ns).children.each {|c| raw_ht << c.inner_text.strip}
             raw_ht.delete("")
@@ -675,12 +681,12 @@ class Parser
           end
 
           #get series info
-          if type_attr and type_attr.value ==  "series"
+          if type_attr && type_attr.value ==  "series"
             ser_title = nil
             ser_abb = nil
             rel_item.xpath("mods:titleInfo", ns).each do |tf|
               raw_ser = tf.inner_text.strip.gsub(/\s*\n\s*/,', ')
-              if (tf.attribute('type') and tf.attribute('type').value == "abbreviated")
+              if (tf.attribute('type') && tf.attribute('type').value == "abbreviated")
                 ser_abb = raw_ser 
               else
                 ser_title = raw_ser
@@ -688,11 +694,11 @@ class Parser
             end
             #series name standardization
             case
-              when (ser_title =~ /Teubner/i or ser_abb =~ /Teubner/i)
+              when (ser_title =~ /Teubner/i || ser_abb =~ /Teubner/i)
                 clean_title = "Bibliotheca Teubneriana"
-              when (ser_title =~ /Loeb|LCL/i or ser_abb =~ /Loeb|LCL/i)
+              when (ser_title =~ /Loeb|LCL/i || ser_abb =~ /Loeb|LCL/i)
                 clean_title = "Loeb Classical Library"
-              when (ser_title =~ /Oxford|oxoniensis/i or ser_abb =~ /OCT/i)
+              when (ser_title =~ /Oxford|oxoniensis/i || ser_abb =~ /OCT/i)
                 clean_title = "Oxford Classical Texts"
               when (ser_title =~ /Bohn/i)
                 clean_title = "Bohn's Classical Library"
@@ -710,7 +716,7 @@ class Parser
               ser.save
             end
 
-            expression.series_id = ser.id if (ser and !expression.series_id)
+            expression.series_id = ser.id if (ser && !expression.series_id)
 
           end
 
