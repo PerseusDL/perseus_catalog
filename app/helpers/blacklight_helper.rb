@@ -46,7 +46,8 @@ module BlacklightHelper
       codes = File.read("#{file_sys}/tmp_files/lang_codes.csv")
       codes_arr = codes.split("\n")
       pair = codes_arr.each {|cell| break cell.split(",") if cell =~ /#{value},/}
-      value = pair[1] unless pair.empty?
+      debugger
+      value = [pair[1]] unless pair.empty?
     end
 
     return value.map { |v| html_escape v }.join(field_value_separator).html_safe

@@ -171,7 +171,7 @@ module ApplicationHelper
         end
       end
       blog_link = link_to "<strong>See more posts</strong>".html_safe, 'http://sites.tufts.edu/perseuscatalog/', :target => "_blank"
-      things << content_tag (:li, blog_link, :class => 'feed-list')
+      things << content_tag(:li, blog_link, :class => 'feed-list')
       
       things_list = content_tag(:ul, things.html_safe)
       
