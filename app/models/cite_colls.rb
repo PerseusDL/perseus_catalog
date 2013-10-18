@@ -131,11 +131,11 @@ module CiteColls
 
   def find_author(tg_id)
     begin
-      auth_raw = multi_get("#{cite_base(true)}primauth&prop=canonical_id&canonical_id=#{tg_id}#{cite_key}")
+      auth_raw = multi_get("#{cite_base(true)}author&prop=canonical_id&canonical_id=#{tg_id}#{cite_key}")
       noko_auth = auth_raw.search("reply")
       if noko_auth.children.empty?
         #serch alt ids
-        auth_raw = multi_get("#{cite_base(true)}primauth&prop=alt_ids&alt_ids=#{tg_id}:CONTAINS#{cite_key}")
+        auth_raw = multi_get("#{cite_base(true)}author&prop=alt_ids&alt_ids=#{tg_id}:CONTAINS#{cite_key}")
         noko_auth = auth_raw.search("reply")
       end
 
@@ -152,6 +152,26 @@ module CiteColls
       if e.response_code =~ /500/
         puts "500, retry in 1 second"
         sleep 1
+        retry
+      end
+    end
+  end
+
+  def find_auth_by_path(mads_path)
+    begin
+      mads_path = mads_path[/\d+\.mads\.xml/] if mads_path =~ /\+/
+      auth_raw = multi_get("#{cite_base(true)}author&prop=mads_file&mads_file=#{mads_path}:CONTAINS#{cite_key}")
+      noko_auth = auth_raw.search("reply")
+      unless noko_auth.children.empty?
+        auth_cts = noko_auth
+      else
+        auth_cts = []
+      end
+      return auth_cts
+    rescue Mechanize::ResponseCodeError => e
+      if e.response_code =~ /500|403/
+        puts "bad response, retry in 2 seconds"
+        sleep 2
         retry
       end
     end

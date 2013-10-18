@@ -53,6 +53,8 @@ class AtomBuild
       end
 
       error_file = File.new("#{feed_directories}/errors.txt", 'w')
+
+      
       
       #step through works      
       works_xml = get_all_works
@@ -62,7 +64,7 @@ class AtomBuild
           raw_obj = multi_get("#{cite_base}api?req=GetObject&urn=#{cite_urn}#{cite_key}")
           #puts raw_obj.search("reply")
           if raw_obj.search("citeProperty[@label='CTS Work URN']").empty?
-            puts "Getting 500, sleep then retry, hopefully won't create an infinite loop..."
+            puts "Getting 500, sleep then retry"
             sleep 2
             redo
           end
@@ -76,9 +78,10 @@ class AtomBuild
         #grab all of the work info
         @tg_urn = @work_urn[/urn:cts:(latinLit|greekLit):\D+\d{4}([a-z])?/]
         @lit_type = @tg_urn[/(latinLit|greekLit)/]      
-        @tg_id = @tg_urn[/(tlg|phi|stoa)\d{4}/]
+        @tg_id = @tg_urn[/(tlg|phi|stoa)\d{4}([a-z])?/]
         @tg_name = find_textgroup(@tg_urn)
         @work_id = @work_urn[/(tlg|phi|stoa|abo)(\d{3}|X\d{2,3}|\d{1,2})(x\d{2}|[a-z]*)?$/]
+        @work_id = @work_urn[/stoa\d{4}$/] if @tg_id == "stoa0233a"
 
         tg_dir = "#{feed_directories}/#{@lit_type}/#{@tg_id}"
         unless File.directory?(tg_dir)
@@ -87,7 +90,8 @@ class AtomBuild
         end
         #open tg_feed for current state and make sure that the formatting will be nice
         tg_file = File.open("#{tg_dir}.atom.xml", 'r+')
-        tg_xml = Nokogiri::XML::Document.parse(tg_file, &:noblanks)       
+        tg_xml = Nokogiri::XML::Document.parse(tg_file, &:noblanks)
+        tg_file.close       
         tg_marker = find_node("//cts:textgroup", tg_xml)
         #add the work info to the tg_feed header
         tg_builder = add_work_node(tg_marker)
@@ -97,14 +101,11 @@ class AtomBuild
         make_dir_and_feed(work_dir, feed_directories, "work")
         work_file = File.open("#{feed_directories}/#{@tg_id}.#{@work_id}.atom.xml", 'r+')
         work_xml = Nokogiri::XML::Document.parse(work_file, &:noblanks)
+        work_file.close
         work_marker = find_node("//cts:textgroup", work_xml)
         work_builder = add_work_node(work_marker)
 
-        #open the perseus cts file
-        perseus_file = File.open("#{catalog_dir}/perseus/perseuscts.xml")
-        perseus_xml = Nokogiri::XML::Document.parse(perseus_file, &:noblanks)
-        #have to remove the namespaces or it is impossible to find anything with xpath
-        perseus_xml.remove_namespaces!
+
 
         #have to establish all mads info up here so the mads additions can be done at different stages depending on the feed type
         mads_cts_nodes = find_author(@tg_id)
@@ -116,6 +117,7 @@ class AtomBuild
               mads_path  = node.xpath("cite:citeProperty[@label='MADS File']").inner_text
               mads_file = File.open(URI.decode(mads_path), "r")
               mads_xml = Nokogiri::XML::Document.parse(mads_file, &:noblanks)
+              mads_file.close
               mads_urn = node.attribute("urn").value
               @mads_arr << [mads_urn, mads_num, mads_path, mads_xml]
               mads_num += 1
@@ -131,7 +133,8 @@ class AtomBuild
             unless sub_dir == "." or sub_dir ==".." or sub_dir == ".DS_Store"
               
               mods_arr = Dir.entries("#{work_mods_dir}/#{sub_dir}")
-              mods_arr.each do |m_f|               
+              mods_arr.each do |m_f|   
+         
                 unless m_f == "." or m_f ==".." or m_f == ".DS_Store"
                   @ver_id = sub_dir
                   @ver_urn = "#{@work_urn}.#{@ver_id}"
@@ -143,16 +146,23 @@ class AtomBuild
                   make_dir_and_feed(work_dir, work_dir, ver_type)
                   ver_file = File.open("#{work_dir}/#{@tg_id}.#{@work_id}.#{@ver_id}.atom.xml", 'r')
                   ver_xml = Nokogiri::XML::Document.parse(ver_file, &:noblanks)
+                  ver_file.close
                   ver_marker = find_node("//cts:textgroup", ver_xml)
                   #add the work info to the ver_feed header
                   ver_builder = add_work_node(ver_marker)
 
                   #open the mods file once we have it
-                  mods_file = File.open("#{work_mods_dir}/#{sub_dir}/#{m_f}", 'r+') if m_f =~ /\.xml/
-             
+                  mods_file = File.open("#{work_mods_dir}/#{sub_dir}/#{m_f}", 'r+') if m_f =~ /\.xml/            
                   mods_xml = Nokogiri::XML::Document.parse(mods_file, &:noblanks)
+                  mods_file.close
                   #if it is a perseus version, get the relevant info from the perseus_xml
                   if m_f =~ /perseus/ 
+                    #open the perseus cts file
+                    perseus_file = File.open("#{catalog_dir}/perseus/perseuscts.xml", 'r')
+                    perseus_xml = Nokogiri::XML::Document.parse(perseus_file, &:noblanks)
+                    perseus_file.close
+                    #have to remove the namespaces or it is impossible to find anything with xpath
+                    perseus_xml.remove_namespaces!
                     ed_node = perseus_xml.search("#{ver_type}[@urn='#{@ver_urn}']")
                   else
                     ed_node = nil
@@ -222,43 +232,6 @@ class AtomBuild
     puts "Feed build completed at #{Time.now}"
   end
         
-=begin      
-
-                  #this is where individualization of the various types of feeds starts to really happen
-                  #text inventory listing
-                  a_feed['cts'].textgroup(:urn => "") { #textgroup urn
-                    #lots of info needs to be parsed from records for this bit
-                  }
-                
-
-            #iterate through associated mods files 
-            a_feed['atom'].entry{
-              a_feed['atom'].id_(ctsurn)#needs additional elements
-              a_feed['atom'].author('Perseus Digital Library')
-              a_feed['atom'].title("MODS file for CTS version #{ctsurn}")
-              a_feed['atom'].link(:type => 'application/atom+xml', :rel => 'self', :href => "") #needs constructed url
-              a_feed['atom'].link(:type => 'text/html', :rel => 'alternate', :href => "") #needs constructed url
-              a_feed['atom'].content(:type => 'text/xml') {
-                #insert mods file content
-                #might require grabbing the first node of the mods file then setting its parent to be this content node
-                #other option might be to create a distinctly named empty node then replace with the mods nodeset
-                #something different for textgroups happens here
-              }
-            }
-
-            #iterate through associated mads 
-            a_feed['atom'].entry{
-              a_feed['atom'].id_(ctsurn)#needs additional elements
-              a_feed['atom'].author('Perseus Digital Library')
-              a_feed['atom'].title("MADS file for author (of CTS work, in CTS textgroup) #{ctsurn}")#needs different ctsurn elements
-              a_feed['atom'].link(:type => 'application/atom+xml', :rel => 'self', :href => "") #needs constructed url
-              a_feed['atom'].link(:type => 'text/html', :rel => 'alternate', :href => "") #needs constructed url
-              a_feed['atom'].content(:type => 'text/xml') {
-                #insert mads file content
-              }
-            }
-          }
-=end      
 
   
 
@@ -279,18 +252,20 @@ class AtomBuild
 
   def create_label_desc(mods_xml)
     ns = mods_xml.collect_namespaces
-    if mods_xml.search('/mods:mods/mods:titleInfo[not(@type)]', ns)
+    if !mods_xml.search('/mods:mods/mods:relatedItem[@type="host"]/mods:titleInfo', ns).empty?
+      raw_title = mods_xml.search('/mods:mods/mods:relatedItem[@type="host"]/mods:titleInfo', ns)
+    elsif !mods_xml.search('/mods:mods/mods:titleInfo[not(@type)]', ns).empty?
       raw_title = mods_xml.search('/mods:mods/mods:titleInfo[not(@type)]', ns)
-    elsif mods_xml.search('/mods:mods/mods:titleInfo[@type="alternative"]', ns)
+    elsif !mods_xml.search('/mods:mods/mods:titleInfo[@type="alternative"]', ns).empty?
       raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="alternative"]', ns)
-    elsif mods_xml.search('/mods:mods/mods:titleInfo[@type="translated"]', ns)
+    elsif !mods_xml.search('/mods:mods/mods:titleInfo[@type="translated"]', ns).empty?
       raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="translated"]', ns)
     else
       raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="uniform"]', ns)                  
     end                
 
     
-    label = xml_clean(raw_title, " ")
+    label = @work_title + xml_clean(raw_title, " ")
 
     #mods:name, mods:roleTerm.inner_text == "editor" or "translator"
     names = mods_xml.search('//mods:name', ns)
@@ -441,8 +416,7 @@ class AtomBuild
       }
       
     end
-    return builder
-    
+    return builder    
   end
 
 
@@ -512,6 +486,13 @@ class AtomBuild
         right_entry.add_previous_sibling(find_node("//atom:entry", mods_head.doc).clone)
       else
         builder.doc.root.add_child(find_node("//atom:entry", mods_head.doc).clone)  
+        
+        #for some reason the mods prefix definition is removed when adding perseus records, have to add it back
+        if @ver_id =~ /perseus/
+          perseus_mods = find_node("//atom:entry/atom:content", builder.doc).child
+          perseus_mods.add_namespace_definition('mods', 'http://www.loc.gov/mods/v3')
+        end
+
       end
     end
   end
@@ -526,14 +507,15 @@ class AtomBuild
     mads_heads = []
     @mads_arr.each do |arr|
       #@mads arr contains 0mads_urn, 1mads_num, 2mads_path, 3mads_xml
-      if builder =~ /atom feed for CTS textgroup/
+      atom_id_node = find_node("atom:feed/atom:id", builder.doc)
+      if atom_id_node.inner_text =~ /#{@tg_urn}\/atom/
         type = "textgroup"
         atom_id = "http://data.perseus.org/catalog/#{@tg_urn}/atom#mads-#{arr[1]}"
         urn = @tg_urn
       else 
         type = "work"
         urn = @work_urn
-        if builder =~ /atom feed for CTS work/
+        if atom_id_node.inner_text =~ /#{@work_urn}\/atom/
           atom_id = "http://data.perseus.org/catalog/#{@work_urn}/atom#mads-#{arr[1]}"
         else
           atom_id = "http://data.perseus.org/catalog/#{@ver_urn}/atom#mads-#{arr[1]}"
@@ -566,7 +548,7 @@ class AtomBuild
       content.add_child(arr[3].clone.root)
       
       #make a mads atom file
-      id = arr[0][/primauth.\d+.\d/]
+      id = arr[0][/author.\d+.\d/]
       unless File.exists?("#{@mads_directory}/#{id}.atom.xml")
         mads_atom = File.new("#{@mads_directory}/#{id}.atom.xml", 'w')
         mads_atom << head.doc.clone

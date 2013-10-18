@@ -37,6 +37,8 @@ gem 'jquery-rails'
 
 # To use debugger
 gem 'ruby-debug'
+#For Ruby 1.9
+#gem 'ruby-debug19' 
 
 gem 'blacklight'
 
