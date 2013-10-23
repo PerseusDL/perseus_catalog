@@ -1,0 +1,92 @@
+              <cts:textgroup urn="">
+                <cts:groupname xml:lang="">
+                  <cts:work urn="">
+                    <cts:title xml:lang="">
+                      <cts:translation urn="">
+                      <cts:edition urn="">
+                        <cts:label xml:lang="">
+                        <cts:description xml:lang="">
+                        <cts:online docname="">
+                          <cts:validate schema="">
+                          <cts:namespaceMapping abbreviation="" nsURI="">
+                          <cts:citationMapping>
+                            <cts:citation label="" xpath="" scope="">
+                          <cts:member of collection="">
+
+modsrdf:title              <mods:titleInfo xml:lang="" type="">
+                <mods:nonSort>
+                <mods:title>
+
+              <mods:part>
+                <mods:extent unit="words">
+                  <mods:total>
+                <mods:extent unit="pages">
+                  <mods:start>
+                  <mods:end>
+modsrdf:identifier              <mods:identifier type="">
+might take special set with identifierGroup
+
+modsrdf:tableOfContents              <mods:tableOfContents>
+              <mods:relatedItem type="host"> (sometimes the below info doesn't appear in a host related item but by itself)
+                <mods:titleInfo>
+                  <mods:title>
+                  <mods:partNumber>
+                  <mods:partName>
+                  <mods:subTitle>
+                <mods:typeOfResource>
+                <mods:originInfo>
+                  <mods:place>
+modsrdf:placeOfOrigin                    <mods:placeTerm type="code" authority="marccountry">
+                    <mods:placeTerm type="text">
+modsrdf:publisher                  <mods:publisher>
+                  <mods:dateIssued>
+modsrdf:edition                  <mods:edition>
+                  <mods:issuance>
+                <mods:physicalDescription>
+                  <mods:form authority="marcform">
+                  <mods:extent>
+
+modsrdf:statementOfResponsibility                <mods:note type="">
+
+                <mods:classification authority="">
+                <mods:relatedItem type="series">
+                  <mods:titleInfo>
+                    <mods:title>
+                <mods:location>
+modsrdf:locationUrl                  <mods:url displayLabel="">
+                <mods:recordInfo>
+                  <mods:recordContentSource authority="">
+                  <mods:recordCreationDate encoding="">
+                  <mods:recordChangeDate encoding="">
+                  <mods:recordIdentifier>
+              <mods:language>
+                <mods:langaugeTerm authority="" type="">
+              <mods:name xmlns:ns2="http://www.w3.org/1999/xlink" authority="naf" type="personal" ns2:href="">
+                <mods:namePart type="">
+                <mods:role>
+                  <mods:roleTerm authority="marcrelator" type="text">
+              <mods:subject authority="">
+                <mods:topic>
+                <mods:geographic>
+
+
+              <mads:authority lang="">
+                <mads:name type="" authority="">
+                  <mads:namePart>
+              <mads:variant>
+                <mads:name type="" lang="">
+                  <mads:namePart type="">
+              <mads:note type="">
+              <mads:fieldOfActivity>
+              <mads:url displayLabel="">
+              <mads:identifier type="">
+              <mads:extension>
+                <mads:description>
+                <mads:identifier>
+              <mads:recordInfo>
+                <mads:recordContentSource authority="">
+                <mads:recordCreationDate encoding="">
+                <mads:recordChangeDate encoding="">
+                <mads:recordIdentifier>
+                <mads:languageOfCataloging>
+                  <mads:languageTerm authority="" type="">

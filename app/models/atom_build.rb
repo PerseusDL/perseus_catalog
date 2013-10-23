@@ -115,7 +115,7 @@ class AtomBuild
           mads_cts_nodes.children.each do |node|
             unless node.text? 
               mads_path  = node.xpath("cite:citeProperty[@label='MADS File']").inner_text
-              mads_file = File.open(URI.decode(mads_path), "r")
+              mads_file = File.open("#{catalog_dir}/mads/#{mads_path}", "r")
               mads_xml = Nokogiri::XML::Document.parse(mads_file, &:noblanks)
               mads_file.close
               mads_urn = node.attribute("urn").value
@@ -265,7 +265,7 @@ class AtomBuild
     end                
 
     
-    label = @work_title + xml_clean(raw_title, " ")
+    label = "#{@work_title}, #{xml_clean(raw_title, ' ')}"
 
     #mods:name, mods:roleTerm.inner_text == "editor" or "translator"
     names = mods_xml.search('//mods:name', ns)

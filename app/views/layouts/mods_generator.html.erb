@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <title>PerseusCatalogModsCreation</title>
+    
+    <%= stylesheet_link_tag    "mods_generator", :media => "all" %>
+    <%= javascript_include_tag "application" %>
+    <%= csrf_meta_tags %>
+    <link rel="shortcut icon" href="/assets/favicon.ico" >
+  </head>
+  <body class="<%= render_body_class %>">
+    <div id="wrap">
+      <div id="header-navbar-fixed-top" class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+          <div class="container">
+            <div class="row">
+              <div class="span4">
+                <%= link_to image_tag('logo.png'), {:controller=> "catalog"}, :class => "image"%>
+              </div>
+              <div class="span8">         
+                <h3>MODS Creation Form</h3>
+              
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="form-container" class="container">
+        <div class="row">
+          <%= yield %>
+        </div>
+      </div>
+    </div>
+  </body>
+  
+</html>

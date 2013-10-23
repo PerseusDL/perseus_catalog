@@ -1,0 +1,31 @@
+// Place all the styles related to the mods_generator controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
+@import "variables";
+
+@import "bootstrap";
+@import "bootstrap-responsive";
+
+@import "bootswatch";
+
+#header-navbar-fixed-top {
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  min-width: 395px;
+  max-height: 100%;
+  margin-bottom: 26px;
+  .navbar-inner {
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+  }
+
+}
+
+html, body {
+  height: auto;
+  padding-top: 0em;
+}
+
+#form-container {
+  padding-top: 10em;
+
+}

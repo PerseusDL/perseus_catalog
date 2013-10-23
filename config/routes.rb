@@ -1,11 +1,13 @@
 BlacklightTest::Application.routes.draw do
+  get "mods_generator/index", :to => redirect('/modsForm')
+
   devise_for :users
 
   root :to => "catalog#index"
 
   match "vis", :to => 'vis#index', :as => 'vis_index'
 
-
+  match "modsForm", :to => 'mods_generator#index'
   #resources :solr_document, :constraints => {:id => /urn:cts:\w+:\w+\.*\w*\.*\w*-*\w*/}
 
 
