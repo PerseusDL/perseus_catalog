@@ -36,9 +36,10 @@ gem 'jquery-rails'
 # gem 'capistrano'
 
 # To use debugger
-gem 'ruby-debug'
+#gem 'ruby-debug'
+gem 'debugger'
 #For Ruby 1.9
-#gem 'ruby-debug19' 
+#gem 'ruby-debug19'
 
 gem 'blacklight'
 

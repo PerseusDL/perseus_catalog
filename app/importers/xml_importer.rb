@@ -40,7 +40,7 @@ class XmlImporter
     d = Dir.new(directory_path)
     d.each do |file|
       if File.directory?("#{directory_path}/#{file}")  
-          multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS|greekLit|latinLit/
+          multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS|greekLit|latinLit|mads/
       else
         if file_type == ("author" or "edtrans")
           import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/

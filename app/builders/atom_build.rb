@@ -253,13 +253,13 @@ class AtomBuild
   def create_label_desc(mods_xml)
     ns = mods_xml.collect_namespaces
     if !mods_xml.search('/mods:mods/mods:relatedItem[@type="host"]/mods:titleInfo', ns).empty?
-      raw_title = mods_xml.search('/mods:mods/mods:relatedItem[@type="host"]/mods:titleInfo', ns)
+      raw_title = mods_xml.search('/mods:mods/mods:relatedItem[@type="host"]/mods:titleInfo', ns).first
     elsif !mods_xml.search('/mods:mods/mods:titleInfo[not(@type)]', ns).empty?
-      raw_title = mods_xml.search('/mods:mods/mods:titleInfo[not(@type)]', ns)
+      raw_title = mods_xml.search('/mods:mods/mods:titleInfo[not(@type)]', ns).first
     elsif !mods_xml.search('/mods:mods/mods:titleInfo[@type="alternative"]', ns).empty?
-      raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="alternative"]', ns)
+      raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="alternative"]', ns).first
     elsif !mods_xml.search('/mods:mods/mods:titleInfo[@type="translated"]', ns).empty?
-      raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="translated"]', ns)
+      raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="translated"]', ns).first
     else
       raw_title = mods_xml.search('/mods:mods/mods:titleInfo[@type="uniform"]', ns)                  
     end                

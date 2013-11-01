@@ -8,7 +8,6 @@ task :parse_records => :environment do
   file_type = ENV["file_type"]
   rec_file = ENV["rec_file"]
   importer = XmlImporter.new
-  @agent = set_agent
 
   begin
     if File.directory?(rec_file)
