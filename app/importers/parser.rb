@@ -340,7 +340,6 @@ class Parser
     begin
       #grab namespaces not defined on the root of the xml doc
       ns = doc.collect_namespaces
-    
       #get and save the work and tg urns
       atom_title = doc.xpath("atom:feed/atom:title", ns).inner_text
       sect_parse = atom_title.split(" ")
@@ -367,7 +366,7 @@ class Parser
         sect_title = file_sect.xpath("atom:title", ns).inner_text
         if sect_title =~ /Text Inventory for CTS work/
           work, textgroup = work_parse(file_sect, ns, w_urn, tg_urn)
-        elsif sect_title =~ /MODS file for CTS version/
+        elsif sect_title =~ /MODS file for CTS (edition|translation|version)/
           mods_parse(file_sect, ns, w_urn, tg_urn, inventory)
         elsif sect_title =~ /MADS file for author of CTS work/
           authors << mads_parse(file_sect, "author", ns, tg_end)
@@ -524,7 +523,7 @@ class Parser
 
 
   def self.mods_parse(doc, ns, w_urn, tg_urn, inventory)
-    
+
     work_id = Work.get_info(w_urn).id
     tg_id = Textgroup.get_info(tg_urn).id
 
@@ -738,7 +737,6 @@ class Parser
 
           #HAVE IGNORED CONSTITUENT ITEMS FOR NOW UNTIL I FIGURE OUT HOW TO HANDLE THEM
         end
-
         expression.save
 
         #go ahead and save all urls here

@@ -23,6 +23,7 @@ class LexProcessor
     lex_xml = Nokogiri::XML(open(file))
     bibl_file = File.open("#{ENV['HOME']}/lexica/LSJbibl#{Date.today}.txt", 'w')
     error_file = File.open("#{ENV['HOME']}/lexica/bibl_errors#{Date.today}.txt", 'w')
+    uri = nil
 
     #pull up the trismegistos db for finding papyri uris
     agent = Mechanize.new
@@ -34,7 +35,6 @@ class LexProcessor
       begin
         #at this point, want to identify the contents of the n attribute, if it exists
         n = bib.attribute("n")
-        
         if n
           n_val = n.value
           #see if abbreviation or other non abo value
@@ -42,10 +42,12 @@ class LexProcessor
             
             #for now we skip if it is ibid or a straight line/passage reference
             next if n_val =~ /ibid|^\d+$/       
-            
             #if abbreviation find abo in Perseus list and modify the n_val
-            perseus_abbr_find(n_val)
-
+            success = perseus_abbr_find(n_val)
+            unless success
+              error_file << "Abbreviation #{n_val} not found in the Perseus abbreviation file\n\n"
+              next
+            end
           end
           
           #if abo, parse/figure out that
@@ -59,50 +61,57 @@ class LexProcessor
             unless n_part.empty?
               #catch if any papyri references
               if n_part =~ /pap/
-                debugger
+                
                 #check against the trismegistos db to find out the standard uri
                 #n_part in form like pap,BGU, need to also take into account the other part like 8:11
                 name_abbr = n_part.split(",")
                 #convert to lower case and insert spaces after periods
-                pap_name = name_abbr[1].gsub(".", ". ").downcase
+                pap_name = name_abbr[1].gsub(".", ". ").downcase.rstrip
                 pap_node = nil
                 #this is a pain in the ass
                 tm_page.search("tr").each do |tr|
-                  if tr.attribute("lo") && tr.attribute("lo") =~ /#{pap_name}/
+                  if tr.attribute("lo") && tr.attribute("lo").value =~ /#{pap_name}/
                     pap_node = tr
                     break
                   end
                 end
-
                 if pap_node 
                   href_val = pap_node.search("td/a")[0].attribute("onclick").value
                   #PAIN IN THE ASS
-                  publ_abbr = href_val.split(',')[0].split('"')[1]
-                  form = tm_page.form_with(:name => "FormName")
-                  form.field_with(:name=> 'publ_one').value = publ_abbr
+                  comma_split = href_val.split(',')
+                  if comma_split.length == 2
+                    publ_abbr = comma_split[0].split('"')[1]
+                  else
+                    comma_split.delete_at(comma_split.length - 1)
+                    publ_abbr = comma_split.join(',').split('"')[1]
+                  end
                   #getting volume and number info, only trying two cases, too much wrong/weird data to try much else
                   split_len = n_split.length
-                  num = nil
-                  vol = nil
+                  num = ""
+                  vol = ""
                   if split_len == 4
                     num = n_split[3]
                   elsif split_len == 5
                     vol = n_split[3]
                     num = n_split[4]
                   end
-                      
-                  form.field_with(:name => 'vol_one').value = vol if vol
-                  form.field_with(:name => 'nr_one').value = num if num 
-                  resutls = form.submit
-
-                  #look for results, if more than one, go with nothing, if nothing move on, else grab the tm number
-                  #www.trismegistos.org/text/#{tm_number}
                   
-
+                  results = agent.get("http://www.trismegistos.org/tm/list_texref.php?publ_one=#{publ_abbr}&vol_one=#{vol}&nr_one=#{num}&extra_one=&submit_lookup=Search&sort1_field=vol&sort2_field=nr")
+                  #look for results, if more than one, go with nothing, if nothing move on, else grab the tm number
+                  if agent.page.search('//div[@id="content"]/p')[1].inner_text =~ /Total number of records found\: 1Records/
+                    tm_full = results.body[/TM \d+/]
+                    tm_number = tm_full[/\d+/]
+                    uri = "http://www.trismegistos.org/text/#{tm_number}"
+                  else
+                    error_file << "Could not get results for #{n_part} from TM\n\n"                    
+                  end
 
                 end
-                puts "test"
+                #this would be where we replace the uri, for now, put it in the bibl_file
+                bibl_file << "Change #{n_part} to #{uri}\n\n"
+                puts "Change #{n_part} to #{uri}"
               else
+
                 #if not papyri, is tlg or phi (probably, need to double check this is true)
                 split_n = n_part.split(",")
                 stand_id = split_n[0]+split_n[1]+"."+split_n[0]+split_n[2]
@@ -114,14 +123,26 @@ class LexProcessor
                
                   expressions.each {|expr| urn = expr.cts_urn if expr.cts_urn =~ /perseus/}
                   #have to put the line/book references back onto the end of the urn, has some number of : to delineate
+                  if urn
+                    lines = n_split.drop(3)
+
+                    uri = urn + ":#{lines.join(':')}"
+                    bibl_file << "Change #{n_part} to #{uri}\n\n"
+                    puts "Change #{n_part} to #{uri}"
+                  else
+                    error_file << "No expression returned for #{stand_id}\n\n"
+                  end
+                else
+                  error_file << "Can not construct a standard id for #{n_part}\n\n"
                 end
               end
             else
               #if empty something is wrong, make a note in error file and move on
+              error_file << "Something is wrong for #{n_val}"
             end 
           else
             #still no abo, make a note in the error file and skip it
-
+            error_file << "Abbreviation #{n_val} not found in the Perseus abbreviation file\n\n"
             #if abbreviation, parse that
             #match against the perseus abbriviation file, pull the abo if we have it, parse the abo
             #take into account 'ib.' and just numbers (multiple instances of the word being referenced in the same work)
@@ -141,7 +162,7 @@ class LexProcessor
         #give the cts urn to the level that we can with the info provided, so at least an author if it is
         #a broad reference to say, how Homer uses this word throughout the works
         #must anticipate and handle random numbers that seem to have no associated info
-        bibl_file << "#{bib}\n"
+
       rescue Exception => e
         puts "Something went wrong! #{$!}" 
         error_file << "#{$!}\n#{e.backtrace}\n\n"
@@ -220,10 +241,15 @@ class LexProcessor
       end
     end
     if got_it
-      abo = got_it.match(/abo\:[a-z]+,[0-9]{4},[0-9]{3}/)[0]
-      n_val = "Perseus:#{abo}"
+      abo_match = got_it.match(/abo\:[a-z]+,[0-9]{4},[0-9]{3}/)
+      if abo_match[0]
+        n_val = "Perseus:#{abo_match[0]}"
+        return true
+      else
+        return false
+      end
     else
-      error_file << "abbreviation #{n_val} not found in the Perseus abbreviation file\n\n"
+      return false
     end
   end
 
