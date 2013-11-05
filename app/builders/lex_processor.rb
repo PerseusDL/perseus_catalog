@@ -21,9 +21,10 @@ class LexProcessor
   def lex_process(file)
     
     lex_xml = Nokogiri::XML(open(file))
-    bibl_file = File.open("#{ENV['HOME']}/lexica/LSJbibl#{Date.today}.txt", 'w')
-    error_file = File.open("#{ENV['HOME']}/lexica/bibl_errors#{Date.today}.txt", 'w')
-    uri = nil
+    lex_name = file[/lsj|ml|ls|lewis/]
+    bibl_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}#{Date.today}.txt", 'w')
+    error_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}bibl_errors#{Date.today}.txt", 'w')
+    
 
     #pull up the trismegistos db for finding papyri uris
     agent = Mechanize.new
@@ -33,17 +34,19 @@ class LexProcessor
     bibls = lex_xml.xpath('//bibl')
     bibls.each do |bib|
       begin
+        
+        uri = nil
         #at this point, want to identify the contents of the n attribute, if it exists
         n = bib.attribute("n")
         if n
           n_val = n.value
+
           #see if abbreviation or other non abo value
           unless n_val =~ /Perseus\:abo/   
-            
             #for now we skip if it is ibid or a straight line/passage reference
             next if n_val =~ /ibid|^\d+$/       
             #if abbreviation find abo in Perseus list and modify the n_val
-            success = perseus_abbr_find(n_val)
+            success, n_val = perseus_abbr_find(n_val)
             unless success
               error_file << "Abbreviation #{n_val} not found in the Perseus abbreviation file\n\n"
               next
@@ -51,13 +54,13 @@ class LexProcessor
           end
           
           #if abo, parse/figure out that
-          if n_val =~ /Perseus\:abo/
-            
-            #way too few abos in the db, should take apart to tlg/phi portion
+          if n_val =~ /Perseus\:abo/            
             n_split = n_val.split(':')
+            #save the line reference portion
+            lines = n_split.drop(3) 
+            #way too few abos in the db, should take apart to tlg/phi portion           
             n_part = n_split[2]
-            
-            
+                       
             unless n_part.empty?
               #catch if any papyri references
               if n_part =~ /pap/
@@ -114,18 +117,14 @@ class LexProcessor
 
                 #if not papyri, is tlg or phi (probably, need to double check this is true)
                 split_n = n_part.split(",")
-                stand_id = split_n[0]+split_n[1]+"."+split_n[0]+split_n[2]
-              
+                stand_id = split_n[0]+split_n[1]+"."+split_n[0]+split_n[2]              
               
                 urn = nil
                 if stand_id
-                  expressions = Expression.find(:all, :conditions => ["cts_urn rlike ? AND var_type = 'edition'", stand_id])
-               
+                  expressions = Expression.find(:all, :conditions => ["cts_urn rlike ? AND var_type = 'edition'", stand_id])              
                   expressions.each {|expr| urn = expr.cts_urn if expr.cts_urn =~ /perseus/}
                   #have to put the line/book references back onto the end of the urn, has some number of : to delineate
                   if urn
-                    lines = n_split.drop(3)
-
                     uri = urn + ":#{lines.join(':')}"
                     bibl_file << "Change #{n_part} to #{uri}\n\n"
                     puts "Change #{n_part} to #{uri}"
@@ -222,34 +221,36 @@ class LexProcessor
     else
       name = ""
     end
-
     return abbr_arr, name 
   end
 
 
   def perseus_abbr_find(n_val)
+    
     spl = n_val.split(" ")
     abbr = ""
     spl.each {|x| abbr << "#{x} " if x =~ /[a-zA-Z]+\./}
     abbr_list = File.open("#{ENV['HOME']}/lexica/abbreviations/perseus.abb",'r').read
     abbr_nice = abbr_list.split("\n")
     got_it = nil
-    abbr_nice. each do |line|
-      
+    abbr_nice.each do |line|      
       if line.include?(abbr.rstrip)
         got_it = line
+        break
       end
     end
     if got_it
       abo_match = got_it.match(/abo\:[a-z]+,[0-9]{4},[0-9]{3}/)
-      if abo_match[0]
-        n_val = "Perseus:#{abo_match[0]}"
-        return true
+      if abo_match && abo_match[0]
+        match = "Perseus:#{abo_match[0]}"
+        lines = spl.drop(2).join(':')
+        lines = lines.gsub('.', ":")
+        return true, match + ":#{lines}"
       else
-        return false
+        return false, n_val
       end
     else
-      return false
+      return false, n_val
     end
   end
 
