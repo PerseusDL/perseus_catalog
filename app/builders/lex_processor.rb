@@ -18,13 +18,24 @@ class LexProcessor
   require 'expression.rb'
   require 'expression_url.rb'
 
+  #FUTURE CONSIDERATIONS as of 11/5/13:
+    #1-Actually replace the current n values with the urns, leaving intact what we can't do yet
+    #2-Some bibl tags are wrong
+    #3-Need to handle both if they don't have a cts urn, currently just skip them
+    #4-Need to handle the inscriptions and papyri that don't currently match up
+    #5-Should try to parse not found abbreviations to full name (see scrape_abbr) then check against db to get urn
+    #6-If there is no n in the bibl, need to parse what info there is
+    #7-Take into account 'ib.' and just numbers (multiple instances of the word being referenced in the same work)
+    #8-Give the cts urn to the level that we can with the info provided, so at least an author if it is a broad reference to say, how Homer uses this word throughout the works
+    #9-Must anticipate and handle random numbers that seem to have no associated info
+
+
   def lex_process(file)
     
     lex_xml = Nokogiri::XML(open(file))
     lex_name = file[/lsj|ml|ls|lewis/]
     bibl_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}#{Date.today}.txt", 'w')
-    error_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}bibl_errors#{Date.today}.txt", 'w')
-    
+    error_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}bibl_errors#{Date.today}.txt", 'w')    
 
     #pull up the trismegistos db for finding papyri uris
     agent = Mechanize.new
@@ -48,7 +59,8 @@ class LexProcessor
             #if abbreviation find abo in Perseus list and modify the n_val
             success, n_val = perseus_abbr_find(n_val)
             unless success
-              error_file << "Abbreviation #{n_val} not found in the Perseus abbreviation file\n\n"
+              error_file << "Abbreviation #{n.value} not found in the Perseus abbreviation file\n\n"
+              #should try to go in here and parse the abbreviation (see scrape_abbr) to full name then check against db
               next
             end
           end
@@ -71,7 +83,7 @@ class LexProcessor
                 #convert to lower case and insert spaces after periods
                 pap_name = name_abbr[1].gsub(".", ". ").downcase.rstrip
                 pap_node = nil
-                #this is a pain in the ass
+                #this is a pain
                 tm_page.search("tr").each do |tr|
                   if tr.attribute("lo") && tr.attribute("lo").value =~ /#{pap_name}/
                     pap_node = tr
@@ -80,7 +92,7 @@ class LexProcessor
                 end
                 if pap_node 
                   href_val = pap_node.search("td/a")[0].attribute("onclick").value
-                  #PAIN IN THE ASS
+                  #A PAIN
                   comma_split = href_val.split(',')
                   if comma_split.length == 2
                     publ_abbr = comma_split[0].split('"')[1]
@@ -106,13 +118,13 @@ class LexProcessor
                     tm_number = tm_full[/\d+/]
                     uri = "http://www.trismegistos.org/text/#{tm_number}"
                   else
-                    error_file << "Could not get results for #{n_part} from TM\n\n"                    
+                    error_file << "Could not get results for #{n.value} from TM\n\n"                    
                   end
 
                 end
                 #this would be where we replace the uri, for now, put it in the bibl_file
-                bibl_file << "Change #{n_part} to #{uri}\n\n"
-                puts "Change #{n_part} to #{uri}"
+                bibl_file << "Change #{n.value} to #{uri}\n\n"
+                puts "Change #{n.value} to #{uri}"
               else
 
                 #if not papyri, is tlg or phi (probably, need to double check this is true)
@@ -127,40 +139,24 @@ class LexProcessor
                   if urn
                     uri = urn + ":#{lines.join(':')}"
                     bibl_file << "Change #{n_part} to #{uri}\n\n"
-                    puts "Change #{n_part} to #{uri}"
+                    puts "Change #{n.value} to #{uri}"
                   else
                     error_file << "No expression returned for #{stand_id}\n\n"
+                    #in this case just provide the work urn?
                   end
                 else
-                  error_file << "Can not construct a standard id for #{n_part}\n\n"
+                  error_file << "Can not construct a standard id for #{n.value}\n\n"
                 end
               end
             else
               #if empty something is wrong, make a note in error file and move on
-              error_file << "Something is wrong for #{n_val}"
+              error_file << "Something is wrong for #{n.value}"
             end 
           else
-            #still no abo, make a note in the error file and skip it
-            error_file << "Abbreviation #{n_val} not found in the Perseus abbreviation file\n\n"
-            #if abbreviation, parse that
-            #match against the perseus abbriviation file, pull the abo if we have it, parse the abo
-            #take into account 'ib.' and just numbers (multiple instances of the word being referenced in the same work)
-            #some will still not have abbr in the perseus file, need to check the appropriate outside file
-
+            #still no abo, make a note in the error file and skip it, shouldn't ever hit this
+            error_file << "Second check, abbreviation #{n.value} not found in the Perseus abbreviation file\n\n"
           end
-        
         end
-        
-        #if compilation of abbr. is needed http://latinlexicon.org/LNS_abbreviations.php for LS and LSJ lists its own
-        #also perseus list at http://www.perseus.tufts.edu/hopper/abbrevhelp, hopefully can get file for that
-        #need to handle both if they have a cts urn and if they don't
-        #need to handle the inscriptions and papyri
-        #also want to check the other info against itself and the db entry for that cts urn if it is there
-        #if there is no n, need to parse what info there is
-        #take into account 'ib.' and just numbers (multiple instances of the word being referenced in the same work)
-        #give the cts urn to the level that we can with the info provided, so at least an author if it is
-        #a broad reference to say, how Homer uses this word throughout the works
-        #must anticipate and handle random numbers that seem to have no associated info
 
       rescue Exception => e
         puts "Something went wrong! #{$!}" 
@@ -226,24 +222,41 @@ class LexProcessor
 
 
   def perseus_abbr_find(n_val)
-    
-    spl = n_val.split(" ")
+
+    spl = n_val.split(/\s/)
     abbr = ""
-    spl.each {|x| abbr << "#{x} " if x =~ /[a-zA-Z]+\./}
+    #if anything but the first cell is "p." need to skip it since it is for page number, should also remove the p from citation
+    spl.each do |x| 
+      if x != "p." && x != "prol."
+        abbr << "#{x} " if x =~ /[a-zA-Z]+\./
+      end
+    end
     abbr_list = File.open("#{ENV['HOME']}/lexica/abbreviations/perseus.abb",'r').read
     abbr_nice = abbr_list.split("\n")
     got_it = nil
     abbr_nice.each do |line|      
       if line.include?(abbr.rstrip)
         got_it = line
-        break
+        if got_it =~ /in #{abbr.rstrip}| [a-zA-Z]+\. #{abbr.rstrip}/
+          got_it = nil
+          next
+        else
+          break
+        end
       end
     end
     if got_it
       abo_match = got_it.match(/abo\:[a-z]+,[0-9]{4},[0-9]{3}/)
       if abo_match && abo_match[0]
         match = "Perseus:#{abo_match[0]}"
-        lines = spl.drop(2).join(':')
+        to_remove = spl.index('p.')
+        clean_spl = spl.delete(to_remove) if to_remove
+        if clean_spl.length == 2
+          #accounting for authors with no work name provided
+          lines = spl.drop(1).join(':')
+        else
+          lines = spl.drop(2).join(':')
+        end
         lines = lines.gsub('.', ":")
         return true, match + ":#{lines}"
       else
