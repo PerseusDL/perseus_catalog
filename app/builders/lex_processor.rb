@@ -19,9 +19,9 @@ class LexProcessor
   require 'expression_url.rb'
 
   #FUTURE CONSIDERATIONS as of 11/5/13:
-    #1-Actually replace the current n values with the urns, leaving intact what we can't do yet
+    #X1-Actually replace the current n values with the urns, leaving intact what we can't do yet
     #2-Some bibl tags are wrong
-    #3-Need to handle both if they don't have a cts urn, currently just skip them
+    #3-Need to handle both if they don't have a cts urn, currently just skip them, what happens with line citations with these? Acceptable to include?
     #4-Need to handle the inscriptions and papyri that don't currently match up
     #5-Should try to parse not found abbreviations to full name (see scrape_abbr) then check against db to get urn
     #6-If there is no n in the bibl, need to parse what info there is
@@ -125,6 +125,9 @@ class LexProcessor
                 #this would be where we replace the uri, for now, put it in the bibl_file
                 bibl_file << "Change #{n.value} to #{uri}\n\n"
                 puts "Change #{n.value} to #{uri}"
+                if uri
+                  bib.attribute('n').value = uri
+                end
               else
 
                 #if not papyri, is tlg or phi (probably, need to double check this is true)
@@ -140,6 +143,9 @@ class LexProcessor
                     uri = urn + ":#{lines.join(':')}"
                     bibl_file << "Change #{n_part} to #{uri}\n\n"
                     puts "Change #{n.value} to #{uri}"
+                    if uri
+                      bib.attribute('n').value = uri
+                    end
                   else
                     error_file << "No expression returned for #{stand_id}\n\n"
                     #in this case just provide the work urn?
@@ -165,6 +171,9 @@ class LexProcessor
     end
     bibl_file.close
     error_file.close
+    new_xml = File.open("#{ENV['HOME']}/lexica/#{lex_name}#{Date.today}.xml", 'w')
+    new_xml << lex_xml
+    new_xml.close
   end
 
 
