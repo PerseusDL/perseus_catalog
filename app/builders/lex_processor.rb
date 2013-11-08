@@ -17,6 +17,8 @@ class LexProcessor
   require 'work.rb'
   require 'expression.rb'
   require 'expression_url.rb'
+  require 'author.rb'
+  require 'work.rb'
 
   #FUTURE CONSIDERATIONS as of 11/5/13:
     #X1-Actually replace the current n values with the urns, leaving intact what we can't do yet
@@ -28,6 +30,9 @@ class LexProcessor
     #7-Take into account 'ib.' and just numbers (multiple instances of the word being referenced in the same work)
     #8-Give the cts urn to the level that we can with the info provided, so at least an author if it is a broad reference to say, how Homer uses this word throughout the works
     #9-Must anticipate and handle random numbers that seem to have no associated info
+    #X10-Search bible.abb file too to catch bible abbrs
+    #X11-Provide work level urns for ones that don't have a perseus edition
+    #X12- Cic. de Orat. creates an issue
 
 
   def lex_process(file)
@@ -45,7 +50,6 @@ class LexProcessor
     bibls = lex_xml.xpath('//bibl')
     bibls.each do |bib|
       begin
-        
         uri = nil
         #at this point, want to identify the contents of the n attribute, if it exists
         n = bib.attribute("n")
@@ -61,7 +65,9 @@ class LexProcessor
             unless success
               error_file << "Abbreviation #{n.value} not found in the Perseus abbreviation file\n\n"
               #should try to go in here and parse the abbreviation (see scrape_abbr) to full name then check against db
-              next
+              if lex_name =~ /ls|lewis/
+                uri = ls_abbr_find(n_val)
+              end
             end
           end
           
@@ -69,6 +75,7 @@ class LexProcessor
           if n_val =~ /Perseus\:abo/            
             n_split = n_val.split(':')
             #save the line reference portion
+
             lines = n_split.drop(3) 
             #way too few abos in the db, should take apart to tlg/phi portion           
             n_part = n_split[2]
@@ -116,17 +123,10 @@ class LexProcessor
                   if agent.page.search('//div[@id="content"]/p')[1].inner_text =~ /Total number of records found\: 1Records/
                     tm_full = results.body[/TM \d+/]
                     tm_number = tm_full[/\d+/]
-                    uri = "http://www.trismegistos.org/text/#{tm_number}"
+                    uri = "http://www.trismegistos.org/text/#{tm_number}"            
                   else
                     error_file << "Could not get results for #{n.value} from TM\n\n"                    
-                  end
-
-                end
-                #this would be where we replace the uri, for now, put it in the bibl_file
-                bibl_file << "Change #{n.value} to #{uri}\n\n"
-                puts "Change #{n.value} to #{uri}"
-                if uri
-                  bib.attribute('n').value = uri
+                  end                
                 end
               else
 
@@ -141,18 +141,20 @@ class LexProcessor
                   #have to put the line/book references back onto the end of the urn, has some number of : to delineate
                   if urn
                     uri = urn + ":#{lines.join(':')}"
-                    bibl_file << "Change #{n_part} to #{uri}\n\n"
-                    puts "Change #{n.value} to #{uri}"
-                    if uri
-                      bib.attribute('n').value = uri
-                    end
+                    
                   else
-                    error_file << "No expression returned for #{stand_id}\n\n"
-                    #in this case just provide the work urn?
+                    #in this case just construct the work urn
+                    lit_group = stand_id =~ /tlg/ ? "greekLit" : "latinLit"
+                    uri = "urn:cts:#{lit_group}:#{stand_id}:#{lines.join(':')}"                                       
                   end
                 else
                   error_file << "Can not construct a standard id for #{n.value}\n\n"
                 end
+              end
+              if uri
+                bibl_file << "Change #{n.value} to #{uri}\n\n"
+                puts "Change #{n.value} to #{uri}"
+                bib.attribute('n').value = uri
               end
             else
               #if empty something is wrong, make a note in error file and move on
@@ -168,6 +170,7 @@ class LexProcessor
         puts "Something went wrong! #{$!}" 
         error_file << "#{$!}\n#{e.backtrace}\n\n"
       end
+      
     end
     bibl_file.close
     error_file.close
@@ -234,22 +237,30 @@ class LexProcessor
 
     spl = n_val.split(/\s/)
     abbr = ""
-    #if anything but the first cell is "p." need to skip it since it is for page number, should also remove the p from citation
-    spl.each do |x| 
-      if x != "p." && x != "prol."
-        abbr << "#{x} " if x =~ /[a-zA-Z]+\./
-      end
-    end
-    abbr_list = File.open("#{ENV['HOME']}/lexica/abbreviations/perseus.abb",'r').read
+    #if anything but the first cell is "p." need to skip it since it is for page number
+    abbr = abbr_extract(spl)
+    abbr_list = File.read("#{ENV['HOME']}/lexica/abbreviations/perseus.abb")
+    bible_list = File.read("#{ENV['HOME']}/lexica/abbreviations/bible.abb")
     abbr_nice = abbr_list.split("\n")
+    bible_nice = bible_list.split("\n")
     got_it = nil
     abbr_nice.each do |line|      
       if line.include?(abbr.rstrip)
         got_it = line
-        if got_it =~ /in #{abbr.rstrip}| [a-zA-Z]+\. #{abbr.rstrip}/
+        if got_it =~ /in #{abbr.rstrip}|\s[a-zA-Z]+\. #{abbr.rstrip}/
           got_it = nil
           next
         else
+          break
+        end
+      end
+    end
+    unless got_it
+      #accounting for books like '1 Kings', '2 Corinthians', etc.
+      abbr = "#{spl[0]} #{abbr}" if spl[0] =~ /\d/
+      bible_nice.each do |line|
+        if line.include?(abbr.rstrip)
+          got_it = line
           break
         end
       end
@@ -258,9 +269,10 @@ class LexProcessor
       abo_match = got_it.match(/abo\:[a-z]+,[0-9]{4},[0-9]{3}/)
       if abo_match && abo_match[0]
         match = "Perseus:#{abo_match[0]}"
+        #removing any 'p.'s from citation
         to_remove = spl.index('p.')
-        clean_spl = spl.delete(to_remove) if to_remove
-        if clean_spl.length == 2
+        clean_spl = to_remove ? spl.delete(to_remove) : spl
+        if clean_spl && clean_spl.length == 2
           #accounting for authors with no work name provided
           lines = spl.drop(1).join(':')
         else
@@ -276,8 +288,58 @@ class LexProcessor
     end
   end
 
+  def abbr_extract(spl)
+    abbr = ""
+    spl.each do |x| 
+      if x != "p." && x != "prol."
+        abbr << "#{x} " if x =~ /^[a-zA-Z]+\.|^[a-zA-Z]+/
+      end
+    end
+    return abbr
+  end
 
   def ls_abbr_find(n_val)
+    unless File.exists?("#{ENV['HOME']}/lexica/ls_abbr.tsv")
+      scrape_abbr
+    end
+    ls_abbrs = File.read("#{ENV['HOME']}/lexica/ls_abbr.tsv")
+    abbr = abbr_extract(n_val.split(/\s/))
+    ls_arr = ls_abbrs.split("\n")
+
+    abbr.each do |a|
+      debugger
+      ls_arr = ls_arr.select {|line| line.split("\t")[0] =~ /#{a.rstrip}/ || line.split("\t")[2] =~ /#{a.rstrip}/} unless ls_arr.empty?
+    end
+    unless ls_arr.empty?
+      result = ls_arr[0].split("\t")
+      author_name = result[1]
+      auth_obj = Author.find(:all, :conditions => ["name rlike ? or alt_names rlike ?", author_name, author_name])
+      if auth_obj.length > 1
+        error_file << "Found multiple authors for #{n.value}, need to investigate this bibl"
+        next #will nexts work how I want them to?
+      end
+      work_title = result[3]
+      matching_arr = TgAuthWork.find(:all, :conditions => ["auth_id = ?", auth_obj[0].id]) unless auth_obj.empty?
+      
+      case 
+      when auth_obj.empty?
+        error_file << "Couldn't find a matching author for #{n.value}"
+        next
+      when matching_arr.length == 0
+        #found an author but no associated works, give the author urn
+        use_it = auth_obj[0]
+      when matching_arr.length == 1 && work_title == nil
+        use_it = Work.find_by_id(matching_arr[0].id).cts_urn
+      
+      end
+      if matching_arr.length == 1 && work_title == nil
+        use_it = Work.find_by_id(matching_arr[0].id).cts_urn
+      else
+        matching_arr.each do |taw|
+          w = Work.find_by_id(taw.id)
+        end
+      end
+    end
   end
 
 end
