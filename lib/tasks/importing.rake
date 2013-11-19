@@ -65,3 +65,10 @@ task :import_word_count => :environment do
     puts "Something went wrong #{$!}" 
   end
 end
+
+desc "import records in catalog_pending"
+task :catalog_pending_import => :environment do
+  cpi = CatalogPendingImporter.new
+  cpi.pending_mods_import
+end
+

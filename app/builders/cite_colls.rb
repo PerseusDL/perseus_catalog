@@ -19,10 +19,28 @@ module CiteColls
     return cite_url
   end
 
+
+
   def set_agent(a_alias = 'Mac Safari')
     @agent = Mechanize.new
     @agent.user_agent_alias= a_alias
     return @agent
+  end
+
+
+
+  def update_git_dir(dir_name)
+    start_time = Time.now
+    data_dir = "#{ENV['HOME']}/#{dir_name}"
+    unless File.directory?(data_dir)
+      `git clone https://github.com/PerseusDL/#{dir_name}.git $HOME/#{dir_name}`
+    end
+    
+    if File.mtime(data_dir) < start_time
+      puts "Pulling the latest files from the #{dir_name} GitHub directory"
+      `git --git-dir=#{data_dir}/.git --work-tree=#{data_dir} pull`
+    end
+
   end
 
 
@@ -49,19 +67,38 @@ module CiteColls
     key = "&key=AIzaSyBdwnszqWzCMQfDZvevtjVz-2bQTmwzxN0"
   end
 
-  def process_pending
-    pending_dir = "#{ENV['HOME']}/catalog_pending"
-    update_git_dir("catalog_pending")
-    #go through both mads and mods directories in catalog_pending
-    #need a chron job to update catalog_pending from github?
-    #what are we going to save the info in these as?
-    
-    #after the pull, iterate through files
-      #check if processed or have error tag, 
-        #if yes, skip
-        #else add file name to list
-    #return list of files, array?
 
+
+  def cite_tables_backup 
+    #backup the current cite tables and upload to github
+    #maintain number of backups at 5
+    update_git_dir("cite_collections")
+    cite_dir = "#{ENV['HOME']}/cite_collections"
+    cite_backups_dir = "#{cite_dir}/csv_backups"
+
+    #0authors table, 1textgroups, 2works, 3versions
+    table_keys = {"Authors" => "1JKDi1OHvxWoh1w38mnQfUDey2pB_nx3UnRITvcA", 
+                  "Textgroups" => "1I0Zkm1mAfydn6TfFEWH2h0D3boAd4q7zC-4vuUY", 
+                  "Works" => "1PQY6nVHZV8Ng42-qrbiLKXwDz9XoNlStKi3xKfU",
+                  "Versions" => "1STn9raQzWZDeIC4f_LHuLDUPPW3BDkpFfyKrKtw"
+                }
+    #grab the csv files of the tables
+    table_keys.each_pair do |name, key|
+      table_csv = @agent.get"https://www.google.com/fusiontables/exporttable?query=select+*+from+#{key}"
+      saved_file = File.new("#{cite_backups_dir}/Perseus#{name}Collection_#{Date.today}.csv", "w")
+      saved_file.close
+    end
+
+    #check that we only have the last 5 backups
+    file_list = Dir.entries(cite_backups_dir).map {|e| File.join(cite_backups_dir, e)}.select {|f| File.file? f}.sort_by {|f| File.mtime f}
+    if file_list.length >= 24
+      to_delete = file_list.first(4)
+      to_delete.each {|x| File.delete(x)}
+    end 
+
+    #push to git
+    `git --git-dir=#{cite_dir}/.git --work-tree=#{cite_dir} commit -a -m "csv backups for #{Date.today}"`
+    `git --git-dir=#{cite_dir}/.git --work-tree=#{cite_dir} push`
   end
 
 

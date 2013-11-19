@@ -13,22 +13,6 @@ class AtomBuild
   include CiteColls
 
 
- 
-  def update_git_dir(dir_name)
-    start_time = Time.now
-    data_dir = "#{ENV['HOME']}/#{dir_name}"
-    unless File.directory?(data_dir)
-      `git clone https://github.com/PerseusDL/#{dir_name}.git $HOME/#{dir_name}`
-    end
-    
-    #if File.mtime(data_dir) < start_time
-    #  puts "Pulling the latest files from the #{dir_name} GitHub directory"
-    #  `git --git-dir=#{data_dir}/.git --work-tree=#{data_dir} pull`
-    #end
-
-  end
-
-
   def build_feeds
     begin  
       st = Time.now
@@ -128,7 +112,7 @@ class AtomBuild
         #grab all mods files for the current work and iterate through
         work_mods_dir = "#{catalog_dir}/mods/#{@lit_type}/#{@tg_id}/#{@work_id}"
         if File.directory?(work_mods_dir)
-          entries_arr = Dir.entries("#{work_mods_dir}")
+          entries_arr = Dir.entries(work_mods_dir)
           entries_arr.each do |sub_dir|
             unless sub_dir == "." or sub_dir ==".." or sub_dir == ".DS_Store"
               

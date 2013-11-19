@@ -63,7 +63,7 @@ class LexProcessor
             #if abbreviation find abo in Perseus list and modify the n_val
             success, n_val = perseus_abbr_find(n_val)
             unless success
-              error_file << "Abbreviation #{n.value} not found in the Perseus abbreviation file\n\n"
+              error_file << "Abbreviation #{n.value} not found in the Perseus abbreviation file, checking work abbrs\n\n"
               #should try to go in here and parse the abbreviation (see scrape_abbr) to full name then check against db
               if lex_name =~ /ls|lewis/
                 uri = ls_abbr_find(n_val)
@@ -162,7 +162,13 @@ class LexProcessor
             end 
           else
             #still no abo, make a note in the error file and skip it, shouldn't ever hit this
-            error_file << "Second check, abbreviation #{n.value} not found in the Perseus abbreviation file\n\n"
+            if uri
+              bibl_file << "Change #{n.value} to #{uri}\n\n"
+              puts "Change #{n.value} to #{uri}"
+              bib.attribute('n').value = uri
+            else 
+              error_file << "Second check, abbreviation #{n.value} not found in any abbreviation file\n\n"
+            end
           end
         end
 
@@ -312,7 +318,7 @@ class LexProcessor
     end
     unless ls_arr.empty?
       result = ls_arr[0].split("\t")
-      author_name = result[1]
+      author_name = result[1].gsub("'","")
       auth_obj = Author.find(:all, :conditions => ["name rlike ? or alt_names rlike ?", author_name, author_name])
       if auth_obj.length > 1
         error_file << "Found multiple authors for #{n.value}, need to investigate this bibl"
@@ -328,15 +334,25 @@ class LexProcessor
       when matching_arr.length == 0
         #found an author but no associated works, give the author urn
         use_it = auth_obj[0]
+        return use_it
       when matching_arr.length == 1 && work_title == nil
-        use_it = Work.find_by_id(matching_arr[0].id).cts_urn
-      
-      end
-      if matching_arr.length == 1 && work_title == nil
-        use_it = Work.find_by_id(matching_arr[0].id).cts_urn
+        use_it = Work.find_by_id(matching_arr[0].work_id).standard_id
+        return use_it
       else
         matching_arr.each do |taw|
           w = Work.find_by_id(taw.id)
+          if w.title == work_title
+            use_it = w.cts_urn 
+            return use_it
+          end 
+        end
+        #if it gets here, a matching work title hasn't been found, return the textgroup urn
+        tg = Textgroup.find_by_id(matching_arr[0].tg_id)
+        if tg
+          use_it = tg.urn
+          return use_it
+        else
+          return nil
         end
       end
     end

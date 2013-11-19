@@ -18,3 +18,20 @@ task :build_atom_feed => :environment do
   #builder.process_pending
   #builder.process_works
 end
+
+
+#Lexicon processing rake tasks
+
+desc "Process a lexicon"
+task :process_lex => :environment do
+  file = ENV['lex_xml']
+  processor = LexProcessor.new
+
+  processor.lex_process(file)
+end
+
+desc "Screen scrape abbreviations"
+task :scrape_abbr => :environment do
+  processor = LexProcessor.new
+  processor.scrape_abbr
+end
