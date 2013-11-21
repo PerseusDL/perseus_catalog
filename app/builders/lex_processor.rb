@@ -40,7 +40,7 @@ class LexProcessor
     lex_xml = Nokogiri::XML(open(file))
     lex_name = file[/lsj|ml|ls|lewis/]
     bibl_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}#{Date.today}.txt", 'w')
-    error_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}bibl_errors#{Date.today}.txt", 'w')    
+    @error_file = File.open("#{ENV['HOME']}/lexica/#{lex_name}bibl_errors#{Date.today}.txt", 'w')    
 
     #pull up the trismegistos db for finding papyri uris
     agent = Mechanize.new
@@ -63,8 +63,7 @@ class LexProcessor
             #if abbreviation find abo in Perseus list and modify the n_val
             success, n_val = perseus_abbr_find(n_val)
             unless success
-              error_file << "Abbreviation #{n.value} not found in the Perseus abbreviation file, checking work abbrs\n\n"
-              #should try to go in here and parse the abbreviation (see scrape_abbr) to full name then check against db
+              #parse the abbreviation (see scrape_abbr) to full name then check against db
               if lex_name =~ /ls|lewis/
                 uri = ls_abbr_find(n_val)
               end
@@ -125,7 +124,7 @@ class LexProcessor
                     tm_number = tm_full[/\d+/]
                     uri = "http://www.trismegistos.org/text/#{tm_number}"            
                   else
-                    error_file << "Could not get results for #{n.value} from TM\n\n"                    
+                    @error_file << "Could not get results for #{n.value} from TM\n\n"                    
                   end                
                 end
               else
@@ -148,7 +147,7 @@ class LexProcessor
                     uri = "urn:cts:#{lit_group}:#{stand_id}:#{lines.join(':')}"                                       
                   end
                 else
-                  error_file << "Can not construct a standard id for #{n.value}\n\n"
+                  @error_file << "Can not construct a standard id for #{n.value}\n\n"
                 end
               end
               if uri
@@ -158,7 +157,7 @@ class LexProcessor
               end
             else
               #if empty something is wrong, make a note in error file and move on
-              error_file << "Something is wrong for #{n.value}"
+              @error_file << "Something is wrong for #{n.value}"
             end 
           else
             #still no abo, make a note in the error file and skip it, shouldn't ever hit this
@@ -167,19 +166,19 @@ class LexProcessor
               puts "Change #{n.value} to #{uri}"
               bib.attribute('n').value = uri
             else 
-              error_file << "Second check, abbreviation #{n.value} not found in any abbreviation file\n\n"
+              @error_file << "Second check, abbreviation #{n.value} not found in any abbreviation file\n\n"
             end
           end
         end
 
       rescue Exception => e
         puts "Something went wrong! #{$!}" 
-        error_file << "#{$!}\n#{e.backtrace}\n\n"
+        @error_file << "#{$!}\n#{e.backtrace}\n\n"
       end
       
     end
     bibl_file.close
-    error_file.close
+    @error_file.close
     new_xml = File.open("#{ENV['HOME']}/lexica/#{lex_name}#{Date.today}.xml", 'w')
     new_xml << lex_xml
     new_xml.close
@@ -304,16 +303,17 @@ class LexProcessor
     return abbr
   end
 
+
   def ls_abbr_find(n_val)
     unless File.exists?("#{ENV['HOME']}/lexica/ls_abbr.tsv")
       scrape_abbr
     end
     ls_abbrs = File.read("#{ENV['HOME']}/lexica/ls_abbr.tsv")
     abbr = abbr_extract(n_val.split(/\s/))
-    ls_arr = ls_abbrs.split("\n")
+    ls_arr = ls_abbrs.gsub("'","").split("\n")
 
-    abbr.each do |a|
-      debugger
+    #ls_arr = ls_arr.select {|line| line.split("\t")[0] =~ /#{abbr.rstrip}/ && line.split("\t")[2] =~ /#{abbr.rstrip}/}
+    abbr.split(/\s/).each do |a|
       ls_arr = ls_arr.select {|line| line.split("\t")[0] =~ /#{a.rstrip}/ || line.split("\t")[2] =~ /#{a.rstrip}/} unless ls_arr.empty?
     end
     unless ls_arr.empty?
@@ -321,16 +321,16 @@ class LexProcessor
       author_name = result[1].gsub("'","")
       auth_obj = Author.find(:all, :conditions => ["name rlike ? or alt_names rlike ?", author_name, author_name])
       if auth_obj.length > 1
-        error_file << "Found multiple authors for #{n.value}, need to investigate this bibl"
-        next #will nexts work how I want them to?
+        @error_file << "Found multiple authors for #{n_val}, need to investigate this bibl\n"
+        return nil
       end
       work_title = result[3]
       matching_arr = TgAuthWork.find(:all, :conditions => ["auth_id = ?", auth_obj[0].id]) unless auth_obj.empty?
       
       case 
       when auth_obj.empty?
-        error_file << "Couldn't find a matching author for #{n.value}"
-        next
+        @error_file << "Couldn't find a matching author for #{n_val}\n"
+        return nil
       when matching_arr.length == 0
         #found an author but no associated works, give the author urn
         use_it = auth_obj[0]
@@ -342,7 +342,7 @@ class LexProcessor
         matching_arr.each do |taw|
           w = Work.find_by_id(taw.id)
           if w.title == work_title
-            use_it = w.cts_urn 
+            use_it = w.standard_id 
             return use_it
           end 
         end

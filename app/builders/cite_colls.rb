@@ -102,27 +102,6 @@ module CiteColls
   end
 
 
-  def process_works
-
-    #using CITE works_collection
-    works_xml = find_works
-    #iterate through urn list
-    works_xml.each do |work_urn|
-
-        tg_id = work_urn[/urn:cts:(latinLit|greekLit):\D+\d{4}/]
-        #find out if textgroup is in textgroup_collection
-        
-        if find_textgroup(tg_id)
-
-          #look at list returned from process_pending, iterate through that, looking for mods files
-          find_mods(work_urn, tg_id)
-        end
-      
-    end
-
-  end
-
-
   def get_all_works
     puts "processing Works CITE collection"
     
@@ -141,6 +120,26 @@ module CiteColls
     works_list = result.search("reply").children
    
     return works_list
+  end
+
+
+  def find_work(work_urn)
+    begin
+      work_raw = multi_get("#{cite_base(true)}catwk&prop=work&work=#{work_urn}#{cite_key}")
+    rescue Mechanize::ResponseCodeError => e
+      if e.response_code =~ /500/
+        puts "500, retry in 1 second"
+        retry
+      end
+    end
+    
+    noko_work = work_raw.search("reply")
+    if noko_work.children.empty?
+      #work not found, row needs to be added
+      return nil
+    else
+      return noko_work
+    end
   end
 
 
