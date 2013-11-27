@@ -10,7 +10,8 @@ class CatalogController < ApplicationController
     config.default_solr_params = { 
       :qt => 'search',
       :q => '*',
-      :rows => 20
+      :rows => 20,
+      :facet => true
     }
 
     ## Default parameters to send on single-document requests to Solr. These settings are the Blackligt defaults (see SolrHelper#solr_doc_params) or 
