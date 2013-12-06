@@ -29,6 +29,8 @@ class CatalogPendingImporter
       #add mods namespace prefix to tags that need it
       #save in catalog_data with path based on the urn
 
+  #This should throw an error at the slightest issue so it gets looked at by a human and either the record is
+  #fixed or it is added by hand to the CITE tables
 
   def pending_mods_import
     multi_agents
@@ -36,12 +38,12 @@ class CatalogPendingImporter
     @error_report = File.open("#{ENV['HOME']}/catalog_pending/errors/error_log#{Date.today}.txt", 'w')
     pending_mads = "#{ENV['HOME']}/catalog_pending/mads"
     pending_mods = "#{ENV['HOME']}/catalog_pending/mods"
-    #update_git_dir("catalog_pending")
+    #update_git_dir("catalog_pending") UNCOMMENT THIS
 
-    #cite_tables_backup
+    #cite_tables_backup UNCOMMENT THIS
 
     #go through items in catalog_pending
-    #pending_mads_import(pending_mads)
+    #pending_mads_import(pending_mads) UNCOMMENT THIS
     mods_dirs = clean_dirs(pending_mods)
     mods_dirs.each do |name_dir|
           
@@ -60,6 +62,10 @@ class CatalogPendingImporter
           split_constituents(mods_xml, mods)
         else
           info_hash = find_basic_info(mods_xml, mods)
+          #have the info from the record and cite tables, now process it
+          #:a_name,:a_id,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
+          
+          
         end
       end
     end
@@ -87,79 +93,116 @@ class CatalogPendingImporter
     #a regex ugly enough that only its mother could love it, 
     #all to get a file name that I had earlier but cleverly turned into the path that I needed then...
     f_n = file_path[/(\/[a-zA-Z1-9\.\(\)]+)?\.xml/] 
-    id = find_rec_id(xml_record, file_path, f_n)
+    id, alt_ids = find_rec_id(xml_record, file_path, f_n)
     #for mads the w_id and a_id will be the same
     w_id = id =~ /tlg/ ? "urn:cts:greekLit:#{id}" : "urn:cts:latinLit:#{id}"
     a_id = w_id[/urn:cts:\w+:\w+\d+[a-z]*/]
     if id
       #search for and compare author values
       auth_name = find_rec_author(xml_record, file_path, f_n)
-      auth_nset = find_author(a_id)
-      if auth_nset.empty?
-        #double check that we don't have a name that matches the author name
-        #no row for this author, add a row here and in tgs
-      else
-        #find name returned from cite tables, compare to name from record
-        #if they aren't equal, throw an error
-      end
-      tg_nset = find_textgroup(a_id)
-      unless tg_nset
-        #double check that we don't have a name that matches the author name
-        #no row for this textgroup, add a row
-      end
+      auth_nset = find_author(a_id)      
+      tg_nset = find_textgroup(a_id)   
+      
+      info_hash = { :file_name => f_n,
+                    :a_name => auth_name,
+                    :a_id => a_id,
+                    :cite_auth => auth_nset,
+                    :cite_tg => tg_nset}
+
       if f_n =~ /mods/
-        mods_xml.search("mods/titleInfo/title") #take uniform if it exists
-
-        #mods_xml.search("mods/language/languageTerm")
-      
-      
-      
-      
-      
-        work_nset = find_work(w_id)
-        if work_nset.empty?
-          #no row for this work, add a row
+        work_title = nil
+        xml_record.search("mods/titleInfo").each do |title_node|
+          #take uniform if it exists
+          type = title_node.attribute("type")
+          if type && type.value == "uniform"
+            work_title = title_node.search("title").inner_text
+          end
+          unless work_title && type
+            work_title = title_node.search("title").inner_text
+          end
+          unless work_title
+            work_title = title_node.search("title").inner_text
+          end
         end
-    end
 
+        work_nset = find_work(w_id)
+       
+        orig_lang = xml_record.search("mods/language/languageTerm")
+        info_hash.merge!(:w_title => work_title,
+                      :w_id => w_id,
+                      :cite_work => work_nset,
+                      :w_lang => orig_lang)
+      else
+        #need alt ids and related works
+        alts = xml_record.search()
+        #alt ids, grab all ids, each do clean_id, find the a_id, strip it out, remove any "none"
+        #related works, easy, find <mads:description>List of related work identifiers and grab siblings
 
-    #return hash of values
+      end
+      
+      return info_hash       
     end
   end
+
+  def add_to_cite_tables(info_hash, mads) #mads is a bool
+    #need to know if mods or mads
+    keys = table_keys
+    auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
+    tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
+    work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
+
+    if info_hash[:cite_auth].empty?
+
+      #double check that we don't have a name that matches the author name
+      #no row for this author, add a row 
+      debugger
+      urn = generate_urn(keys[:Authors], "author")
+      if mads
+        frst_let = info_hash[:a_name][0,1]
+        mads_path = "#{ENV['HOME']}/catalog_data/mads/PrimaryAuthors/#{frst_let}/#{info_hash[:a_name]}/#{info_hash[:file_name]}"
+        values = "#{urn}, #{info_hash[:a_name]}, #{info_hash[:a_id]}, #{mads_path}, "
+      end
+      add_cite_row(keys[:Authors], auth_col)
+    else
+      #find name returned from cite tables, compare to name from record
+      #if they aren't equal, throw an error, 
+      #else move on if all info filled out if mods, double check can't add more info for mads
+    end
+
+    if info_hash[:cite_tg].empty?
+      #double check that we don't have a name that matches the author name
+      #no row for this textgroup, add a row
+      #
+    end
+
+    if info_hash[:work_nset].empty?
+      #no row for this work, add a row
+    end
+  end
+
+
 
   def find_rec_id(xml_record, file_path, f_n)
     begin
       ids = f_n =~ /mads/ ? xml_record.search("/mads:mads/mads:identifier") : xml_record.search("mods/identifier")
-      id = nil
+      found_id = nil
+      alt_ids = []
       #parsing found ids, take tlg or phi over stoa unless there is an empty string or "none"
       ids.each do |node|
-        if node.attribute('type')
-          val = node.attribute('type').value
-          if val == "tlg" || val == "phi" || val =~ /stoa/ #might need to expand this for LCCN, VIAF, etc. if we start using them
-            id = node.inner_text unless node.inner_text == "none" || node.inner_text == ""
-            if id
-              #stoas only need the - removed
-              if id =~/(stoa\d+[a-z]*-|stoa\d+[a-z]*)/
-                id = id.gsub('-', '.') 
-                break
-              end
-              #I hate that the ids aren't padded with 0s...            
-              id_step = id.split(".").each_with_index {|x, i| i == 0 ? sprintf("%04d", x) : sprintf("%03d", x)}
-              #add in tlgs or phis
-              id = id_step.map {|x| "#{val}#{x}"}.to_s
-              break 
-            end
-          end
+        id = clean_id(node)
+        alt_ids << id
+        if id =~ /tlg|phi|stoa/ #might need to expand this for LCCN, VIAF, etc. if we start using them
+          found_id = id 
         end
       end
       #if no id found throw an error   
-      unless id    
+      unless found_id    
         message = "For file #{f_n} : Could not find a suitable id, please check 
         that there is a tlg, phi, or stoa id or that, if a mads, the mads namespace is present."
         error_handler(message, file_path, f_n)
         return
       else
-        return id
+        return found_id, alt_ids
       end
     rescue 
       message = "For file #{f_n} : There was an error while trying to find an id, error message was #{$!}."
@@ -176,7 +219,7 @@ class CatalogPendingImporter
         n = [] 
         unless name_ns.empty?
           name_ns.each {|x| n << x.inner_text}
-          a_name = n.join(", ")
+          a_name = n.join(" ")
         else
           message = "For file #{f_n} : Could not find an authority name, please check the record."
           error_handler(message, file_path, f_n)
@@ -191,7 +234,7 @@ class CatalogPendingImporter
             if node.search("role/roleTerm").inner_text == "creator"
               n = []
               node.search("namePart").each {|x| n << x.inner_text}
-              names << n.join(", ")             
+              names << n.join(" ")             
             end
           end
           if names.empty?
@@ -220,6 +263,24 @@ class CatalogPendingImporter
     dirs_arr = Dir.entries(dir).map {|e| File.join(dir, e)}.select{|f| f unless f =~ /\.$/ || f =~ /\.\.$/ || f =~ /DS_Store/}
   end
 
+  def clean_id(node)
+    if node.attribute('type')
+      val = node.attribute('type').value
+      if val
+        id = node.inner_text unless node.inner_text == "none" || node.inner_text == ""
+        #stoas only need the - removed
+        if id =~/(stoa\d+[a-z]*-|stoa\d+[a-z]*)/
+          id = id.gsub('-', '.')      
+        else
+          #I hate that the ids aren't padded with 0s...            
+          id_step = id.split(".").each_with_index {|x, i| i == 0 ? sprintf("%04d", x) : sprintf("%03d", x)}
+          #add in tlgs or phis
+          id = id_step.map {|x| "#{val}#{x}"}.to_s
+        end
+        return id
+      end
+    end
+  end
 
   def error_handler(message, file_path, f_n)
     #move all files with errors to the error directory for human review
