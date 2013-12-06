@@ -43,7 +43,7 @@ class CatalogPendingImporter
     #cite_tables_backup UNCOMMENT THIS
 
     #go through items in catalog_pending
-    #pending_mads_import(pending_mads) UNCOMMENT THIS
+    pending_mads_import(pending_mads)# UNCOMMENT THIS
     mods_dirs = clean_dirs(pending_mods)
     mods_dirs.each do |name_dir|
           
@@ -63,8 +63,8 @@ class CatalogPendingImporter
         else
           info_hash = find_basic_info(mods_xml, mods)
           #have the info from the record and cite tables, now process it
-          #:a_name,:a_id,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
-          
+          #:file_name,:canon_id,:a_name,:a_id,:alt_ids,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
+          add_to_cite_tables(info_hash, false)
           
         end
       end
@@ -82,11 +82,12 @@ class CatalogPendingImporter
       mads_string = File.read(mads)
       mads_xml = Nokogiri::XML::Document.parse(mads_string, &:noblanks)
       info_hash = find_basic_info(mads_xml, mads)
+      add_to_cite_tables(info_hash, true)
     end
   end
 
   def split_constituents(mods_xml, file_path)
-
+    #need to create a new mods file for each constituent item
   end
 
   def find_basic_info(xml_record, file_path)
@@ -97,6 +98,7 @@ class CatalogPendingImporter
     #for mads the w_id and a_id will be the same
     w_id = id =~ /tlg/ ? "urn:cts:greekLit:#{id}" : "urn:cts:latinLit:#{id}"
     a_id = w_id[/urn:cts:\w+:\w+\d+[a-z]*/]
+    canon_id = a_id[/\w+\d+[a-z]*$/]
     if id
       #search for and compare author values
       auth_name = find_rec_author(xml_record, file_path, f_n)
@@ -104,8 +106,10 @@ class CatalogPendingImporter
       tg_nset = find_textgroup(a_id)   
       
       info_hash = { :file_name => f_n,
+                    :canon_id => canon_id,
                     :a_name => auth_name,
                     :a_id => a_id,
+                    :alt_ids => alt_ids,
                     :cite_auth => auth_nset,
                     :cite_tg => tg_nset}
 
@@ -133,50 +137,73 @@ class CatalogPendingImporter
                       :cite_work => work_nset,
                       :w_lang => orig_lang)
       else
-        #need alt ids and related works
-        alts = xml_record.search()
-        #alt ids, grab all ids, each do clean_id, find the a_id, strip it out, remove any "none"
         #related works, easy, find <mads:description>List of related work identifiers and grab siblings
-
+        extensions = xml_record.search("/mads:mads/mads:extension/mads:description")
+        extensions.each do |ex|
+          if ex.inner_text == "List of related work identifiers"
+            related_works = []
+            ex.parent.children.each {|x| related_works << clean_id(x) if x.name == "identifier"}
+            info_hash.merge!(:related_works => related_works)
+            break
+          end
+        end
       end
       
       return info_hash       
     end
   end
 
-  def add_to_cite_tables(info_hash, mads) #mads is a bool
-    #need to know if mods or mads
-    keys = table_keys
-    auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
-    tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
-    work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
+  def add_to_cite_tables(info_hash, mads) #mads is a bool, need to know if mods or mads
+    begin
+      keys = table_keys
+      auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
+      tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
+      work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
 
-    if info_hash[:cite_auth].empty?
+      if info_hash[:cite_auth].empty?
 
-      #double check that we don't have a name that matches the author name
-      #no row for this author, add a row 
-      debugger
-      urn = generate_urn(keys[:Authors], "author")
-      if mads
-        frst_let = info_hash[:a_name][0,1]
-        mads_path = "#{ENV['HOME']}/catalog_data/mads/PrimaryAuthors/#{frst_let}/#{info_hash[:a_name]}/#{info_hash[:file_name]}"
-        values = "#{urn}, #{info_hash[:a_name]}, #{info_hash[:a_id]}, #{mads_path}, "
+        #double check that we don't have a name that matches the author name
+        #no row for this author, add a row 
+        debugger        
+        if mads
+          #only creates rows in the authors table for mads files, so authors acts as an index of our mads, 
+          #tgs can cover everyone mentioned in mods files
+          a_urn = generate_urn(keys[:Authors], "author")
+          frst_let = info_hash[:a_name][0,1]
+          mads_path = "#{ENV['HOME']}/catalog_data/mads/PrimaryAuthors/#{frst_let}/#{info_hash[:a_name]}/#{info_hash[:file_name]}"
+          a_values = "#{a_urn}, #{info_hash[:a_name]}, #{info_hash[:canon_id]}, #{mads_path}, 
+                    #{info_hash[:alt_ids]}, #{info_hash[:related_works]}, published, auto_importer, "
+          add_cite_row(keys[:Authors], auth_col, a_values)
+        end
+        
+      else
+        #find name returned from cite tables, compare to name from record
+        #if they aren't equal, throw an error
+        auth_node = info_hash[:cite_auth]
+        cite_name = auth_node.children.xpath("cite:citeProperty[@label='Authority Name']").inner_text
+        unless cite_name == info_hash[:a_name]
+          message = "For file #{info_hash[:file_name]}: The name save in the CITE table doesn't match the name in the file, please check."
+          error_handler(message, file_path, f_n)
+          return
+        end
       end
-      add_cite_row(keys[:Authors], auth_col)
-    else
-      #find name returned from cite tables, compare to name from record
-      #if they aren't equal, throw an error, 
-      #else move on if all info filled out if mods, double check can't add more info for mads
-    end
 
-    if info_hash[:cite_tg].empty?
-      #double check that we don't have a name that matches the author name
-      #no row for this textgroup, add a row
-      #
-    end
+      if info_hash[:cite_tg].empty?
+        #do we need a name check?
+        #no row for this textgroup, add a row
+        t_urn = generate_urn(keys[:Textgroups], "textgroup")
+        t_values = "#{t_urn}, #{info_hash[:a_id]}, #{info_hash[:a_name]}, #{info_hash[:cite_auth].empty?}, true, , published, auto_importer, "
+        add_cite_row(keys[:Textgroups], tg_col, t_values)  
+      else
+        #if mads, check if mads is marked true, update to true if false
+        tg_node = info_hash[:cite_tg]
+      end
 
-    if info_hash[:work_nset].empty?
-      #no row for this work, add a row
+      if info_hash[:work_nset].empty?
+        #no row for this work, add a row
+      end
+    rescue
+
     end
   end
 
@@ -202,6 +229,7 @@ class CatalogPendingImporter
         error_handler(message, file_path, f_n)
         return
       else
+        alt_ids.delete(found_id)
         return found_id, alt_ids
       end
     rescue 
@@ -272,10 +300,15 @@ class CatalogPendingImporter
         if id =~/(stoa\d+[a-z]*-|stoa\d+[a-z]*)/
           id = id.gsub('-', '.')      
         else
-          #I hate that the ids aren't padded with 0s...            
-          id_step = id.split(".").each_with_index {|x, i| i == 0 ? sprintf("%04d", x) : sprintf("%03d", x)}
-          #add in tlgs or phis
-          id = id_step.map {|x| "#{val}#{x}"}.to_s
+          if id =~ /tlg|phi/
+            #I hate that the ids aren't padded with 0s...            
+            id_step = id.split(".").each_with_index {|x, i| i == 0 ? sprintf("%04d", x) : sprintf("%03d", x)}
+            #add in tlgs or phis
+            id = id_step.map {|x| "#{val}#{x}"}.join(".")
+          else
+            id = "VIAF" + id[/\d+$/] if id =~ /viaf/
+            id = "LCCN " + id[/n\s+\d+/] if id =~ /n\s+\d+/
+          end
         end
         return id
       end
@@ -287,10 +320,6 @@ class CatalogPendingImporter
     puts message
     @error_report << "#{message}\n\n"
     `mv "#{file_path}" "#{ENV['HOME']}/catalog_pending/errors#{f_n}"`
-  end
-
-  def add_row #put in cite_colls?
-
   end
 
 end
