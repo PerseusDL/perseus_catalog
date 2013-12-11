@@ -32,9 +32,10 @@ class CatalogPendingImporter
   #This should throw an error at the slightest issue so it gets looked at by a human and either the record is
   #fixed or it is added by hand to the CITE tables
 
-  def pending_mods_import
-    multi_agents
+  def pending_mods_import(g_add, g_pass)
+    set_agent
     cite_key
+    fusion_auth(g_add, g_pass)
     @error_report = File.open("#{ENV['HOME']}/catalog_pending/errors/error_log#{Date.today}.txt", 'w')
     pending_mads = "#{ENV['HOME']}/catalog_pending/mads"
     pending_mods = "#{ENV['HOME']}/catalog_pending/mods"
@@ -227,7 +228,7 @@ class CatalogPendingImporter
   def add_to_vers_table()
     begin
       vers_col = "urn, version, label_eng, desc_eng, type, has_mods, urn_status, redirect_to, member_of, created_by, edited_by"
-      
+
     rescue
 
     end

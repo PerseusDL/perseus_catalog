@@ -20,7 +20,6 @@ module CiteColls
   end
 
 
-
   def set_agent(a_alias = 'Mac Safari')
     @agent = Mechanize.new
     @agent.user_agent_alias= a_alias
@@ -62,6 +61,21 @@ module CiteColls
     return page
   end
 
+  def fusion_auth(g_add, g_pass)
+    auth_params = {:scope => 'https://www.googleapis.com/auth/fusiontables https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+                   :redirect_uri => "urn:ietf:wg:oauth:2.0:oob",
+                   :response_type => "code",
+                   :client_id => "202250365961-ldkq8o52k14md5uteca7qr41lopet8ge.apps.googleusercontent.com"
+                 }
+    
+    response = @agent.get("https://accounts.google.com/o/oauth2/auth", auth_params)
+    auth_form = response.form
+    auth_form.field_with(:type => "email").value = g_add
+    auth_form.field_with(:type => "password").value = g_pass
+    debugger
+    approve_page = auth_form.submit
+    result = approve_page.form.submit
+  end
 
   def cite_key
     key = "&key=AIzaSyDo63Clfa5Z9Mf1rw1uKdA-mNVADg49Oic"
