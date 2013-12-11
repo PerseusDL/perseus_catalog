@@ -65,6 +65,7 @@ class CatalogPendingImporter
           #have the info from the record and cite tables, now process it
           #:file_name,:canon_id,:a_name,:a_id,:alt_ids,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
           add_to_cite_tables(info_hash, false)
+          #after all done, need to rename the file (if needed) and copy over to the appropriate directory in catalog_data
           
         end
       end
@@ -156,7 +157,7 @@ class CatalogPendingImporter
   def add_to_cite_tables(info_hash, mads) #mads is a bool, need to know if mods or mads
     begin
       keys = table_keys
-      auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
+      auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by"
       tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
       work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
 
@@ -170,9 +171,9 @@ class CatalogPendingImporter
           #tgs can cover everyone mentioned in mods files
           a_urn = generate_urn(keys[:Authors], "author")
           frst_let = info_hash[:a_name][0,1]
-          mads_path = "#{ENV['HOME']}/catalog_data/mads/PrimaryAuthors/#{frst_let}/#{info_hash[:a_name]}/#{info_hash[:file_name]}"
-          a_values = "#{a_urn}, #{info_hash[:a_name]}, #{info_hash[:canon_id]}, #{mads_path}, 
-                    #{info_hash[:alt_ids]}, #{info_hash[:related_works]}, published, auto_importer, "
+          mads_path = "PrimaryAuthors/#{frst_let}/#{info_hash[:a_name]}#{info_hash[:file_name]}"
+          #commas in values like the names will cause issues, need to fix
+          a_values = "'#{a_urn}', '#{info_hash[:a_name]}', '#{info_hash[:canon_id]}', '#{mads_path}', '#{info_hash[:alt_ids]}', '#{info_hash[:related_works]}', 'published', 'auto_importer'"
           add_cite_row(keys[:Authors], auth_col, a_values)
         end
         
@@ -192,22 +193,45 @@ class CatalogPendingImporter
         #do we need a name check?
         #no row for this textgroup, add a row
         t_urn = generate_urn(keys[:Textgroups], "textgroup")
-        t_values = "#{t_urn}, #{info_hash[:a_id]}, #{info_hash[:a_name]}, #{info_hash[:cite_auth].empty?}, true, , published, auto_importer, "
+        t_values = "#{t_urn}, #{info_hash[:a_id]}, '#{info_hash[:a_name]}', '#{info_hash[:cite_auth].empty?}', true, , published, auto_importer, "
         add_cite_row(keys[:Textgroups], tg_col, t_values)  
       else
         #if mads, check if mads is marked true, update to true if false
-        tg_node = info_hash[:cite_tg]
+        if mads
+          tg_node = info_hash[:cite_tg]
+          mads_stat = tg_node.children.xpath("cite:citeProperty[@label='Has MADs file?']").inner_text
+          mads_urn = tg_node.children.xpath("cite:citeObject[@name='urn']").value
+          if mads_stat == false
+            row_id = get_row_id(keys[:Authors], mads_urn)
+            update_cite_row(keys[:Authors], ["has_mads = true"], row_id)
+          end
+        end
+      end
+      unless mads
+        if info_hash[:cite_work].empty?
+          #no row for this work, add a row
+          w_urn = generate_urn(keys[:Works], "work")
+          w_values = "#{w_urn}, #{info_hash[:w_title]}, , published, auto_importer, "
+          add_cite_row(keys[:Works], work_col, w_values)
+        end
+        #add to versions table
+        add_to_vers_table()
       end
 
-      if info_hash[:work_nset].empty?
-        #no row for this work, add a row
-      end
     rescue
 
     end
   end
 
 
+  def add_to_vers_table()
+    begin
+      vers_col = "urn, version, label_eng, desc_eng, type, has_mods, urn_status, redirect_to, member_of, created_by, edited_by"
+      
+    rescue
+
+    end
+  end
 
   def find_rec_id(xml_record, file_path, f_n)
     begin

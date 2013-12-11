@@ -225,17 +225,27 @@ module CiteColls
 
 
   def add_cite_row(table_key, columns, values)
-    query = "INSERT INTO #{table_key} (#{columns}) VALUES ('#{values}')"
-    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query", "sql" => query)
-
+    query = "INSERT INTO #{table_key} (#{columns}) VALUES (#{values})"
+    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}#{cite_key}")
+    @agent.post("https://www.googleapis.com/fusiontables/v1/query", {"sql" => 'query', "key" => "AIzaSyDo63Clfa5Z9Mf1rw1uKdA-mNVADg49Oic"})
   end
 
+  def update_cite_row(table_key, col_val_pairs, row_id)
+    query = "UPDATE #{table_key} SET #{col_val_pairs.join(', ')} WHERE ROWID = #{row_id}"
+    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}#{cite_key}")
+  end
 
   def generate_urn(table_key, code)
     query = "SELECT COUNT() FROM #{table_key}"
     response = @agent.get("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&alt=csv#{cite_key}")
     count = response.body.split("\n")[1].to_i + 1
     new_urn = "urn:cite:perseus:#{code}.#{count.to_s}.1"
+  end
+
+  def get_row_id(table_key, urn)
+    query ="SELECT ROWID FROM #{table_key} WHERE urn = '#{urn}'"
+    response = @agent.get("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&alt=csv#{cite_key}")
+    row_id = response.body.split("\n")[1]
   end
 
   def find_mods(work, textgroup)
