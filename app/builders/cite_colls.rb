@@ -10,6 +10,7 @@
 module CiteColls
   require 'nokogiri'
   require 'mechanize'
+  require 'watir-webdriver'
 
   def cite_base(search = false)
     cite_url = "http://sosol.perseus.tufts.edu/testcoll/"
@@ -62,19 +63,20 @@ module CiteColls
   end
 
   def fusion_auth(g_add, g_pass)
-    auth_params = {:scope => 'https://www.googleapis.com/auth/fusiontables https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-                   :redirect_uri => "urn:ietf:wg:oauth:2.0:oob",
-                   :response_type => "code",
-                   :client_id => "202250365961-ldkq8o52k14md5uteca7qr41lopet8ge.apps.googleusercontent.com"
-                 }
+    url = "https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/fusiontables&redirect_uri=http://localhost&response_type=code&client_id=202250365961-ldkq8o52k14md5uteca7qr41lopet8ge.apps.googleusercontent.com&access_type=offline"
+    byebug
+    browser = Watir::Browser.new
+    browser.goto(url)
+    browser.text_field(:type => "email").value = g_add
+    browser.text_field(:type => "password").value = g_pass
+    sleep(2) #give the webpage a chance to load before trying to click the button
+    browser.button(:name =>'signIn').click
+    browser.button(:id =>'submit_approve_access').click
+    returned_url = browser.url
+    browser.close
     
-    response = @agent.get("https://accounts.google.com/o/oauth2/auth", auth_params)
-    auth_form = response.form
-    auth_form.field_with(:type => "email").value = g_add
-    auth_form.field_with(:type => "password").value = g_pass
-    debugger
-    approve_page = auth_form.submit
-    result = approve_page.form.submit
+    raw_code = returned_url[/code=.+/]
+    @auth_code = raw_code.gsub("code=", "")
   end
 
   def cite_key
