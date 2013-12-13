@@ -33,7 +33,7 @@ class CatalogPendingImporter
   #fixed or it is added by hand to the CITE tables
 
   def pending_mods_import(g_add, g_pass)
-    set_agent
+    multi_agents
     cite_key
     fusion_auth(g_add, g_pass)
     @error_report = File.open("#{ENV['HOME']}/catalog_pending/errors/error_log#{Date.today}.txt", 'w')
@@ -165,8 +165,7 @@ class CatalogPendingImporter
       if info_hash[:cite_auth].empty?
 
         #double check that we don't have a name that matches the author name
-        #no row for this author, add a row 
-        debugger        
+        #no row for this author, add a row       
         if mads
           #only creates rows in the authors table for mads files, so authors acts as an index of our mads, 
           #tgs can cover everyone mentioned in mods files

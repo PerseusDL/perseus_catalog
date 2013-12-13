@@ -63,20 +63,45 @@ module CiteColls
   end
 
   def fusion_auth(g_add, g_pass)
-    url = "https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/fusiontables&redirect_uri=http://localhost&response_type=code&client_id=202250365961-ldkq8o52k14md5uteca7qr41lopet8ge.apps.googleusercontent.com&access_type=offline"
-    byebug
+    #if anyone else implements this:
+    #for this to work, need to update oauth_info.txt.sample with proper credentials as supplied
+    #by the Google Cloud Console (https://cloud.google.com), Registered Apps 
+    
+    oauth_cred = File.read("#{ENV['HOME']}/perseus_catalog/config/oauth_info.txt").split("\n")
+    client_id = oauth_cred[0].split(',')[1].strip
+    client_secret = oauth_cred[1].split(',')[1].strip
+    url = "https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/fusiontables&redirect_uri=http://localhost&response_type=code&client_id=#{client_id}&access_type=offline"
+    
     browser = Watir::Browser.new
     browser.goto(url)
     browser.text_field(:type => "email").value = g_add
-    browser.text_field(:type => "password").value = g_pass
-    sleep(2) #give the webpage a chance to load before trying to click the button
+    browser.text_field(:type => "password").value = g_pass   
     browser.button(:name =>'signIn').click
+    sleep(5) #give the webpage a chance to load before trying to click the button
     browser.button(:id =>'submit_approve_access').click
     returned_url = browser.url
     browser.close
     
     raw_code = returned_url[/code=.+/]
     @auth_code = raw_code.gsub("code=", "")
+
+    data = {
+      :code => @auth_code,
+      :client_id => client_id,
+      :client_secret => client_secret,
+      :redirect_uri => "http://localhost",
+      :grant_type => 'authorization_code'
+    }
+
+    request = @agent.post("https://accounts.google.com/o/oauth2/token", data)
+    r_arr = request.body.split("\n")
+    #[1] is access_token, [4] is refresh
+    @access_token = clean_google_response(r_arr[1])
+    @refresh_token = clean_google_response(r_arr[4])
+  end
+
+  def clean_google_response(s)
+    s_new = s.gsub('"', '').gsub(',' '').split(':')[1].strip
   end
 
   def cite_key
@@ -241,14 +266,14 @@ module CiteColls
 
 
   def add_cite_row(table_key, columns, values)
+    byebug
     query = "INSERT INTO #{table_key} (#{columns}) VALUES (#{values})"
-    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}#{cite_key}")
-    @agent.post("https://www.googleapis.com/fusiontables/v1/query", {"sql" => 'query', "key" => "AIzaSyDo63Clfa5Z9Mf1rw1uKdA-mNVADg49Oic"})
+    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&access_token=#{@access_token}")
   end
 
   def update_cite_row(table_key, col_val_pairs, row_id)
     query = "UPDATE #{table_key} SET #{col_val_pairs.join(', ')} WHERE ROWID = #{row_id}"
-    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}#{cite_key}")
+    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&access_token=#{@access_token}")
   end
 
   def generate_urn(table_key, code)

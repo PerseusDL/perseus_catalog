@@ -16,3 +16,6 @@
 
 #Ignore database.yml
 /config/database.yml
+
+#Oauth info
+/config/oauth_info.txt
