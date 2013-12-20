@@ -32,10 +32,10 @@ class CatalogPendingImporter
   #This should throw an error at the slightest issue so it gets looked at by a human and either the record is
   #fixed or it is added by hand to the CITE tables
 
-  def pending_mods_import(g_add, g_pass)
+  def pending_mods_import
     multi_agents
     cite_key
-    fusion_auth(g_add, g_pass)
+    fusion_auth
     @error_report = File.open("#{ENV['HOME']}/catalog_pending/errors/error_log#{Date.today}.txt", 'w')
     pending_mads = "#{ENV['HOME']}/catalog_pending/mads"
     pending_mods = "#{ENV['HOME']}/catalog_pending/mods"
@@ -108,6 +108,7 @@ class CatalogPendingImporter
       tg_nset = find_textgroup(a_id)   
       
       info_hash = { :file_name => f_n,
+                    :path => file_path,
                     :canon_id => canon_id,
                     :a_name => auth_name,
                     :a_id => a_id,
@@ -155,10 +156,10 @@ class CatalogPendingImporter
     end
   end
 
-  def add_to_cite_tables(info_hash, mads) #mads is a bool, need to know if mods or mads
+  def add_to_cite_tables(info_hash, is_mads) #mads is a bool, need to know if mods or mads
     begin
       keys = table_keys
-      auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by"
+      auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
       tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
       work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
 
@@ -166,14 +167,14 @@ class CatalogPendingImporter
 
         #double check that we don't have a name that matches the author name
         #no row for this author, add a row       
-        if mads
+        if is_mads
           #only creates rows in the authors table for mads files, so authors acts as an index of our mads, 
           #tgs can cover everyone mentioned in mods files
           a_urn = generate_urn(keys[:Authors], "author")
           frst_let = info_hash[:a_name][0,1]
           mads_path = "PrimaryAuthors/#{frst_let}/#{info_hash[:a_name]}#{info_hash[:file_name]}"
           #commas in values like the names will cause issues, need to fix
-          a_values = "'#{a_urn}', '#{info_hash[:a_name]}', '#{info_hash[:canon_id]}', '#{mads_path}', '#{info_hash[:alt_ids]}', '#{info_hash[:related_works]}', 'published', 'auto_importer'"
+          a_values = "'#{a_urn}', '#{info_hash[:a_name]}', '#{info_hash[:canon_id]}', '#{mads_path}', '#{info_hash[:alt_ids]}', '#{info_hash[:related_works]}', 'published',' ', 'auto_importer', 'auto_importer'"
           add_cite_row(keys[:Authors], auth_col, a_values)
         end
         
@@ -183,8 +184,8 @@ class CatalogPendingImporter
         auth_node = info_hash[:cite_auth]
         cite_name = auth_node.children.xpath("cite:citeProperty[@label='Authority Name']").inner_text
         unless cite_name == info_hash[:a_name]
-          message = "For file #{info_hash[:file_name]}: The name save in the CITE table doesn't match the name in the file, please check."
-          error_handler(message, file_path, f_n)
+          message = "For file #{info_hash[:file_name]}: The name saved in the CITE table doesn't match the name in the file, please check."
+          error_handler(message, info_hash[:path}, info_hash[:file_name])
           return
         end
       end
@@ -197,7 +198,7 @@ class CatalogPendingImporter
         add_cite_row(keys[:Textgroups], tg_col, t_values)  
       else
         #if mads, check if mads is marked true, update to true if false
-        if mads
+        if is_mads
           tg_node = info_hash[:cite_tg]
           mads_stat = tg_node.children.xpath("cite:citeProperty[@label='Has MADs file?']").inner_text
           mads_urn = tg_node.children.xpath("cite:citeObject[@name='urn']").value
@@ -207,7 +208,7 @@ class CatalogPendingImporter
           end
         end
       end
-      unless mads
+      unless is_mads
         if info_hash[:cite_work].empty?
           #no row for this work, add a row
           w_urn = generate_urn(keys[:Works], "work")
@@ -215,11 +216,15 @@ class CatalogPendingImporter
           add_cite_row(keys[:Works], work_col, w_values)
         end
         #add to versions table
+        #need to check that the description isn't the same
+        #create cts urn off of preexisting entries in version column
         add_to_vers_table()
       end
 
     rescue
-
+      message = "For file #{info_hash[:file_name]}: something went wrong, #{$!}"
+      error_handler(message, info_hash[:path}, info_hash[:file_name])
+      return
     end
   end
 

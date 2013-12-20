@@ -68,11 +68,7 @@ end
 
 desc "import records in catalog_pending"
 task :catalog_pending_import => :environment do
-  #to insert into and update the fusion tables, need oauth process, 
-  #maybe store the email and pass in a file that won't go into github?
-  g_add = ENV["g_add"]
-  g_pass = ENV["g_pass"]
   cpi = CatalogPendingImporter.new
-  cpi.pending_mods_import(g_add, g_pass)
+  cpi.pending_mods_import
 end
 
