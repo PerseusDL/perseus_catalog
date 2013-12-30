@@ -10,7 +10,9 @@
 module CiteColls
   require 'nokogiri'
   require 'mechanize'
-  require 'watir-webdriver'
+  require 'google/api_client'
+  require 'google/api_client/client_secrets'
+
 
   def cite_base(search = false)
     cite_url = "http://sosol.perseus.tufts.edu/testcoll/"
@@ -62,47 +64,18 @@ module CiteColls
     return page
   end
 
-  def fusion_auth(g_add, g_pass)
+  def fusion_auth
     #if anyone else implements this:
-    #for this to work, need to update oauth_info.txt.sample with proper credentials as supplied
-    #by the Google Cloud Console (https://cloud.google.com), Registered Apps 
+    #for this to work, you will need to obtain the private key for the google dev service account
     
-    oauth_cred = File.read("#{ENV['HOME']}/perseus_catalog/config/oauth_info.txt").split("\n")
-    client_id = oauth_cred[0].split(',')[1].strip
-    client_secret = oauth_cred[1].split(',')[1].strip
-    url = "https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/fusiontables&redirect_uri=http://localhost&response_type=code&client_id=#{client_id}&access_type=offline"
-    
-    browser = Watir::Browser.new
-    browser.goto(url)
-    browser.text_field(:type => "email").value = g_add
-    browser.text_field(:type => "password").value = g_pass   
-    browser.button(:name =>'signIn').click
-    sleep(5) #give the webpage a chance to load before trying to click the button
-    browser.button(:id =>'submit_approve_access').click
-    returned_url = browser.url
-    browser.close
-    
-    raw_code = returned_url[/code=.+/]
-    @auth_code = raw_code.gsub("code=", "")
-
-    data = {
-      :code => @auth_code,
-      :client_id => client_id,
-      :client_secret => client_secret,
-      :redirect_uri => "http://localhost",
-      :grant_type => 'authorization_code'
-    }
-
-    request = @agent.post("https://accounts.google.com/o/oauth2/token", data)
-    r_arr = request.body.split("\n")
-    #[1] is access_token, [4] is refresh
-    @access_token = clean_google_response(r_arr[1])
-    @refresh_token = clean_google_response(r_arr[4])
+    @client=Google::APIClient.new(:application_name => 'autoImport', :application_version => '1.0.0')
+    ft = @client.discovered_api('fusiontables')
+    path_to_key = "ENV['HOME']/gkey/client.p12"
+    key = Google::APIClient::KeyUtils.load_from_pkcs12(path_to_key, 'notasecret')
+    @client.authorization=Signet::OAuth2::Client.new(:token_credential_uri => 'https://accounts.google.com/o/oauth2/token', :audience => 'https://accounts.google.com/o/oauth2/token', :scope => 'https://www.googleapis.com/auth/fusiontables', :issuer => '202250365961-4r8cli9tm8dkaudk3rm6jl5ol3t9tcdt@developer.gserviceaccount.com', :signing_key => key)
+    @client.authorization.fetch_access_token!
   end
 
-  def clean_google_response(s)
-    s_new = s.gsub('"', '').gsub(',' '').split(':')[1].strip
-  end
 
   def cite_key
     key = "&key=AIzaSyDo63Clfa5Z9Mf1rw1uKdA-mNVADg49Oic"
@@ -266,14 +239,13 @@ module CiteColls
 
 
   def add_cite_row(table_key, columns, values)
-    byebug
     query = "INSERT INTO #{table_key} (#{columns}) VALUES (#{values})"
-    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&access_token=#{@access_token}")
+    response = @client.execute(:api_method => ft.query.sql, :parameters => {:sql => query})
   end
 
   def update_cite_row(table_key, col_val_pairs, row_id)
     query = "UPDATE #{table_key} SET #{col_val_pairs.join(', ')} WHERE ROWID = #{row_id}"
-    response = @agent.post("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&access_token=#{@access_token}")
+    response = @client.execute(:api_method => ft.query.sql, :parameters => {:sql => query})
   end
 
   def generate_urn(table_key, code)
