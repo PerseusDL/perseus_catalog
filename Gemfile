@@ -40,6 +40,7 @@ gem 'jquery-rails'
 gem 'debugger'
 #For Ruby 1.9
 #gem 'ruby-debug19'
+gem 'byebug'
 
 gem 'blacklight'
 
@@ -57,3 +58,4 @@ gem 'mechanize'
 gem 'cancan'
 gem 'rdf'
 gem 'rdf-sesame'
+gem 'google-api-client'

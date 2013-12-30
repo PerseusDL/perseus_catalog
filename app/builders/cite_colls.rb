@@ -10,6 +10,9 @@
 module CiteColls
   require 'nokogiri'
   require 'mechanize'
+  require 'google/api_client'
+  require 'google/api_client/client_secrets'
+
 
   def cite_base(search = false)
     cite_url = "http://sosol.perseus.tufts.edu/testcoll/"
@@ -18,7 +21,6 @@ module CiteColls
     end
     return cite_url
   end
-
 
 
   def set_agent(a_alias = 'Mac Safari')
@@ -62,12 +64,30 @@ module CiteColls
     return page
   end
 
-
-  def cite_key
-    key = "&key=AIzaSyBdwnszqWzCMQfDZvevtjVz-2bQTmwzxN0"
+  def fusion_auth
+    #if anyone else implements this:
+    #for this to work, you will need to obtain the private key for the google dev service account
+    
+    @client=Google::APIClient.new(:application_name => 'autoImport', :application_version => '1.0.0')
+    ft = @client.discovered_api('fusiontables')
+    path_to_key = "ENV['HOME']/gkey/client.p12"
+    key = Google::APIClient::KeyUtils.load_from_pkcs12(path_to_key, 'notasecret')
+    @client.authorization=Signet::OAuth2::Client.new(:token_credential_uri => 'https://accounts.google.com/o/oauth2/token', :audience => 'https://accounts.google.com/o/oauth2/token', :scope => 'https://www.googleapis.com/auth/fusiontables', :issuer => '202250365961-4r8cli9tm8dkaudk3rm6jl5ol3t9tcdt@developer.gserviceaccount.com', :signing_key => key)
+    @client.authorization.fetch_access_token!
   end
 
 
+  def cite_key
+    key = "&key=AIzaSyDo63Clfa5Z9Mf1rw1uKdA-mNVADg49Oic"
+  end
+
+  def table_keys
+    keys = {:Authors => "1JKDi1OHvxWoh1w38mnQfUDey2pB_nx3UnRITvcA", 
+            :Textgroups => "1I0Zkm1mAfydn6TfFEWH2h0D3boAd4q7zC-4vuUY", 
+            :Works => "1PQY6nVHZV8Ng42-qrbiLKXwDz9XoNlStKi3xKfU",
+            :Versions => "1STn9raQzWZDeIC4f_LHuLDUPPW3BDkpFfyKrKtw"
+            }
+  end
 
   def cite_tables_backup 
     #backup the current cite tables and upload to github
@@ -77,13 +97,9 @@ module CiteColls
     cite_backups_dir = "#{cite_dir}/csv_backups"
 
     #0authors table, 1textgroups, 2works, 3versions
-    table_keys = {"Authors" => "1JKDi1OHvxWoh1w38mnQfUDey2pB_nx3UnRITvcA", 
-                  "Textgroups" => "1I0Zkm1mAfydn6TfFEWH2h0D3boAd4q7zC-4vuUY", 
-                  "Works" => "1PQY6nVHZV8Ng42-qrbiLKXwDz9XoNlStKi3xKfU",
-                  "Versions" => "1STn9raQzWZDeIC4f_LHuLDUPPW3BDkpFfyKrKtw"
-                }
+    t_ks = table_keys
     #grab the csv files of the tables
-    table_keys.each_pair do |name, key|
+    t_ks.each_pair do |name, key|
       table_csv = @agent.get"https://www.google.com/fusiontables/exporttable?query=select+*+from+#{key}"
       saved_file = File.new("#{cite_backups_dir}/Perseus#{name}Collection_#{Date.today}.csv", "w")
       saved_file.close
@@ -122,7 +138,7 @@ module CiteColls
     return works_list
   end
 
-
+  #I could abstract these into a cts query method, but dealing with the urls is a little tricky, so not doing it right now
   def find_work(work_urn)
     begin
       work_raw = multi_get("#{cite_base(true)}catwk&prop=work&work=#{work_urn}#{cite_key}")
@@ -136,7 +152,7 @@ module CiteColls
     noko_work = work_raw.search("reply")
     if noko_work.children.empty?
       #work not found, row needs to be added
-      return nil
+      return []
     else
       return noko_work
     end
@@ -154,16 +170,24 @@ module CiteColls
         retry
       end
     end
-    #for some strange reason, can't use search method on a cite query page to pull out the tg_urn....
     noko_tg = tg_raw.search("reply")
-    unless noko_tg.children.empty?
+    if noko_tg.children.empty?
+      tg_cts = []
+    else
+      tg_cts = noko_tg.children
+    end
+    return tg_cts
+  end
+
+  def find_textgroup_name(tg_urn)
+    tg_nodes = find_textgroup(tg_urn)
+    unless tg_nodes.empty?
       tg_name = noko_tg.children.xpath("cite:citeProperty[@label='Groupname (English)']").inner_text
     else
       tg_name = nil
     end
     return tg_name
   end
-
 
   def find_author(tg_id)
     begin
@@ -213,6 +237,29 @@ module CiteColls
     end
   end
 
+
+  def add_cite_row(table_key, columns, values)
+    query = "INSERT INTO #{table_key} (#{columns}) VALUES (#{values})"
+    response = @client.execute(:api_method => ft.query.sql, :parameters => {:sql => query})
+  end
+
+  def update_cite_row(table_key, col_val_pairs, row_id)
+    query = "UPDATE #{table_key} SET #{col_val_pairs.join(', ')} WHERE ROWID = #{row_id}"
+    response = @client.execute(:api_method => ft.query.sql, :parameters => {:sql => query})
+  end
+
+  def generate_urn(table_key, code)
+    query = "SELECT COUNT() FROM #{table_key}"
+    response = @agent.get("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&alt=csv#{cite_key}")
+    count = response.body.split("\n")[1].to_i + 1
+    new_urn = "urn:cite:perseus:#{code}.#{count.to_s}.1"
+  end
+
+  def get_row_id(table_key, urn)
+    query ="SELECT ROWID FROM #{table_key} WHERE urn = '#{urn}'"
+    response = @agent.get("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&alt=csv#{cite_key}")
+    row_id = response.body.split("\n")[1]
+  end
 
   def find_mods(work, textgroup)
     #locates and returns mods records in process_pending list matching work

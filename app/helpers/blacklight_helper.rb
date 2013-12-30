@@ -41,16 +41,28 @@ module BlacklightHelper
     value = [value] unless value.is_a? Array
     value = value.collect { |x| x.respond_to?(:force_encoding) ? x.force_encoding("UTF-8") : x}
 
-    if is_lang
-      file_sys = Rails.root
-      codes = File.read("#{file_sys}/tmp_files/lang_codes.csv")
-      codes_arr = codes.split("\n")
-      pair = codes_arr.each {|cell| break cell.split(",") if cell =~ /#{value},/}
-      value = [pair[1]] unless pair.empty?
-    end
+    # retrieve the unabbreviated language code, but fall back to
+    # original value when there is nothing to get
+    value.map! { |lang| LANGUAGE_CODES[lang] || lang } if is_lang
 
     return value.map { |v| html_escape v }.join(field_value_separator).html_safe
   end
 
+  private
 
+  # csv
+  #   ang,English, Old (ca. 450-1000)
+  #   eng,English
+  # to hash
+  #   { 'ang' => 'English, Old (ca. 450-1000)', 'eng' => 'English' }
+  #
+  def self.lang_codes_csv_to_hash
+    csv = "#{Rails.root}/tmp_files/lang_codes.csv"
+    File.readlines(csv).each_with_object({}) do |line, hsh|
+      abbr, language = line.match(/^(.{3}),(.*)/).captures
+      hsh[abbr] = language
+    end
+  end
+
+  LANGUAGE_CODES = lang_codes_csv_to_hash
 end

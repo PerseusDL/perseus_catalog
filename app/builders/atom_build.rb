@@ -63,7 +63,7 @@ class AtomBuild
         @tg_urn = @work_urn[/urn:cts:(latinLit|greekLit):\D+\d{4}([a-z])?/]
         @lit_type = @tg_urn[/(latinLit|greekLit)/]      
         @tg_id = @tg_urn[/(tlg|phi|stoa)\d{4}([a-z])?/]
-        @tg_name = find_textgroup(@tg_urn)
+        @tg_name = find_textgroup_name(@tg_urn)
         @work_id = @work_urn[/(tlg|phi|stoa|abo)(\d{3}|X\d{2,3}|\d{1,2})(x\d{2}|[a-z]*)?$/]
         @work_id = @work_urn[/stoa\d{4}$/] if @tg_id == "stoa0233a"
 
