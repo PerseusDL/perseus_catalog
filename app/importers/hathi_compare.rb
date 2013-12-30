@@ -58,7 +58,7 @@ class HathiCompare
     csv = File.open("ENV['HOME']/hathi_csv.csv")
     debugger
     #oclc_auht
-    ids = 
+    #ids = 
 
   end
 
