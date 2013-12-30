@@ -1222,3 +1222,42 @@ If you ever need to flush your iptables rules run these commands.
 	sudo iptables -P INPUT ACCEPT;
 	sudo iptables -P FORWARD ACCEPT;
 	sudo iptables -P OUTPUT ACCEPT;
+
+# Update catalog instance with another instance's database 
+## ( AKA refresh Development with Production data )
+## ( AKA how to use mysqldump )
+For simplicities sake I'll call the source catalog instance "Production" and the destination catalog instance "Development".
+
+SSH to production's host, dump the database, zip it up, and copy it to your workstation.
+
+	ssh catalog
+	mysqldump -u root -p perseus_blacklight > ~/perseus_blacklight.sql
+	tar czvf perseus_blacklight.tar.gz perseus_blacklight.sql
+	exit
+
+From your workstation, copy the zipped database dump file to the destination's host.
+
+	scp catalog:~/perseus_blacklight.tar.gz ~/Desktop/
+	scp ~/Desktop/perseus_blacklight.tar.gz catalog1:~/
+	exit
+
+SSH to the destination's host, and decompress the database dump file.
+
+	ssh catalog1
+	tar xvzf perseus_blacklight.tar.gz	
+
+Backup the existing data in case something goes horribly wrong, so restoring the data is possible.
+
+	mkdir ~/bkup
+	mysqldump -u root -p perseus_blacklight > ~/bkup/perseus_blacklight.bkup.sql	
+
+Import the new data.
+
+	mysql -u root -p perseus_blacklight < perseus_blacklight.sql
+
+Update solr.
+
+	curl http://localhost:8080/solr/db/update -H "Content-type: text/xml" \--data-binary '<delete><query>*:*</query></delete>';
+	curl http://localhost:8080/solr/db/update -H "Content-type: text/xml" \--data-binary '<commit />';
+	curl http://localhost:8080/solr/db/update -H  "Content-type: text/xml" \--data-binary '<optimize />';
+	curl http://localhost:8080/solr/db/dataimport?command=full-import;
