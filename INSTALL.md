@@ -136,6 +136,19 @@ Now that you can run gem, install our friend bundler.
 	sudo gem install rubygems-update;
 	sudo gem install bundler;
 
+Now's a good time to install some other required gems.
+
+	sudo gem install extlib
+	sudo gem install autoparse
+	sudo gem install byebug -v 2.3.1
+	sudo gem install multipart-post -v 1.2.0
+	sudo gem install faraday -v 0.8.8
+	sudo gem install jwt -v 0.1.8
+	sudo gem install launchy -v 2.4.2
+	sudo gem install signet -v 0.4.5
+	sudo gem install uuidtools -v 2.1.4
+	sudo gem install google-api-client -v 0.6.4
+
 ## Install MySQL & Friends
 
 	sudo apt-get install mysql-server;
@@ -143,11 +156,6 @@ Now that you can run gem, install our friend bundler.
 	sudo apt-get install libmysql-ruby;
 	sudo apt-get install libmysqlclient-dev;
 	sudo apt-get install libmysql-java;
-
-## Change MySQL Data Directory
-
-	COMING SOON!
-
 
 ## Install Tomcat & Friends
 
