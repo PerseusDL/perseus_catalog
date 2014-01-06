@@ -1,8 +1,8 @@
 # Perseus Catalog Installation & Administration
 ## Environment
 The Perseus catalog has been built on top of Ubuntu 10.04.4 LTS.
-Other Linux flavors will probably do the job just as well, 
-but you'll want one that uses apt-get as its package manager.
+Other Linux flavors and Unix variants will probably do the job just as well, 
+but you'll want one that uses apt-get as its package manager for this documentation to be helpful to you.
 Also some paths to config files may differ in other distros than what's documented here.
 
 ## Intended Audience
@@ -169,7 +169,7 @@ Now you'll want to create an admin user.
 	<tomcat-users>
 	  <role rolename="manager"/>
 	  <role rolename="admin"/>
-	  <user username="{%user%}" password="{%passwd%}" roles="manager,admin"/>
+	  <user username="{% user %}" password="{% passwd %}" roles="manager,admin"/>
 	</tomcat-users>
 
 Start up tomcat and test your access.
@@ -178,7 +178,7 @@ Start up tomcat and test your access.
 
 Visit url.
 
-	http://{%host%}:8080/host-manager/html
+	http://{% host %}:8080/host-manager/html
 
 If Tomcat starts up okay, and you can access the admin panel, move on to the next task.
 
@@ -930,7 +930,7 @@ Now comes the final lap, the final boss battle, the final final.
 	sudo git clone https://github.com/PerseusDL/perseus_catalog;
 
 ### MySQL config
-Now you'll want to create the MySQL user that will be used by the catalog catalog.
+Now you'll want to create the MySQL user that will be used by the catalog.
 ( This isn't following best practices, I'll improve this in the near future )
 
 	mysql -u root -p
@@ -990,10 +990,10 @@ and what urls map to it.
 	sudo touch /etc/apache2/conf.d/catalog.conf;
 	sudo vim /etc/apache2/conf.d/catalog.conf;
 
-Be sure to update the passenger {%version%} when you copy the text below!
+Be sure to update the passenger {% version %} when you copy the text below!
 
-	LoadModule passenger_module /usr/local/lib/ruby/gems/2.0.0/gems/passenger-{%version%}/buildout/apache2/mod_passenger.so
-	PassengerRoot /usr/local/lib/ruby/gems/2.0.0/gems/passenger-{%version%}
+	LoadModule passenger_module /usr/local/lib/ruby/gems/2.0.0/gems/passenger-{% version %}/buildout/apache2/mod_passenger.so
+	PassengerRoot /usr/local/lib/ruby/gems/2.0.0/gems/passenger-{% version %}
 	PassengerDefaultRuby /usr/local/bin/ruby
 	PassengerLogLevel 3
 	<VirtualHost *:80>
@@ -1052,7 +1052,7 @@ Now you need to import these xml files into your database.
 Here's how you do it.  Notice you should use the full path name to your home directory
 
 	cd /var/www/perseus_catalog;
-	sudo RAILS_ENV='production' rake parse_records file_type="atom" rec_file="/home/{%you%}/FRBR.feeds.all.20131021";
+	sudo RAILS_ENV='production' rake parse_records file_type="atom" rec_file="/home/{% you %}/FRBR.feeds.all.20131021";
 
 ### The actual way.
 What I ended up doing is getting the atom-feed xml files in a folder that we store on Dropbox,
@@ -1061,7 +1061,7 @@ rather than building them with "rake build_atom_feed"
 To import them the command is the same.
 
 	cd /var/www/perseus_catalog;
-	sudo RAILS_ENV='production' rake parse_records file_type="atom" rec_file="/home/{%you%}/FRBR.feeds.all.20131021";
+	sudo RAILS_ENV='production' rake parse_records file_type="atom" rec_file="/home/{% you %}/FRBR.feeds.all.20131021";
 
 ## Create Solr index.
 So Solr is a search engine, and in order for it to work properly it has to index your data.
@@ -1080,27 +1080,13 @@ Now you can run those import commands.
 	curl http://localhost:8080/solr/db/update -H  "Content-type: text/xml" \--data-binary '<optimize />';
 	curl http://localhost:8080/solr/db/dataimport?command=full-import;
 
-## Quick fix.
-So there's something else you gotta do.
-Otherwise you'll get an error like this...
-
-	/var/www/perseus_catalog/app/importers/hathi_compare.rb:63: syntax error, unexpected keyword_end
-
-Here's the solution.
-
-	sudo vim /var/www/perseus_catalog/app/importers/hathi_compare.rb
-
-Comment out line 61.
-
-	#ids =
-
 ## Start it up!
 
 	sudo service tomcat6 restart;
 	sudo service apache2 restart;
 
 ## Check it out
-Go to http://{%host%}
+Go to http://{% host %}
 
 Huzzah!
 Unless it didn't work... in which case...
@@ -1164,6 +1150,25 @@ Restart AppArmor
 Restart MySQL
 
 	sudo service mysql restart
+
+## perseus_catalog Log Rotation
+You need to setup log rotation so your server's filesystem isn't overloaded by access logs.  Here's how...
+
+Modify Unix's logrotate.conf
+
+	sudo vim /etc/logrotate.conf
+
+Add this block to the bottom of the config
+
+	/var/www/perseus_catalog/log/*.log {
+	    daily
+	    missingok
+	    rotate 7
+	    compress
+	    delaycompress
+	    notifempty
+	    copytruncate
+	}
 
 ## Secure Solr!
 Oh hohoho!  
@@ -1232,8 +1237,8 @@ If you ever need to flush your iptables rules run these commands.
 	sudo iptables -P OUTPUT ACCEPT;
 
 # Update catalog instance with another instance's database 
-## ( AKA refresh Development with Production data )
-## ( AKA how to use mysqldump )
+### ( AKA refresh Development with Production data )
+### ( AKA how to use mysqldump )
 For simplicities sake I'll call the source catalog instance "Production" and the destination catalog instance "Development".
 
 SSH to production's host, dump the database, zip it up, and copy it to your workstation.
