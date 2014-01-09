@@ -57,7 +57,7 @@ class HathiCompare
   def make_csv
     csv = File.open("ENV['HOME']/hathi_csv.csv")
     debugger
-    #oclc_auth
+    #oclc_auht
     #ids = 
 
   end
