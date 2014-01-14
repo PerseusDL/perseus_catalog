@@ -69,8 +69,8 @@ module CiteColls
     #for this to work, you will need to obtain the private key for the google dev service account
     
     @client=Google::APIClient.new(:application_name => 'autoImport', :application_version => '1.0.0')
-    ft = @client.discovered_api('fusiontables')
-    path_to_key = "ENV['HOME']/gkey/client.p12"
+    @ft = @client.discovered_api('fusiontables')
+    path_to_key = "#{ENV['HOME']}/gkey/9aa4bd6b8f715613724b1e61d9c99a37f5d7722b-privatekey.p12"
     key = Google::APIClient::KeyUtils.load_from_pkcs12(path_to_key, 'notasecret')
     @client.authorization=Signet::OAuth2::Client.new(:token_credential_uri => 'https://accounts.google.com/o/oauth2/token', :audience => 'https://accounts.google.com/o/oauth2/token', :scope => 'https://www.googleapis.com/auth/fusiontables', :issuer => '202250365961-4r8cli9tm8dkaudk3rm6jl5ol3t9tcdt@developer.gserviceaccount.com', :signing_key => key)
     @client.authorization.fetch_access_token!
@@ -238,14 +238,20 @@ module CiteColls
   end
 
 
+  def find_vers_by_cts(table_key, cts_urn)
+    query = "SELECT * FROM #{table_key} WHERE 'version' LIKE '#{cts_urn}'"
+    response = @client.execute(:api_method => @ft.query.sql, :parameters => {:sql => query, :alt => "csv"})
+    csv_res = response.body.split("\n")
+  end
+
   def add_cite_row(table_key, columns, values)
     query = "INSERT INTO #{table_key} (#{columns}) VALUES (#{values})"
-    response = @client.execute(:api_method => ft.query.sql, :parameters => {:sql => query})
+    response = @client.execute(:api_method => @ft.query.sql, :parameters => {:sql => query})
   end
 
   def update_cite_row(table_key, col_val_pairs, row_id)
     query = "UPDATE #{table_key} SET #{col_val_pairs.join(', ')} WHERE ROWID = #{row_id}"
-    response = @client.execute(:api_method => ft.query.sql, :parameters => {:sql => query})
+    response = @client.execute(:api_method => @ft.query.sql, :parameters => {:sql => query})
   end
 
   def generate_urn(table_key, code)

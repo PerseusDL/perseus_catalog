@@ -35,3 +35,10 @@ task :scrape_abbr => :environment do
   processor = LexProcessor.new
   processor.scrape_abbr
 end
+
+
+#desc "run_findit"
+#task :findit => :environment do 
+#  finder = FindIt.new
+#  finder.process_csv
+#end

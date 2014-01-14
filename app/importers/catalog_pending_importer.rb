@@ -37,14 +37,14 @@ class CatalogPendingImporter
     cite_key
     fusion_auth
     @error_report = File.open("#{ENV['HOME']}/catalog_pending/errors/error_log#{Date.today}.txt", 'w')
-    pending_mads = "#{ENV['HOME']}/catalog_pending/mads"
+    #pending_mads = "#{ENV['HOME']}/catalog_pending/mads"
     pending_mods = "#{ENV['HOME']}/catalog_pending/mods"
     #update_git_dir("catalog_pending") UNCOMMENT THIS
 
     #cite_tables_backup UNCOMMENT THIS
 
     #go through items in catalog_pending
-    pending_mads_import(pending_mads)# UNCOMMENT THIS
+    #pending_mads_import(pending_mads)# UNCOMMENT THIS
     mods_dirs = clean_dirs(pending_mods)
     mods_dirs.each do |name_dir|
           
@@ -65,7 +65,7 @@ class CatalogPendingImporter
           info_hash = find_basic_info(mods_xml, mods)
           #have the info from the record and cite tables, now process it
           #:file_name,:canon_id,:a_name,:a_id,:alt_ids,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
-          add_to_cite_tables(info_hash, false)
+          add_to_cite_tables(info_hash, mods_xml)
           #after all done, need to rename the file (if needed) and copy over to the appropriate directory in catalog_data
           
         end
@@ -84,7 +84,7 @@ class CatalogPendingImporter
       mads_string = File.read(mads)
       mads_xml = Nokogiri::XML::Document.parse(mads_string, &:noblanks)
       info_hash = find_basic_info(mads_xml, mads)
-      add_to_cite_tables(info_hash, true)
+      add_to_cite_tables(info_hash)
     end
   end
 
@@ -156,9 +156,10 @@ class CatalogPendingImporter
     end
   end
 
-  def add_to_cite_tables(info_hash, is_mads) #mads is a bool, need to know if mods or mads
+  def add_to_cite_tables(info_hash, mods_xml=nil)
     begin
-      keys = table_keys
+      byebug
+      @keys = table_keys
       auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
       tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
       work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
@@ -167,7 +168,7 @@ class CatalogPendingImporter
 
         #double check that we don't have a name that matches the author name
         #no row for this author, add a row       
-        if is_mads
+        unless mods_xml
           #only creates rows in the authors table for mads files, so authors acts as an index of our mads, 
           #tgs can cover everyone mentioned in mods files
           a_urn = generate_urn(keys[:Authors], "author")
@@ -185,9 +186,10 @@ class CatalogPendingImporter
         cite_name = auth_node.children.xpath("cite:citeProperty[@label='Authority Name']").inner_text
         unless cite_name == info_hash[:a_name]
           message = "For file #{info_hash[:file_name]}: The name saved in the CITE table doesn't match the name in the file, please check."
-          error_handler(message, info_hash[:path}, info_hash[:file_name])
+          error_handler(message, info_hash[:path], info_hash[:file_name])
           return
         end
+        #need to actually do something with it now, scrape and fill in new info if mads, represents a change to the file?
       end
 
       if info_hash[:cite_tg].empty?
@@ -198,7 +200,7 @@ class CatalogPendingImporter
         add_cite_row(keys[:Textgroups], tg_col, t_values)  
       else
         #if mads, check if mads is marked true, update to true if false
-        if is_mads
+        unless mods_xml
           tg_node = info_hash[:cite_tg]
           mads_stat = tg_node.children.xpath("cite:citeProperty[@label='Has MADs file?']").inner_text
           mads_urn = tg_node.children.xpath("cite:citeObject[@name='urn']").value
@@ -208,7 +210,7 @@ class CatalogPendingImporter
           end
         end
       end
-      unless is_mads
+      if mods_xml
         if info_hash[:cite_work].empty?
           #no row for this work, add a row
           w_urn = generate_urn(keys[:Works], "work")
@@ -216,27 +218,138 @@ class CatalogPendingImporter
           add_cite_row(keys[:Works], work_col, w_values)
         end
         #add to versions table
-        #need to check that the description isn't the same
-        #create cts urn off of preexisting entries in version column
-        add_to_vers_table()
+
+        add_to_vers_table(info_hash, mods_xml)
       end
 
     rescue
       message = "For file #{info_hash[:file_name]}: something went wrong, #{$!}"
-      error_handler(message, info_hash[:path}, info_hash[:file_name])
+      error_handler(message, info_hash[:path], info_hash[:file_name])
       return
     end
   end
 
 
-  def add_to_vers_table()
+  def add_to_vers_table(info_hash, mods_xml)
     begin
+      
       vers_col = "urn, version, label_eng, desc_eng, type, has_mods, urn_status, redirect_to, member_of, created_by, edited_by"
-
+      #new question, if two languages, like a loeb, split it, make two records one for each?
+      if info_hash[:w_lang].length > 1
+        #two (or more) languages listed, create more records
+        info_hash[:w_lang].each do |lang|
+          vers_type = lang.inner_text =~ /grc|lat/ ? "edition" : "translation"
+          coll = mods_xml.search("identifier[@type='phi']").empty? ? "opp" : "perseus"
+          vers_label, vers_desc = create_label_desc(info_hash, mods_xml)
+          vers_urn_wo_num = "#{info_hash[:w_id]}.#{coll}-#{lang.inner_text}"
+          #pull all versions that have the work id, returns csv w/first row of column names
+          existing_vers = find_vers(vers_urn_wo_num)
+          #create cts urn off of preexisting entries in version column
+          if existing_vers.length == 1
+            vers_urn = "#{vers_urn_wo_num}1"
+          else
+            num = nil
+            existing_vers.each_with_index do |line, i|
+              if i > 0
+                curr_urn = line[/#{vers_urn_wo_num}\d+/]
+                urn_num = curr_urn[/\d+$/].to_i
+                num = urn_num + 1
+                if line =~ vers_label && line =~ vers_desc
+                  #this means that the pulled label and description match the current row, not good?
+                end
+              end
+            end
+            vers_urn = "#{vers_urn_wo_num}#{num}"
+          end
+          #need to check that the description isn't the same
+            #how to determine if it is a second mods record for an edition?
+          
+          #if has any lang other than lat or grc, is a translation (could cause issues...)
+          #insert row in table
+          #add mods prefix, need to double check this doesn't mess up the xml...
+          lit = info_hash[:w_lang].inner_text =~ /grc/ ? 'greekLit' : 'latinLit'
+          mods_path = "#{ENV['HOME']}/catalog_data/mods/#{lit}/#{info_hash[:canon_id]}/#{info_hash[w_id]}"
+          add_mods_prefix(mods_xml)
+        end
+      end
+      
     rescue
 
     end
   end
+
+  def create_label_desc(info_hash, mods_xml)
+    ns = mods_xml.collect_namespaces
+    if !mods_xml.search('relatedItem[@type="host"]/titleInfo', ns).empty?
+      raw_title = mods_xml.search('relatedItem[@type="host"]/titleInfo', ns).first
+    elsif !mods_xml.search('titleInfo', ns).empty?
+      raw_title = mods_xml.search('titleInfo', ns).first
+    elsif !mods_xml.search('titleInfo[@type="alternative"]', ns).empty?
+      raw_title = mods_xml.search('titleInfo[@type="alternative"]', ns).first
+    elsif !mods_xml.search('titleInfo[@type="translated"]', ns).empty?
+      raw_title = mods_xml.search('titleInfo[@type="translated"]', ns).first
+    else
+      raw_title = mods_xml.search('titleInfo[@type="uniform"]', ns)                  
+    end                
+
+    
+    label = "#{info_hash[:w_title]}, #{xml_clean(raw_title, ' ')}"
+
+    #mods:name, mods:roleTerm.inner_text == "editor" or "translator"
+    names = mods_xml.search('name', ns)
+    ed_trans = ""
+    author_n = ""
+    names.each do |m_name|
+      if m_name.inner_text =~ /editor|translator|compiler/
+        ed_trans = xml_clean(m_name, ", ")
+      elsif m_name.inner_text =~ /creator/
+        author_n = xml_clean(m_name, ", ")
+        author_n.gsub!(/,,/, ",")
+      end
+    end
+    #pull out basic bibliographic info
+    place = xml_clean(mods_xml.search('originInfo//placeTerm[@type="text"]', ns), ",")
+    pub = xml_clean(mods_xml.search('originInfo/publisher', ns), ",")
+    date = xml_clean(mods_xml.search('originInfo/dateIssued', ns), ",")
+    date_m = xml_clean(mods_xml.search('originInfo/dateModified', ns), ",")
+    edition = xml_clean(mods_xml.search('originInfo/edition', ns))
+    
+    origin = "#{place} #{pub} #{date} #{date_m} #{edition}"
+    origin.gsub!(/,\s{2, 5}|,\s+$/, " ")
+    
+    description = "#{author_n}. #{ed_trans}. #{origin}."
+    
+    return label, description
+  end
+
+  def xml_clean(nodes, sep = "")
+    empty_test = nodes.class == "Nokogiri::XML::NodeSet" ? nodes.empty? : nodes.blank?
+    unless empty_test
+      cleaner = ""
+      nodes.children.each do |x| 
+        cleaner << x.inner_text + sep
+      end
+      clean = cleaner.gsub(/\s+#{sep}|\s{2, 5}|#{sep}$/, " ").strip
+      return clean
+    else
+      return ""
+    end
+  end
+
+  def add_mods_prefix(mods_xml)    
+    mods_xml.root.add_namespace_definition("mods", "http://www.loc.gov/mods/v3")
+    mods_xml.root.name = "mods:#{mods_xml.root.name}"
+    mods_xml.root.children.each {|chil| xml_rename(chil)}    
+  end
+
+  def xml_rename(node)
+    m_name = node.name
+    node.name = "mods:#{m_name}"
+    m_chil = node.children    
+    m_chil.each {|c_node| xml_rename(c_node)} if m_chil
+  end
+
+
 
   def find_rec_id(xml_record, file_path, f_n)
     begin
