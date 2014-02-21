@@ -995,7 +995,7 @@ Be sure to update the passenger {% version %} when you copy the text below!
 	LoadModule passenger_module /usr/local/lib/ruby/gems/2.0.0/gems/passenger-{% version %}/buildout/apache2/mod_passenger.so
 	PassengerRoot /usr/local/lib/ruby/gems/2.0.0/gems/passenger-{% version %}
 	PassengerDefaultRuby /usr/local/bin/ruby
-	PassengerLogLevel 3
+	PassengerLogLevel 0
 	<VirtualHost *:80>
 		PassengerEnabled On
 		DocumentRoot /var/www/perseus_catalog/public
@@ -1106,6 +1106,19 @@ Here is a list of all the files you had to tweak for proper configuration.
 And here is a list of log files you can inspect.
 
 	view /var/log/tomcat6/localhost.{%date%}.log
+
+If Phusion Passenger is giving you woe you can change its logging level.
+
+	sudo vim /etc/apache2/conf.d/catalog.conf;
+
+Change...
+
+	PassengerLogLevel 0
+
+to...
+
+	PassengerLogLevel 3
+
 
 ## Move MySQL data directory
 Do you need to move your MySQL data directory?
