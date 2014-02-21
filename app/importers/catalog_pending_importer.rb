@@ -10,6 +10,7 @@
 
 class CatalogPendingImporter
   include CiteColls
+  require 'fileutils'
 
   #The Plan
     #Xif mads split off
@@ -32,9 +33,20 @@ class CatalogPendingImporter
   #This should throw an error at the slightest issue so it gets looked at by a human and either the record is
   #fixed or it is added by hand to the CITE tables
 
+  #TO DO:
+  # X-change how the labels and descriptions are generated, need to match what is currently happening in the tables
+  # -check for multi-volume works by comparing the descriptions within works
+  # X-account for MODS already containing a ctsurn 
+  # -make sure to account for versions that don't have mods, related to above
+  # TEST-constituent records
+  # X-make sure the mods prefix adding works like it ought to
+  # -add proper errors to the versions section
+  # -double check the flow
+
   def pending_mods_import
     multi_agents
     cite_key
+    @keys = table_keys
     fusion_auth
     @error_report = File.open("#{ENV['HOME']}/catalog_pending/errors/error_log#{Date.today}.txt", 'w')
     #pending_mads = "#{ENV['HOME']}/catalog_pending/mads"
@@ -58,16 +70,54 @@ class CatalogPendingImporter
       collect_xml.each do |mods|
         mods_string = File.read(mods)
         mods_xml = Nokogiri::XML::Document.parse(mods_string, &:noblanks)
-        unless mods_xml.search("//relatedItem[@type='constituent']").empty?
-          #has constituent items, needs to be passed to a method to create new mods
-          split_constituents(mods_xml, mods)
+        has_cts = mods_xml.search("//identifer[@type='ctsurn']")
+        unless has_cts.empty?
+          #record already has a cts urn, could be added mods, multivolume record, or version correction?
+          ctsurn = has_cts.inner_text
+          vers = find_vers_by_cts(@keys[:Versions], ctsurn)
+          if vers.length == 2
+            row = vers[1].split(',')
+            if row[(row.length - 6)] == 'false'
+              #adding mods, update to true, create proper path in catalog_data and save record
+              rowid = get_row_id(@keys[:Versions], ctsurn)
+              update_cite_row(@keys[:Versions], ["has_mods = true"], rowid)
+            end
+
+            #construct the catalog_data path, perhaps break out into own method
+            path_name = "#{ENV['HOME']}/catalog_data/mods/"
+            ctsmain = ctsurn[/(greekLit|latinLit).+/]
+            path_name << "#{ctsmain.gsub(/:|\./, "/")}"
+            unless File.exists?(path_name)
+              FileUtils.mkdir_p(path_name)
+            end
+            if File.exists?(path_name)
+              Dir.chdir(path_name)
+              sansgl = ctsmain.gsub(/greekLit:|latinLit:/, "")
+              mods = Dir["#{sansgl}.*"]
+              mods_num = 0
+              mods.each {|x| mods_num = mods_num < x[/\d+\.xml/].chr.to_i ? x[/\d+\.xml/].chr.to_i : mods_num}
+              modspath = "#{path_name}/#{sansgl}.mods#{mods_num + 1}.xml"
+              #add mods prefix and save file in new location
+              add_mods_prefix(mods_xml)
+              fl = File.new(modspath, "w")
+              fl << mods_xml
+              fl.close
+            end
+          else
+            puts "something is wrong, either have more than one of the same cts_urn or no row for that urn"
+          end
         else
-          info_hash = find_basic_info(mods_xml, mods)
-          #have the info from the record and cite tables, now process it
-          #:file_name,:canon_id,:a_name,:a_id,:alt_ids,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
-          add_to_cite_tables(info_hash, mods_xml)
-          #after all done, need to rename the file (if needed) and copy over to the appropriate directory in catalog_data
-          
+          unless mods_xml.search("//relatedItem[@type='constituent']").empty?
+            #has constituent items, needs to be passed to a method to create new mods
+            split_constituents(mods_xml, mods)
+          else
+            info_hash = find_basic_info(mods_xml, mods)
+            #have the info from the record and cite tables, now process it
+            #:file_name,:canon_id,:a_name,:a_id,:alt_ids,:cite_auth,:cite_tg :w_title,:w_id,:cite_work,:w_lang
+            add_to_cite_tables(info_hash, mods_xml)
+            #after all done, need to rename the file (if needed) and copy over to the appropriate directory in catalog_data
+            
+          end
         end
       end
     end
@@ -90,6 +140,32 @@ class CatalogPendingImporter
 
   def split_constituents(mods_xml, file_path)
     #need to create a new mods file for each constituent item
+    #take each <relatedItem type="constituent"> and make it the top level in a new mods record
+    #use builder to create mods level, then going to have to use .each to add the children of relatedItem
+    #add the top level info for the original wrapped as <relatedItem type="host">
+    #save new files to catalog pending
+    const_nodes = mods_xml.search("//relatedItem[@type='constituent']")
+    const_nodes.each do |const|
+
+      builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
+        xml.mods {
+          xml.relatedItem(:type => 'host')
+        }
+      end
+
+      const.children.each do |sib|
+        builder.doc.xpath("//relatedItem").add_previous_sibling(sib)
+      end
+      mods_xml.children.each do |child|
+        unless child.name == "relatedItem"
+          builder.doc.xpath("//relatedItem").add_child(child)
+        end
+      end
+
+      info_hash = find_basic_info(builder.doc, mods)
+      add_to_cite_tables(info_hash, builder.doc)
+
+    end
   end
 
   def find_basic_info(xml_record, file_path)
@@ -159,7 +235,6 @@ class CatalogPendingImporter
   def add_to_cite_tables(info_hash, mods_xml=nil)
     begin
       byebug
-      @keys = table_keys
       auth_col = "urn, authority_name, canonical_id, mads_file, alt_ids, related_works, urn_status, redirect_to, created_by, edited_by"
       tg_col = "urn, textgroup, groupname_eng, has_mads, mads_possible, notes, urn_status, created_by, edited_by"
       work_col = "urn, work, title_eng, notes, urn_status, created_by, edited_by"
@@ -234,7 +309,6 @@ class CatalogPendingImporter
     begin
       
       vers_col = "urn, version, label_eng, desc_eng, type, has_mods, urn_status, redirect_to, member_of, created_by, edited_by"
-      #new question, if two languages, like a loeb, split it, make two records one for each?
       if info_hash[:w_lang].length > 1
         #two (or more) languages listed, create more records
         info_hash[:w_lang].each do |lang|
@@ -243,7 +317,7 @@ class CatalogPendingImporter
           vers_label, vers_desc = create_label_desc(info_hash, mods_xml)
           vers_urn_wo_num = "#{info_hash[:w_id]}.#{coll}-#{lang.inner_text}"
           #pull all versions that have the work id, returns csv w/first row of column names
-          existing_vers = find_vers(vers_urn_wo_num)
+          existing_vers = find_vers_by_cts(@keys[:Versions], vers_urn_wo_num)
           #create cts urn off of preexisting entries in version column
           if existing_vers.length == 1
             vers_urn = "#{vers_urn_wo_num}1"
@@ -263,12 +337,14 @@ class CatalogPendingImporter
           end
           #need to check that the description isn't the same
             #how to determine if it is a second mods record for an edition?
+            #oclc #s and LCCNs?
           
           #if has any lang other than lat or grc, is a translation (could cause issues...)
           #insert row in table
-          #add mods prefix, need to double check this doesn't mess up the xml...
+          
           lit = info_hash[:w_lang].inner_text =~ /grc/ ? 'greekLit' : 'latinLit'
           mods_path = "#{ENV['HOME']}/catalog_data/mods/#{lit}/#{info_hash[:canon_id]}/#{info_hash[w_id]}"
+          #add mods prefix, need to double check this doesn't mess up the xml...
           add_mods_prefix(mods_xml)
         end
       end
@@ -293,7 +369,7 @@ class CatalogPendingImporter
     end                
 
     
-    label = "#{info_hash[:w_title]}, #{xml_clean(raw_title, ' ')}"
+    label = xml_clean(raw_title, ' ')
 
     #mods:name, mods:roleTerm.inner_text == "editor" or "translator"
     names = mods_xml.search('name', ns)
@@ -301,23 +377,14 @@ class CatalogPendingImporter
     author_n = ""
     names.each do |m_name|
       if m_name.inner_text =~ /editor|translator|compiler/
-        ed_trans = xml_clean(m_name, ", ")
-      elsif m_name.inner_text =~ /creator/
-        author_n = xml_clean(m_name, ", ")
+        ed_trans = xml_clean(m_name, ",")
+      elsif m_name.inner_text =~ /creator|attributed author/
+        author_n = xml_clean(m_name, ",")
         author_n.gsub!(/,,/, ",")
       end
     end
-    #pull out basic bibliographic info
-    place = xml_clean(mods_xml.search('originInfo//placeTerm[@type="text"]', ns), ",")
-    pub = xml_clean(mods_xml.search('originInfo/publisher', ns), ",")
-    date = xml_clean(mods_xml.search('originInfo/dateIssued', ns), ",")
-    date_m = xml_clean(mods_xml.search('originInfo/dateModified', ns), ",")
-    edition = xml_clean(mods_xml.search('originInfo/edition', ns))
     
-    origin = "#{place} #{pub} #{date} #{date_m} #{edition}"
-    origin.gsub!(/,\s{2, 5}|,\s+$/, " ")
-    
-    description = "#{author_n}. #{ed_trans}. #{origin}."
+    description = "#{author_n} #{ed_trans}"
     
     return label, description
   end

@@ -37,8 +37,8 @@ task :scrape_abbr => :environment do
 end
 
 
-#desc "run_findit"
-#task :findit => :environment do 
-#  finder = FindIt.new
-#  finder.process_csv
-#end
+desc "run_findit"
+task :findit => :environment do 
+  finder = FindIt.new
+  finder.process_csv
+end
