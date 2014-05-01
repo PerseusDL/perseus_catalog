@@ -247,6 +247,20 @@ module CiteColls
   def add_cite_row(table_key, columns, values)
     query = "INSERT INTO #{table_key} (#{columns}) VALUES (#{values})"
     response = @client.execute(:api_method => @ft.query.sql, :parameters => {:sql => query})
+    res = response.body.split("\n")[7]
+    if res
+      row_id = res[/\d+/]
+      it_worked = false
+      times = 0
+      while it_worked != true do
+        if times == 10
+          raise "Confirm insert has run too many times for row_id #{row_id}, terminating"
+        end
+        sleep 5
+        it_worked = confirm_insert(table_key, values.split("'")[1], row_id)
+        times += 1
+      end
+    end
   end
 
   def update_cite_row(table_key, col_val_pairs, row_id)
@@ -255,10 +269,25 @@ module CiteColls
   end
 
   def generate_urn(table_key, code)
-    query = "SELECT COUNT() FROM #{table_key}"
+    query = "SELECT urn FROM #{table_key} ORDER BY urn DESC"
     response = @agent.get("https://www.googleapis.com/fusiontables/v1/query?sql=#{query}&alt=csv#{cite_key}")
-    count = response.body.split("\n")[1].to_i + 1
+    last_urn = response.body.split("\n")[1]
+    unless last_urn
+      new_urn = "urn:cite:perseus:#{code}.1.1"
+    else
+      new_urn = inc_urn(last_urn, code)
+    end
+  end
+
+  def inc_urn(last_urn, code)
+    count = last_urn.split(".")[1].to_i + 1
     new_urn = "urn:cite:perseus:#{code}.#{count.to_s}.1"
+  end
+
+  def confirm_insert(table_key, uri, row_id)
+    found_id = get_row_id(table_key, uri)
+    row_id == found_id
+    #!! AAAAHHHHHHHH This works but other immediate info pulls don't
   end
 
   def get_row_id(table_key, urn)
