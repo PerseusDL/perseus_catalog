@@ -304,6 +304,7 @@
    <!-- Work documents -->
    <field name="work_urn" type="text" indexed="true" stored="true"/>
    <field name="work_title" type="text" indexed="true" stored="true"/>
+   <field name="work_abb_title" type="text" indexed="true" stored="true"/>
    <field name="work_tg_urn" type="text" indexed="true" stored="true"/>  
    <field name="work_no_token" type="alphaOnlySort" indexed="true" stored="true"/>
    <field name="work_facet" type="string" indexed="true" stored="false"/>
@@ -336,6 +337,7 @@
    <field name="auth_facet" type="string" indexed="true" stored="false"/>
    <field name="auth_no_token" type="alphaOnlySort" indexed="true" stored="true"/>
    <field name="auth_alt_name" type="text" indexed="true" stored="true"/>
+   <field name="auth_abb_name" type="text" indexed="true" stored="true"/>
    <field name="auth_alt_id" type="text" indexed="true" stored="true"/>
    <!-- Textgroup documents -->
    <field name="tg_urn" type="text" indexed="true" stored="true"/>

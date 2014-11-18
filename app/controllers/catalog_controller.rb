@@ -150,8 +150,8 @@ class CatalogController < ApplicationController
       field.solr_local_parameters = {
         :df => 'work_title',
         :type => 'dismax',
-        :qf => 'work_title',
-        :pf => 'work_title'
+        :qf => 'work_title work_abb_title',
+        :pf => 'work_title work_abb_title'
       }
     end
     
@@ -159,7 +159,7 @@ class CatalogController < ApplicationController
       field.solr_parameters = { :'spellcheck.dictionary' => 'auth_name' }
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'auth_name auth_alt_name'
+        :qf => 'auth_name auth_alt_name auth_abb_name'
       }
     end
 

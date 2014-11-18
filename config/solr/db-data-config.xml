@@ -101,6 +101,7 @@
             <field column="title" name="title_display"/>
             <field column="title" name="work_facet"/>
             <field column="title" name="work_no_token"/>
+            <field column="abbr_title" name="work_abb_title"/>
             <field column="language" name="work_lang"/>
             <entity name="authors_sub" rootEntity="false" query="SELECT a.name, a.alt_names FROM authors a where a.id=(select taw.auth_id from tg_auth_works taw where taw.work_id='${works.id}')">
                 <field column="name" name="work_auth_name"/>
@@ -135,6 +136,7 @@
             <field column="alt_id" name="auth_alt_id"/>
             <field column="name" name="auth_name"/>
             <field column="alt_names" name="auth_alt_name"/>
+            <field column="abbr" name="auth_abb_name"
         </entity>
         
     </document>
