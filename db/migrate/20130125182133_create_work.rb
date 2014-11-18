@@ -4,6 +4,7 @@ class CreateWork < ActiveRecord::Migration
       t.string :standard_id, :null =>false
       t.integer :textgroup_id
       t.string :title, :null => false
+      t.string :abbr_title
       t.string :language
       t.integer :word_count
       t.timestamps

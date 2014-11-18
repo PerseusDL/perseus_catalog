@@ -23,8 +23,7 @@ class CreateExpression < ActiveRecord::Migration
       t.string :cts_label
       t.string :cts_descr
       t.integer :series_id
-      t.integer :page_start
-      t.integer :page_end
+      t.string :pages
       t.integer :word_count
       t.integer :oclc_id
       t.string :var_type
