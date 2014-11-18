@@ -33,4 +33,44 @@ class Author < ActiveRecord::Base
     doc = Author.find_by_unique_id(id)
     return doc
   end
+
+  def self.new_auth(a, stub=false)
+    auth = Author.new
+    auth.unique_id = a['urn']
+      
+    if stub == true
+      #take info from tg cite table for stub authors with no mads
+      if @auth_cts
+        cts_id = @auth_cts
+      else
+        cts_id = ""
+      end
+      auth_name = a['groupname_eng']
+    else
+      #author with mads
+      if a['canonical_id'] && a['canonical_id'] != ""
+        cts_id = a['canonical_id']
+      else
+        cts_id = ""
+      end
+      auth.alt_id = a['alt_ids']
+      auth_name = a['authority_name']
+    end
+
+    #cts id placement
+    case
+    when cts_id =~ /phi/
+      auth.phi = cts_id
+    when cts_id =~ /tlg/
+      auth.tlg = cts_id 
+    when cts_id =~ /stoa/
+      auth.stoa = cts_id 
+    else
+      auth.alt_id = auth.alt_id ? "#{auth.alt_id};#{cts_id}" : "#{cts_id}"
+    end
+
+    auth.name = auth_name
+
+    return auth
+  end
 end

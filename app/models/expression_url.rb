@@ -15,4 +15,21 @@ class ExpressionUrl < ActiveRecord::Base
     match = ExpressionUrl.find(:first, :conditions => {:exp_id => id, :url => url})
     return match
   end
+
+
+  def expr_urls(expr_id, urls, host=false)
+    unless urls.empty?
+      urls.each do |url|
+        url_row = ExpressionUrl.find_url_match(expr_id, url[1])
+        unless url_row
+          url_row = ExpressionUrl.new
+        end
+        url_row.exp_id = expr_id
+        url_row.url = url[1]
+        url_row.display_label = url[0]
+        url_row.host_work = host
+        url_row.save
+      end
+    end
+  end
 end
