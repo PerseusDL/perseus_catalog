@@ -9,26 +9,29 @@
 
 class XmlImporter
   
-
+  require 'new_import.rb'
   require 'parser.rb'
 
 
-  def import(file, file_type)
+  def import(rec_file, file_type)
+    
+    if File.directory?(rec_file)
+      multi_import(rec_file, file_type)
+    else
+      single_import(rec_file, file_type)
+    end
+  end
+
+  def single_import(file, file_type)
     raw_xml = File.read(file)
     puts file
     doc = Nokogiri::XML::Document.parse(raw_xml) 
 
     if file_type == "atom"
        
-        puts "sending to atom parser"
-        Parser.atom_parse(doc)       
-      
-    elsif file_type == "error"
-      puts "sending to atom error parser"
-      Parser.error_parse(raw_xml)
-    elsif file_type == "author" || "edtrans"
-      puts "sending to MADS parser"
-      Parser.mads_parse(doc, file_type)
+      puts "sending to atom parser"
+      parser = NewParser.new
+      parser.atom_parse(doc)       
     else
       puts "File type not recognized, check if in correct format: #{file}, #{file_type}"
     end
@@ -43,11 +46,11 @@ class XmlImporter
           multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS|greekLit|latinLit|mads/
       else
         if file_type == ("author" or "edtrans")
-          import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/
+          single_import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/
         elsif file_type == "error"
-          import("#{directory_path}/#{file}", file_type) if file =~ /errors\.aae/
+          single_import("#{directory_path}/#{file}", file_type) if file =~ /errors\.aae/
         else
-          import("#{directory_path}/#{file}", file_type) if file =~ /\.xml|\.csv/
+          single_import("#{directory_path}/#{file}", file_type) if file =~ /\.xml|\.csv/
         end   
       end
     end
