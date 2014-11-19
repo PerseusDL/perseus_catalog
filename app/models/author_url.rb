@@ -9,7 +9,7 @@
 
 class AuthorUrl < ActiveRecord::Base
   # attr_accessible :title, :body
-  def self.author_url_row(text, auth)
+  def self.author_url_row(text, auth, node)
     text = text.strip
     if text =~ /orlabs\.oclc/
       url_end = text[/(lccn|np).+$/]

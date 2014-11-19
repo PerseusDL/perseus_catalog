@@ -17,7 +17,7 @@ class ExpressionUrl < ActiveRecord::Base
   end
 
 
-  def expr_urls(expr_id, urls, host=false)
+  def self.expr_urls(expr_id, urls, host=false)
     unless urls.empty?
       urls.each do |url|
         url_row = ExpressionUrl.find_url_match(expr_id, url[1])

@@ -105,6 +105,7 @@ class NewParser
             auth = auth_arr[0]  
             auth.unique_id = a['urn'] unless auth.unique_id == a['urn']
             auth.name = a['authority_name'] unless auth.name == a['authority_name']
+            auth.alt_id = a['alt_ids']
           else
             names = []
             auth_arr.each {|au| names << au.name}
@@ -179,7 +180,7 @@ class NewParser
       url_nodes.each do |node|
         text = node.inner_text
         unless text.empty?
-          AuthorUrl.author_url_row(text, auth)
+          AuthorUrl.author_url_row(text, auth, node)
         end
       end
     end
@@ -246,10 +247,10 @@ class NewParser
                   if t_type
                     if t_type.value == "abbreviated"
                       abr_title = alt_node.inner_text.strip
-                      exp.abbr_title << (exp.abbr_title == nil || exp.abbr_title.empty?) ? abr_title : ";#{abr_title}"
+                      exp.abbr_title << ((exp.abbr_title == nil || exp.abbr_title.empty?) ? abr_title : ";#{abr_title}")
                     else
                       alt_t = alt_node.inner_text.strip
-                      exp.alt_title << (exp.alt_title == nil || exp.alt_title.empty?) ? alt_t : ";#{alt_t}"
+                      exp.alt_title << ((exp.alt_title == nil || exp.alt_title.empty?) ? alt_t : ";#{alt_t}")
                     end
                   end
                 end
@@ -296,56 +297,56 @@ class NewParser
                 end
               end
               #record the language that the version is in
-              exp.language = vers.version[/\w+\d+$/][/\w+/]
+              exp.language = vers_cts[/\w+\d+$/][/\w+/]
               #translation or edition?
-              exp.var_type = vers.ver_type
+              exp.var_type = vers['ver_type']
               #get page ranges and word counts
               mods.xpath("mods:part/mods:extent", ns).each do |ex_tag|
                 attrib = ex_tag.attribute('unit')
                 unit_attr = attrib.value if attrib
                 if unit_attr == "pages"
                   if ex_tag.children.length > 1
-                    expr.pages = turn_to_list(ex_tag, "mods:start", "-", ns)
+                    exp.pages = turn_to_list(ex_tag, "mods:start", "-", ns)
                   else
-                    expr.pages = ex_tag.child.inner_text.strip
+                    exp.pages = ex_tag.child.inner_text.strip
                   end
                 elsif unit_attr == "words"
-                  expr.word_count = ex_tag.xpath("mods:total", ns).inner_text
+                  exp.word_count = ex_tag.xpath("mods:total", ns).inner_text
                 end
               end             
               #get all host work information
               #some won't have more than one tag, but turn_to_list can work with single cases
               host_urls = []
               mods.xpath("mods:relatedItem[@type='host']", ns).each do |host|
-                expr.host_title = turn_to_list(host, "mods:titleInfo", ";", ns, ", ")
-                expr.place_publ = turn_to_list(host, "mods:place/mods:placeTerm[not(@type='code')]", ";", ns) 
-                expr.place_code = turn_to_list(host, "mods:place/mods:placeTerm[@type='code']", ";", ns) 
-                expr.publisher = turn_to_list(host, "mods:publisher", ";", ns)
-                expr.date_publ = turn_to_list(host, "mods:dateIssued", ";", ns) 
-                expr.date_mod = turn_to_list(host, "mods:dateModified", ";", ns)
-                expr.edition = turn_to_list(host, "mods:edition", ";", ns)
-                expr.phys_descr = turn_to_list(host, "mods:physicalDescription", ";", ns, ", ")
-                expr.notes = turn_to_list(host, "mods:notes", ";", ns) 
-                expr.subjects = turn_to_list(host, "mods:subject", ";", ns, "--")
+                exp.host_title = turn_to_list(host, "mods:titleInfo", ";", ns, ", ")
+                exp.place_publ = turn_to_list(host, "mods:place/mods:placeTerm[not(@type='code')]", ";", ns) 
+                exp.place_code = turn_to_list(host, "mods:place/mods:placeTerm[@type='code']", ";", ns) 
+                exp.publisher = turn_to_list(host, "mods:publisher", ";", ns)
+                exp.date_publ = turn_to_list(host, "mods:dateIssued", ";", ns) 
+                exp.date_mod = turn_to_list(host, "mods:dateModified", ";", ns)
+                exp.edition = turn_to_list(host, "mods:edition", ";", ns)
+                exp.phys_descr = turn_to_list(host, "mods:physicalDescription", ";", ns, ", ")
+                exp.notes = turn_to_list(host, "mods:notes", ";", ns) 
+                exp.subjects = turn_to_list(host, "mods:subject", ";", ns, "--")
                 host_urls = url_get(host, "mods:url", ns)
+                exp.oclc_id = turn_to_list(host, "mods:identifier[@type='oclc']", ";", ns)
               end
               #cts_label, cts_descr
-              expr.cts_label = vers['label_eng']
-              expr.cts_descr = vers['desc_eng']
-              #series_id (Series creator needed)
-              ser = series(mods, ns)
-              expression.series_id = ser.id if (ser && !expression.series_id)
-              # oclc_id
-              expr.oclc_id = turn_to_list(host, "mods:identifier[@type='oclc']", ";", ns)
-              expr.save
+              exp.cts_label = vers['label_eng']
+              exp.cts_descr = vers['desc_eng']
+              #series_id 
+              ser = Series.series_row(mods, ns)
+              exp.series_id = ser.id if (ser && !exp.series_id)
+              
+              exp.save
 
               #expression urls
               ex_u = url_get(mods, "mods:url", ns)
-              ExpressionUrl.expr_urls(expr.id, ex_u)
-              ExpressionUrl.expr_urls(expr.id, host_urls, true)
+              ExpressionUrl.expr_urls(exp.id, ex_u)
+              ExpressionUrl.expr_urls(exp.id, host_urls, true)
 
-            rescue
-              message = "Something went wrong in the version row creation! #{$!}"
+            rescue Exception => e
+              message = "Something went wrong in the version row creation! #{$!}\n#{e.backtrace}"
               error_handler(message)
             end
           end
@@ -376,7 +377,7 @@ class NewParser
     end
     return urls
   end
-
+=begin
   def series(mods, ns)
     #get series info
     mods.xpath("mods:relatedItem[@type='series']", ns).each do |series_node|
@@ -393,7 +394,7 @@ class NewParser
       ser = Series.series_row(ser_title, ser_abb)
     end
   end
-
+=end
 
   def error_handler(message)
     puts message

@@ -70,7 +70,7 @@ class Author < ActiveRecord::Base
     end
 
     auth.name = auth_name
-
+    auth.save
     return auth
   end
 end
