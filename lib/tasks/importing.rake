@@ -8,13 +8,8 @@ task :parse_records => :environment do
   file_type = ENV["file_type"]
   rec_file = ENV["rec_file"]
   importer = XmlImporter.new
-
   begin
-    if File.directory?(rec_file)
-      importer.multi_import(rec_file, file_type)
-    else
-      importer.import(rec_file, file_type)
-    end
+    importer.import(rec_file, file_type)
   rescue
     puts "File or directory supplied does not exist, check the path and try again: #{rec_file}"
   end

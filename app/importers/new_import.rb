@@ -128,7 +128,7 @@ class NewParser
         dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']", ns)
         auth.alt_parts = alt_parts.inner_text if alt_parts
         auth.dates = dates.inner_text if dates
-        byebug
+      
         abbrs = turn_to_list(doc, ".//mads:variant[@type='abbreviation']", ";", ns, ", ")  
         other_names = turn_to_list(doc, ".//mads:related", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
         if other_names.empty?  
@@ -261,7 +261,7 @@ class NewParser
 
               #find editors and translators
               mods.xpath(".//mods:name", ns).each do |names|
-                 byebug
+                 
                 name_node = names.xpath("mods:namePart[not(@type='date')]", ns)
                 raw_name = name_node.inner_text if name_node
                 role_node = names.xpath(".//mods:roleTerm", ns)
@@ -403,17 +403,20 @@ class NewParser
   end
 
   #multi variable is for specifying a separator when you are making a list out of a set of nodes that have children
+  #and exc is for defining a further xpath if needed, like for removing the date nodes from alt names
   def turn_to_list(doc, path, join_type, ns, multi=nil, exc=nil)
     node_set = doc.xpath(path, ns)
     node_list = []
     unless node_set.empty?
-      node_set.each do |node| 
+      node_set.each do |node|
         if multi
           if exc
             sub_nodes = node.xpath(exc, ns)
-            node_list << sub_nodes.inner_text.strip.gsub(/\n\s+/, multi).gsub(/,,/, ",")
+            name = ""
+            sub_nodes.each {|n| name << (name.empty? ? n.inner_text : ", #{n.inner_text}")}
+            node_list << name
           else
-            node_list << node.inner_text.strip.gsub(/\n\s+/, multi).gsub(/,,/, ",")
+            node_list << node.inner_text.gsub(/\s*\n\s*/, multi).gsub(/,,/, ",")
           end
         else
           node_list << node.inner_text.strip
