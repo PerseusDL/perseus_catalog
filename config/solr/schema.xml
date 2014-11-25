@@ -320,7 +320,7 @@
    <field name="exp_alt_title" type="text" indexed="true" stored="true"/>
    <field name="exp_host_title" type="text" indexed="true" stored="true"/>
    <field name="exp_series" type="string" indexed="true" stored="true"/>
-   <field name="exp_subject" type="string" indexed="true" stored="true"/>
+   <field name="subjects" type="string" indexed="true" stored="true" multiValued="true"/>
    <field name="year_facet" type="integer" indexed="true" stored="false"/>
    <field name="exp_year" type="integer" indexed="true" stored="true"/>
    <field name="ed_name" type="text" indexed="true" stored="true"/>
@@ -347,7 +347,7 @@
    <field name="tg_no_token" type="alphaOnlySort" indexed="true" stored="true"/>
      
    
-
+   <field name="_version_" type="long" indexed="true" stored ="true"/> 
 
    <!-- Dynamic field definitions.  If a field name is not found, dynamicFields
         will be used if the name matches any of the patterns.

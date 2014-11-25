@@ -4,7 +4,7 @@
         <entity name="item" query="select * from item"
                 deltaQuery="select id from item where last_modified > '${dataimporter.last_index_time}'">
             <field column="NAME" name="name" />
-
+            
             <entity name="feature"  
                     query="select DESCRIPTION from FEATURE where ITEM_ID='${item.ID}'"
                     deltaQuery="select ITEM_ID from FEATURE where last_modified > '${dataimporter.last_index_time}'"
@@ -57,18 +57,18 @@
         user="root"
         password=""/>
     <document>
-        <entity name="expressions" rootEntity="true" query="SELECT * FROM expressions">
+        <entity name="expressions" rootEntity="true" transformer="RegexTransformer" query="SELECT * FROM expressions">
             <field column="cts_urn" name="uid"/>
             <field column="cts_urn" name="exp_urn"/>
             <field column="title" name="title_display"/>
             <field column="title" name="exp_title"/>
             <field column="alt_title" name="exp_alt_title"/>
             <field column="host_title" name="exp_host_title"/>            
-            <field column="subjects" name="exp_subject"/>
             <field column="language" name="exp_language"/>
             <field column="date_publ" name="exp_year"/>
             <field column="var_type" name="exp_type"/>
-     
+            <field column="subjects" splitBy=";" sourceColName="subjects"/>
+            
             <entity name="works_sub" rootEntity="false" query="SELECT standard_id FROM works where id='${expressions.work_id}'">
                 <field column="standard_id" name="exp_work_urn"/>
             </entity>   
@@ -76,7 +76,7 @@
             <entity name="exp_auth_sub" rootEntity="false" query="SELECT a.name FROM authors a, tg_auth_works taw where taw.work_id='${expressions.work_id}' and a.id=taw.auth_id">
                 <field column="name" name="exp_auth_name"/>
             </entity>
-              
+            
             <entity name="editors_or_translators" rootEntity="false" query="SELECT name, alt_names FROM editors_or_translators where id='${expressions.editor_id}'">
                 <field column="name" name="ed_name"/>
                 <field column="alt_names" name="ed_alt_name"/>
@@ -89,8 +89,7 @@
             
             <entity name="series" rootEntity="false" query="SELECT clean_title FROM series where id='${expressions.series_id}'">
                 <field column="clean_title" name="exp_series"/>
-            </entity>
-            
+            </entity>        
         </entity>
         
         
@@ -136,7 +135,7 @@
             <field column="alt_id" name="auth_alt_id"/>
             <field column="name" name="auth_name"/>
             <field column="alt_names" name="auth_alt_name"/>
-            <field column="abbr" name="auth_abb_name"
+            <field column="abbr" name="auth_abb_name"/>
         </entity>
         
     </document>

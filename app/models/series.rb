@@ -12,6 +12,7 @@ class Series < ActiveRecord::Base
   has_many :works
   
   def self.series_row(mods, ns)
+    ser = nil
     mods.xpath(".//mods:relatedItem[@type='series']", ns).each do |series|
       raw_abb = series.xpath("mods:titleInfo[@type='abbreviated']", ns)
       ser_abb = raw_abb.empty? ? nil : raw_abb.inner_text.strip
@@ -38,7 +39,7 @@ class Series < ActiveRecord::Base
         ser.abbr_title = ser_abb if ser_abb
         ser.save
       end
-      return ser
     end
+    return ser
   end
 end

@@ -60,11 +60,11 @@ class Author < ActiveRecord::Base
     #cts id placement
     case
     when cts_id =~ /phi/
-      auth.phi = cts_id
+      auth.phi_id = cts_id
     when cts_id =~ /tlg/
-      auth.tlg = cts_id 
+      auth.tlg_id = cts_id 
     when cts_id =~ /stoa/
-      auth.stoa = cts_id 
+      auth.stoa_id = cts_id 
     else
       auth.alt_id = auth.alt_id ? "#{auth.alt_id};#{cts_id}" : "#{cts_id}"
     end

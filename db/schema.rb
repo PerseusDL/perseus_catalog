@@ -36,7 +36,6 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
 
   create_table "authors", :force => true do |t|
     t.string   "unique_id",         :null => false
-    t.string   "cite_urn"
     t.string   "phi_id"
     t.string   "tlg_id"
     t.string   "stoa_id"
@@ -45,6 +44,7 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
     t.string   "alt_parts"
     t.string   "dates"
     t.text     "alt_names"
+    t.string   "abbr"
     t.string   "field_of_activity"
     t.text     "notes"
     t.string   "related_works"
@@ -99,18 +99,19 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
     t.string   "place_publ"
     t.string   "place_code"
     t.string   "publisher"
-    t.integer  "date_publ"
-    t.integer  "date_mod"
+    t.string   "date_publ"
+    t.string   "date_mod"
+    t.integer  "date_int"
     t.string   "edition"
     t.string   "phys_descr"
     t.text     "notes"
     t.string   "subjects"
+    t.text     "table_of_cont"
     t.string   "cts_urn",       :null => false
     t.string   "cts_label"
     t.string   "cts_descr"
     t.integer  "series_id"
-    t.integer  "page_start"
-    t.integer  "page_end"
+    t.string   "pages"
     t.integer  "word_count"
     t.integer  "oclc_id"
     t.string   "var_type"
@@ -222,6 +223,7 @@ ActiveRecord::Schema.define(:version => 20130513191533) do
     t.string   "standard_id",  :null => false
     t.integer  "textgroup_id"
     t.string   "title",        :null => false
+    t.string   "abbr_title"
     t.string   "language"
     t.integer  "word_count"
     t.datetime "created_at",   :null => false

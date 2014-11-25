@@ -62,6 +62,7 @@ class CatalogController < ApplicationController
     config.add_facet_field 'year_facet', :label => 'Edition or Translation Year Published', :limit => 20, :sort => 'index' 
     config.add_facet_field 'exp_language', :label => 'Edition or Translation Language'
     config.add_facet_field 'exp_series', :label => 'Series' , :limit => 10 
+    config.add_facet_field 'subjects', :label => 'Subjects' , :limit => 10
     config.add_facet_field 'auth_no_token', :show => false
     config.add_facet_field 'tg_no_token', :show => false
     config.add_facet_field 'work_no_token', :show => false
@@ -110,7 +111,6 @@ class CatalogController < ApplicationController
     config.add_show_field 'trans_name', :label => 'Translator:'
     config.add_show_field 'exp_language', :label => 'Language:'
     config.add_show_field 'exp_series', :label => 'Series:'
-    config.add_show_field 'exp_subject', :label => 'Subjects:'
     config.add_show_field 'exp_host_title', :label => 'Host work title:'
 
 
@@ -139,19 +139,11 @@ class CatalogController < ApplicationController
     # case for a BL "search field", which is really a dismax aggregate
     # of Solr search fields. 
     
-    config.add_search_field('title') do |field|
-      #solr_parameters hash are sent to Solr as ordinary url query params. 
+    config.add_search_field('title') do |field| 
       field.solr_parameters = { :'spellcheck.dictionary' => 'title_display' }
-
-      # :solr_local_parameters will be sent using Solr LocalParams
-      # syntax, as eg {! qf=$title_qf }. This is neccesary to use
-      # Solr parameter de-referencing like $title_qf.
-      # See: http://wiki.apache.org/solr/LocalParams
       field.solr_local_parameters = {
-        :df => 'work_title',
         :type => 'dismax',
-        :qf => 'work_title work_abb_title',
-        :pf => 'work_title work_abb_title'
+        :qf => 'work_title work_abb_title^5.0'
       }
     end
     
@@ -159,7 +151,15 @@ class CatalogController < ApplicationController
       field.solr_parameters = { :'spellcheck.dictionary' => 'auth_name' }
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'auth_name auth_alt_name auth_abb_name'
+        :qf => 'auth_name auth_alt_name auth_abb_name^5.0'
+      }
+    end
+
+    config.add_search_field('editor') do |field|
+      field.label = "Editor/Translator" 
+      field.solr_local_parameters = {
+        :type => 'dismax',
+        :qf => 'ed_name trans_name'
       }
     end
 

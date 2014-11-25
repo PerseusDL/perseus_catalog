@@ -13,12 +13,14 @@ class CreateExpression < ActiveRecord::Migration
       t.string :place_publ
       t.string :place_code
       t.string :publisher
-      t.integer :date_publ
-      t.integer :date_mod
+      t.string :date_publ
+      t.string :date_mod
+      t.integer :date_int
       t.string :edition
       t.string :phys_descr
       t.text :notes
       t.string :subjects
+      t.text :table_of_cont
       t.string :cts_urn, :null => false
       t.string :cts_label
       t.string :cts_descr

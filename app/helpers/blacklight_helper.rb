@@ -36,16 +36,16 @@ module BlacklightHelper
     end
   end
 
-#want to find a way to override this so that I can catch the language codes and turn them into full words
-  def render_field_value (value, is_lang=false)
-    value = [value] unless value.is_a? Array
-    value = value.collect { |x| x.respond_to?(:force_encoding) ? x.force_encoding("UTF-8") : x}
 
+  def render_field_value (value, is_lang=false)
+    value = value.split(";") if value =~ /;/
+    value = [value] unless value.is_a? Array
+    value = value.collect { |x| x.respond_to?(:force_encoding) ? x.force_encoding("UTF-8") : x}    
     # retrieve the unabbreviated language code, but fall back to
     # original value when there is nothing to get
     value.map! { |lang| LANGUAGE_CODES[lang] || lang } if is_lang
 
-    return value.map { |v| html_escape v }.join(field_value_separator).html_safe
+    return value.map { |v| html_escape v }.join("<br />").html_safe
   end
 
   private
