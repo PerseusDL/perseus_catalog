@@ -322,7 +322,7 @@
    <field name="exp_series" type="string" indexed="true" stored="true"/>
    <field name="subjects" type="string" indexed="true" stored="true" multiValued="true"/>
    <field name="year_facet" type="integer" indexed="true" stored="false"/>
-   <field name="exp_year" type="integer" indexed="true" stored="true"/>
+   <field name="exp_year" type="string" indexed="true" stored="true"/>
    <field name="ed_name" type="text" indexed="true" stored="true"/>
    <field name="ed_alt_name" type="text" indexed="true" stored="true"/>
    <field name="trans_name" type="text" indexed="true" stored="true"/>
@@ -410,7 +410,6 @@
   <copyField source="trans_name" dest="text"/>
   <copyField source="trans_alt_name" dest="text"/>
   <copyField source="work_auth_name" dest="auth_no_token"/>
-  <copyField source="exp_year" dest="year_facet"/>
   <copyField source="work_tg_name" dest="tg_no_token"/>
   
   
