@@ -36,20 +36,27 @@ module CiteColls
 
   def get_cite_rows(type, key, value)
     #returns array of xml response
-    j_arr = query_cite_tables(type, key, value)
-    #check for redirects
-    j_arr.each_with_index do |row, i|
-      redir = row['redirect_to']
-      unless redir == nil || redir.empty?
-        if j_arr.any? {|r| r['urn'] == redir}
-          j_arr.delete_at(i)
-        else
-          new_j_arr = query_cite_tables(type, 'urn', redir)
-          j_arr.concat(new_j_arr)
+    if value == "all"
+      cite_url = "http://localhost:3000/cite-collections/api/#{type}.json"
+      response = @agent.get(cite_url).body
+      j_arr = JSON.parse(response)
+      return j_arr
+    else
+      j_arr = query_cite_tables(type, key, value)
+      #check for redirects
+      j_arr.each_with_index do |row, i|
+        redir = row['redirect_to']
+        unless redir == nil || redir.empty?
+          if j_arr.any? {|r| r['urn'] == redir}
+            j_arr.delete_at(i)
+          else
+            new_j_arr = query_cite_tables(type, 'urn', redir)
+            j_arr.concat(new_j_arr)
+          end
         end
       end
+      return j_arr
     end
-    return j_arr
   end
 
   def query_cite_tables(type, key, value)

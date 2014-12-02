@@ -22,8 +22,43 @@ class NewParser
   require 'xml_importer.rb'
   include CiteColls
 
+  def textgroup_import
+    set_agent
+    cite_tg_arr = get_cite_rows('textgroups', 'textgroup', 'all')
+    cite_tg_arr.each do |tg|
+      textgroup_row(tg)
+    end
+  end
+
+  def author_import
+  
+    set_agent
+    cite_auth_arr = get_cite_rows('authors', 'canonical_id', 'all')
+    cite_auth_arr.each do |auth|
+      begin
+        if auth['urn_status'] == "published"
+          mads = get_xml("#{BASE_DIR}/catalog_data/mads/#{auth['mads_file']}")
+          ns = mads.collect_namespaces
+          tg_row = Textgroup.find_by_urn_end(auth['canonical_id'])      
+          author_row(auth, tg_row, mads, ns)
+        end
+      rescue
+        puts "error with #{auth}\n#{$!}"
+      end
+    end
+
+  end
+
+  def get_xml(file)
+    file_string = File.open(file, "r+")
+    file_xml = Nokogiri::XML::Document.parse(file_string, &:noblanks)
+    file_string.close
+    return file_xml
+  end
+
   def atom_parse(doc)
     begin
+      start_time = Time.now 
       set_agent
       @error_report = File.open("#{BASE_DIR}/catalog_errors/error_log#{Date.today}.txt", 'w')
       #grab namespaces not defined on the root of the xml doc
@@ -32,17 +67,47 @@ class NewParser
       #creates instance variables for cts ids
       get_cts_ids(atom_id)
       cite_work_arr = get_cite_rows('works', 'work', @work_cts)
-      cite_tg_arr = get_cite_rows('textgroups', 'textgroup', @tg_cts)
-      cite_auth_arr = get_cite_rows('authors', 'canonical_id', @auth_cts)
 
       #there should only be one work, but this gets it out of the array, 
       #work is a json object, less hassle than parsing XML
       cite_work_arr.each do |w|
-        tg = textgroup_row(cite_tg_arr)
+        tg = nil
+        tg = Textgroup.find_by_urn_end(@auth_cts)
         #auth will be an array since there is the possibility of multiple authors
-        auth = author_row(cite_auth_arr, cite_tg_arr[0], doc, ns)
+        auth = []
+        auth = Author.find_all_potential_authors(@auth_cts)
+        work = nil
         work = work_row(w, tg, doc, ns)
         #link it all in tg_auth_work table
+        
+        if auth.empty?
+          #if has a tg but no auth, add tg to auth table
+          a = Author.new
+          a.unique_id = tg.urn
+          a.phi_id = tg.urn_end if tg.urn_end =~ /phi/
+          a.tlg_id = tg.urn_end if tg.urn_end =~ /tlg/
+          a.stoa_id = tg.urn_end if tg.urn_end =~ /stoa/
+          a.name = tg.group_name
+          a.save
+        else
+          #using first author because otherwise solr might get two rows returned and then will fail
+          #unsure what to do about this
+          a = auth[0]
+        end         
+        taw = nil
+        taw = TgAuthWork.find_row(auth[0].id, work.id, tg.id)
+        unless taw
+          taw = TgAuthWork.new
+          taw.tg_id = tg.id
+          taw.auth_id = auth[0].id
+          taw.work_id = work.id
+          taw.save
+        end
+
+          
+          
+      
+        
         version_rows(tg, auth, work, doc, ns)
       end
     rescue Exception => e
@@ -60,119 +125,158 @@ class NewParser
   end
 
 
-  def textgroup_row(cite_tg_arr)
-    tg = nil
-    cite_tg_arr.each do |cite_tg|
-      if cite_tg['textgroup'] =~ /urn:cts/
-        tg = Textgroup.get_info(cite_tg['textgroup'])
-        unless tg
-          tg = Textgroup.new
-          tg.urn = @tg_cts
-          tg.urn_end = @auth_cts
+  def textgroup_row(cite_tg)
+    tg = nil    
+    if cite_tg['textgroup'] =~ /urn:cts/
+      tg = Textgroup.find_by_urn_end(cite_tg['textgroup'][/\w+$/])
+      unless tg
+        tg = Textgroup.new
+        tg.urn = cite_tg['urn']
+        tg.urn_end = cite_tg['textgroup'][/\w+$/]
+        tg.group_name = cite_tg['groupname_eng']
+        tg.save
+      else
+        unless tg.group_name == cite_tg['groupname_eng']
           tg.group_name = cite_tg['groupname_eng']
           tg.save
-        else
-          unless tg.group_name == cite_tg['groupname_eng']
-            tg.group_name = cite_tg['groupname_eng']
-            tg.save
-          end
         end
-      else
-        message = "A CITE Textgroup has a non-conforming urn, #{cite_tg['textgroup']}"
-        error_handler(message)
       end
+    else
+      message = "A CITE Textgroup has a non-conforming urn, #{cite_tg['textgroup']}"
+      error_handler(message)
     end
     return tg
   end
   
 
-  def author_row(cite_auth_arr, cite_tg_row, doc, ns)
+  def author_row(a, cite_tg_row, doc, ns)
     #since there are textgroups without mads and the cite authors are a record of our mads
     #we will lack cite authors where we have authors in the catalog, therefore
     #cite_auth_arr might be empty, but want to still update/add these authors so as to provide the ability to search for them
     #but they must have at least a textgroup, otherwise there is no way for them to have any sort of unique id
     auth_arr = []
     final_auth_arr = []
-    begin
-      unless cite_tg_row['has_mads'] == 'false'
-        cite_auth_arr.each do |a|
-          auth_arr = Author.find_by_major_ids(a['canonical_id'])
-          
-          if auth_arr.empty?
-            auth = Author.new_auth(a)
-          else
-            if auth_arr.length == 1
-              auth = auth_arr[0]  
-              auth.unique_id = a['urn'] unless auth.unique_id == a['urn']
-              auth.name = a['authority_name'] unless auth.name == a['authority_name']
-              auth.alt_id = a['alt_ids']
-            else
-              names = []
-              auth_arr.each {|au| names << au.name}
-              message = "There is more than one author for urn #{@auth_cts}, need to investigate #{names.join(',')}"
-              error_handler(message)
-            end
-          end
-          auth.related_works = a['related_works']
-      
-          #have to go to the MADS files now
-          #need to narrow down section of XML used, in case there is more than one author
-          auth_ids = doc.xpath(".//mads:identifier[@type='citeurn']", ns)
-          mads_xml = nil
-          auth_ids.each do |node| 
-            if node.inner_text == a['urn']
-              mads_xml = node.parent
-            end
-          end
-
-          alt_parts = mads_xml.xpath("//mads:authority//mads:namePart[@type='termsOfAddress']", ns)
-          dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']", ns)
-          auth.alt_parts = alt_parts.inner_text if alt_parts
-          auth.dates = dates.inner_text if dates
-        
-          abbrs = turn_to_list(doc, ".//mads:variant[@type='abbreviation']", ";", ns, ", ")  
-          other_names = turn_to_list(doc, ".//mads:related", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
-          if other_names.empty?  
-            other_names = turn_to_list(doc, ".//mads:variant", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
-          else
-            other_names << ";" + turn_to_list(doc, ".//mads:variant", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
-          end
-          auth.alt_names = other_names
-          auth.abbr = abbrs
-          
-          fields = turn_to_list(doc, ".//mads:fieldOfActivity", ";", ns)
-          auth.field_of_activity = fields unless fields.empty?
-
-          notes = turn_to_list(doc, ".//mads:note", ";", ns)
-          auth.notes = notes unless notes.empty?
-          
-          auth_urls(auth, doc, ns)
-          
-          auth.save
-          final_auth_arr << auth
+    #if no cite author, no cite tg
+    begin  
+      unless cite_tg_row == nil || cite_tg_row['has_mads'] == 'false' || a.empty?        
+        auth_arr = Author.find_by_major_ids(a['canonical_id'])
+        auth_arr = [Author.find_by_name_or_alt_name(a['authority_name'])] if auth_arr.empty?
+        if auth_arr.empty? || auth_arr[0] == nil
+          auth_arr = []
+          auth_arr << Author.new_auth(a)
         end
+        if auth_arr.length == 1
+          auth = auth_arr[0] 
+ 
+          auth.unique_id = a['urn'] unless auth.unique_id == a['urn']
+          auth.name = a['authority_name'] unless auth.name == a['authority_name']
+          alt_ids_arr = a['alt_ids'].split(/;|,/)
+          alt_ids_arr << a['canonical_id'] unless (a['canonical_id'] == nil && a['canonical_id'] == "")
+          alt_ids_arr.each do |alt_id|
+            auth.phi_id = alt_id if alt_id =~ /phi/
+            auth.tlg_id = alt_id if alt_id =~ /tlg/
+            auth.stoa_id = alt_id if alt_id =~ /stoa/
+            
+          end
+          alt_ids_arr.delete(auth.phi_id)
+          alt_ids_arr.delete(auth.tlg_id)
+          alt_ids_arr.delete(auth.stoa_id)
+          auth.alt_id = alt_ids_arr.join(';')
+          
+        else
+          names = []
+          auth_arr.each {|au| names << au.name}
+          message = "There is more than one author for urn #{a['urn']}, need to investigate #{names.join(',')}"
+          error_handler(message)
+        end
+        
+        auth.related_works = a['related_works']
+    
+        #have to go to the MADS files now
+        #need to narrow down section of XML used, in case there is more than one author
+        auth_ids = doc.xpath(".//mads:identifier[@type='citeurn']", ns)
+        mads_xml = nil
+        auth_ids.each do |node| 
+          if node.inner_text == a['urn']
+            mads_xml = node.parent
+          end
+        end
+
+        alt_parts = mads_xml.xpath("//mads:authority//mads:namePart[@type='termsOfAddress']", ns)
+        dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']", ns)
+        auth.alt_parts = alt_parts.inner_text if alt_parts
+        auth.dates = dates.inner_text if dates
+      
+        abbrs = turn_to_list(doc, ".//mads:variant[@type='abbreviation']", ";", ns, ", ")  
+        other_names = turn_to_list(doc, ".//mads:related", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
+        if other_names.empty?  
+          other_names = turn_to_list(doc, ".//mads:variant", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
+        else
+          other_names << ";" + turn_to_list(doc, ".//mads:variant", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
+        end
+        auth.alt_names = other_names
+        auth.abbr = abbrs
+        
+        fields = turn_to_list(doc, ".//mads:fieldOfActivity", ";", ns)
+        auth.field_of_activity = fields unless fields.empty?
+
+        notes = turn_to_list(doc, ".//mads:note", ";", ns)
+        auth.notes = notes unless notes.empty?
+        
+        auth_urls(auth, doc, ns)
+        
+        auth.save
+        final_auth_arr << auth
+        
       else
         #need to create/find stub authors for textgroups that don't have mads files
-        auth_arr = Author.find_by_major_ids(@auth_cts)
-        if auth_arr.empty?
-          auth = Author.new_auth(cite_tg_row, true)
-        else
+        #and for mads that don't have a textgroup
+        if cite_tg_row == nil
+          auth_arr = []
+          auth_arr = Author.find_by_major_ids(a['canonical_id']) if a
+          auth_arr = [Author.find_by_name_or_alt_name(a['authority_name'])] if auth_arr.empty?
+
+          if auth_arr.empty? || auth_arr[0] == nil
+            auth_arr = []
+            auth_arr << Author.new_auth(a, false)
+          end
           if auth_arr.length == 1
-            auth_arr[0].unique_id = cite_tg_row['urn'] unless auth_arr[0].unique_id == cite_tg_row['urn']
-            auth_arr[0].name = cite_tg_row['groupname_eng'] unless auth_arr[0].name == cite_tg_row['groupname_eng']
+            auth_arr[0].unique_id = a['urn'] unless auth_arr[0].unique_id == a['urn']
+            auth_arr[0].name = a['authority_name'] unless auth_arr[0].name == a['authority_name']
             auth_arr[0].save
             final_auth_arr << auth_arr[0]
           else
             names = []
-            auth_arr.each {|au| names << au.name}
-            message = "There is more than one author for urn #{@auth_cts}, need to investigate #{names.join(',')}"
+            auth_arr.each {|au| names << au['authority_name']}
+            message = "There is more than one author for urn #{a['urn']}, need to investigate #{names.join(',')}"
             error_handler(message)
+          end
+        else
+          auth_arr = []
+          auth_arr = Author.find_by_major_ids(cite_tg_row['urn'])
+          auth_arr = [Author.find_by_name_or_alt_name(cite_tg_row['groupname_eng'])] if auth_arr.empty?
+          if auth_arr.empty? || auth_arr[0] == nil
+            auth_arr = []
+            auth_arr << Author.new_auth(cite_tg_row, true)
+          else
+            if auth_arr.length == 1
+              auth_arr[0].unique_id = cite_tg_row['urn'] unless auth_arr[0].unique_id == cite_tg_row['urn']
+              auth_arr[0].name = cite_tg_row['groupname_eng'] unless auth_arr[0].name == cite_tg_row['groupname_eng']
+              auth_arr[0].save
+              final_auth_arr << auth_arr[0]
+            else
+              names = []
+              auth_arr.each {|au| names << au.name}
+              message = "There is more than one author for urn #{cite_tg_row['urn']}, need to investigate #{names.join(',')}"
+              error_handler(message)
+            end
           end
         end
       end
       return final_auth_arr
     rescue Exception => e
-      message = "Error in author row creation for #{cite_tg_row['textgroup']}, #{$!}\n#{e}"
+      message = "Error in author row creation for #{a['mads_file']}, #{$!}\n#{e.backtrace}"
+      puts message
       error_handler(message)
     end
   end
@@ -243,7 +347,7 @@ class NewParser
               exp.title = work.title
              
               #find alt and abbr titles
-              alt_title_nodes = mods.xpath("mods:titleInfo[not(@type='uniform')]", ns)
+              alt_title_nodes = mods.xpath("./mods:titleInfo[not(@type='uniform')]", ns)
               unless alt_title_nodes.empty?
                 alt_titles = []
                 alt_title_nodes.each do |alt_node|
@@ -256,21 +360,23 @@ class NewParser
                       alt_t = alt_node.inner_text.strip
                       exp.alt_title = ((exp.alt_title == nil || exp.alt_title.empty?) ? alt_t : "#{exp.alt_title};#{alt_t}")
                     end
+                  else
+                    #sometimes alt titles don't have a type
+                    alt_t = alt_node.inner_text.strip
+                    exp.alt_title = ((exp.alt_title == nil || exp.alt_title.empty?) ? alt_t : "#{exp.alt_title};#{alt_t}")
                   end
                 end
               end
               #add the abbreviated title(s) to the work table
               #this might need to be an update method
               if work.abbr_title != exp.abbr_title
-                byebug
                 work.abbr_title = exp.abbr_title
                 work.save
-                #Work.update(work.id, {:abbr_title => exp.abbr_title})
               end
 
               #find editors and translators
               mods.xpath(".//mods:name", ns).each do |names|
-                name_node = names.xpath("mods:namePart[not(@type='date')]", ns)
+                name_node = names.xpath(".//mods:namePart[not(@type='date')]", ns)
                 raw_name = name_node.inner_text if name_node
                 role_node = names.xpath(".//mods:roleTerm", ns)
                 role_term = role_node.inner_text if role_node
@@ -286,16 +392,13 @@ class NewParser
                     end
                     cite_auth_urn = cite_auth_ed.empty? ? nil : cite_auth_ed[0]['urn']
                     cite_tg_urn = cite_tg_ed.empty? ? nil : cite_tg_ed[0]['urn']
-                    #if we have either an author or tg cite urn for an ed/trans, then we should add them to the catalog authors
-                    if cite_auth_urn || cite_tg_urn
-                      author_row(cite_auth_ed, cite_tg_ed[0], doc, ns)
-                    end
+
                     unless person
                       person = EditorsOrTranslator.new
                       person.mads_id = cite_tg_urn if cite_tg_urn
                       person.alt_id = cite_auth_urn if cite_auth_urn
                       person.name = raw_name
-                      dates_node = names.xpath("mods:namePart[@type='date']", ns)
+                      dates_node = names.xpath(".//mods:namePart[@type='date']", ns)
                       person.dates = dates_node.inner_text if dates_node
                       person.save
                     end
@@ -314,13 +417,13 @@ class NewParser
               #translation or edition?
               exp.var_type = vers['ver_type']
               #get page ranges and word counts
-              mods.xpath("mods:part/mods:extent", ns).each do |ex_tag|
+              mods.xpath(".//mods:part/mods:extent", ns).each do |ex_tag|
                 attrib = ex_tag.attribute('unit')
                 unit_attr = attrib.value if attrib
                 if unit_attr == "pages"
                   if ex_tag.children.length > 1
-                    pg_s = ex_tag.xpath("mods:start", ns)
-                    pg_e = ex_tag.xpath("mods:end", ns)
+                    pg_s = ex_tag.xpath(".//mods:start", ns)
+                    pg_e = ex_tag.xpath(".//mods:end", ns)
                     pages = pg_s.inner_text if pg_s
                     pages = pages + "-#{pg_e.inner_text}" if pg_e
                     exp.pages = pages
@@ -328,35 +431,20 @@ class NewParser
                     exp.pages = ex_tag.child.inner_text.strip
                   end
                 elsif unit_attr == "words"
-                  exp.word_count = ex_tag.xpath("mods:total", ns).inner_text
+                  exp.word_count = ex_tag.xpath(".//mods:total", ns).inner_text
                 end
               end             
               #get all host work information
               #some won't have more than one tag, but turn_to_list can work with single cases
               host_urls = []
-              hosts = mods.xpath("mods:relatedItem[@type='host']", ns)
-              unless hosts
+              hosts = mods.xpath(".//mods:relatedItem[@type='host']", ns)
+              if hosts.empty?
                 hosts = mods
-              end
-              hosts.each do |host|
-                exp.host_title = turn_to_list(host, "mods:titleInfo", ";", ns, ", ")
-                host.xpath("mods:originInfo", ns).each do |orig|
-                  exp.place_publ = turn_to_list(orig, "mods:place/mods:placeTerm[not(@type='code')]", ";", ns) 
-                  exp.place_code = turn_to_list(orig, "mods:place/mods:placeTerm[@type='code']", ";", ns) 
-                  exp.publisher = turn_to_list(orig, "mods:publisher", ";", ns)
-                  exp.date_publ = turn_to_list(orig, "mods:dateIssued", ";", ns)
-                  exp.date_int = date_process(exp.date_publ) 
-                  exp.date_mod = turn_to_list(orig, "mods:dateModified", ";", ns)
-                  exp.edition = turn_to_list(orig, "mods:edition", ";", ns)
+                mods_host_process(exp, hosts, ns)
+              else
+                hosts.each do |host|
+                  mods_host_process(exp, host, ns)
                 end
-                exp.phys_descr = turn_to_list(host, "mods:physicalDescription", ";", ns, ", ")
-                exp.notes = turn_to_list(host, "mods:notes", ";", ns) 
-                subj = turn_to_list(host, "mods:subject", ";", ns, "--")
-                exp.subjects = sub_geo_codes(subj)                
-                tb_cont = host.xpath("mods:tableOfContents", ns)
-                exp.table_of_cont = tb_cont.inner_text unless tb_cont.empty?
-                host_urls = url_get(host, "mods:url", ns)
-                exp.oclc_id = turn_to_list(host, "mods:identifier[@type='oclc']", ";", ns)
               end
               #cts_label, cts_descr
               exp.cts_label = vers['label_eng']
@@ -368,7 +456,7 @@ class NewParser
               exp.save
 
               #expression urls
-              ex_u = url_get(mods, "mods:url", ns)
+              ex_u = url_get(mods, ".//mods:url", ns)
               ExpressionUrl.expr_urls(exp.id, ex_u)
               ExpressionUrl.expr_urls(exp.id, host_urls, true)
 
@@ -385,10 +473,31 @@ class NewParser
     end
   end
 
+  def mods_host_process(exp, host, ns)
+    exp.host_title = turn_to_list(host, "./mods:titleInfo[not(@type='uniform')]", ";", ns, ", ")
+    host.xpath(".//mods:originInfo", ns).each do |orig|
+      exp.place_publ = turn_to_list(orig, ".//mods:place/mods:placeTerm[not(@type='code')]", ";", ns) 
+      exp.place_code = turn_to_list(orig, ".//mods:place/mods:placeTerm[@type='code']", ";", ns) 
+      exp.publisher = turn_to_list(orig, ".//mods:publisher", ";", ns)
+      exp.date_publ = turn_to_list(orig, ".//mods:dateIssued", ";", ns)
+      exp.date_int = date_process(exp.date_publ) 
+      exp.date_mod = turn_to_list(orig, ".//mods:dateModified", ";", ns)
+      exp.edition = turn_to_list(orig, ".//mods:edition", ";", ns)
+    end
+    exp.phys_descr = turn_to_list(host, ".//mods:physicalDescription", ";", ns, ", ")
+    exp.notes = turn_to_list(host, ".//mods:note", ";", ns) 
+    subj = turn_to_list(host, ".//mods:subject", ";", ns, "--")
+    exp.subjects = sub_geo_codes(subj)                
+    tb_cont = host.xpath(".//mods:tableOfContents", ns)
+    exp.table_of_cont = tb_cont.inner_text unless tb_cont.empty?
+    host_urls = url_get(host, ".//mods:url", ns)
+    exp.oclc_id = turn_to_list(host, ".//mods:identifier[@type='oclc']", ";", ns)
+  end
+
   def url_get(doc, path, ns)
     urls = []
     doc.xpath(path, ns).each do |url_node|
-      dl = url.attribute("displayLabel")
+      dl = url_node.attribute("displayLabel")
       display = dl ? dl.value : nil
       url = url_node.inner_text.strip
       unless url.empty?

@@ -409,6 +409,7 @@
   <copyField source="ed_alt_name" dest="text"/>
   <copyField source="trans_name" dest="text"/>
   <copyField source="trans_alt_name" dest="text"/>
+  <copyField source="subjects" dest="text"/>
   <copyField source="work_auth_name" dest="auth_no_token"/>
   <copyField source="work_tg_name" dest="tg_no_token"/>
   

@@ -19,7 +19,7 @@ class AuthorUrl < ActiveRecord::Base
       url = AuthorUrl.find_by_url(text)
       unless url
         if node.attribute('displayLabel')
-          label = node.attribute('displayLabel')
+          label = node.attribute('displayLabel').value
         else
           case 
           when text =~ /wikipedia/

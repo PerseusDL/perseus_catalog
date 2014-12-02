@@ -14,11 +14,18 @@ class XmlImporter
 
 
   def import(rec_file, file_type)
-    
-    if File.directory?(rec_file)
-      multi_import(rec_file, file_type)
-    else
-      single_import(rec_file, file_type)
+    begin
+      tg = NewParser.new
+      au = NewParser.new
+      tg.textgroup_import
+      au.author_import
+      if File.directory?(rec_file)
+        multi_import(rec_file, file_type)
+      else
+        single_import(rec_file, file_type)
+      end
+    rescue Exception => e
+      puts "#{$!}\n #{e.backtrace}"
     end
   end
 
@@ -33,7 +40,7 @@ class XmlImporter
       parser = NewParser.new
       parser.atom_parse(doc)       
     else
-      puts "File type not recognized, check if in correct format: #{file}, #{file_type}"
+      puts "File type not recognized, check if in correct format: #{file}, #{file_type}, #{$!}"
     end
       puts "end import"
   end

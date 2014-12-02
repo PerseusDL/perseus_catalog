@@ -142,8 +142,10 @@ class CatalogController < ApplicationController
     config.add_search_field('title') do |field| 
       field.solr_parameters = { :'spellcheck.dictionary' => 'title_display' }
       field.solr_local_parameters = {
+        :df => 'work_title',
         :type => 'dismax',
-        :qf => 'work_title work_abb_title^5.0'
+        :qf => 'work_title work_abb_title^5.0',
+        :pf => 'work_title work_abb_title'
       }
     end
     

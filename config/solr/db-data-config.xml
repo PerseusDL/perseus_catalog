@@ -55,7 +55,7 @@
         driver="com.mysql.jdbc.Driver"
         url="Jdbc:mysql://localhost/perseus_blacklight"
         user="root"
-        password="m87iddle"/>
+        password=""/>
     <document>
         <entity name="expressions" rootEntity="true" transformer="RegexTransformer" query="SELECT * FROM expressions">
             <field column="cts_urn" name="uid"/>

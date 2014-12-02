@@ -17,15 +17,41 @@ class Author < ActiveRecord::Base
   end
 
   def self.find_by_major_ids(id)
-    found_id = Author.find(:all, :conditions => ["? in (phi_id, tlg_id, stoa_id)", id])    
-    found_id = Author.find(:all, :conditions => ["alt_id rlike ?", id]) if found_id.empty?
-    return found_id
+    unless id.empty?
+      found_id = Author.find(:all, :conditions => ["? in (phi_id, tlg_id, stoa_id)", id])       
+      alts = Author.find(:all, :conditions => ["alt_id rlike ?", id]) 
+      unless alts.empty?
+        alts.each do |alt|
+          alt_ids = alt.alt_id.split(';')
+          unless alt_ids.include?(id)      
+            alts.delete(alt)
+            next
+          end
+        end
+      end
+      if found_id.empty?
+        found_id = alts unless alts.empty?
+      else
+        unless alts.empty?
+          overlap = found_id & alts
+          if overlap.empty?
+            found_id.concat(alts) 
+          else
+            overlap.map {|o| alts.delete(o)}
+            found_id.concat(alts) unless alts.empty?
+          end
+        end
+      end
+      return found_id
+    else
+      return []
+    end
   end
 
   def self.find_all_potential_authors(id)
-    found_id = []
-    found_id << Author.find_by_major_ids(id)    
-    found_id << Author.find(:all, :conditions => ["related_works rlike ?", id]) 
+    id_auth = Author.find_by_major_ids(id)    
+    rel_works = Author.find(:all, :conditions => ["related_works rlike ?", id]) 
+    found_id = id_auth.concat(rel_works)
     return found_id
   end
 
