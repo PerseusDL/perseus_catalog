@@ -4,6 +4,8 @@ module ApplicationHelper
   require 'rss'
   require 'open-uri'
 
+
+
   def should_render_show_field? document, solr_field
     
     (document.has?(solr_field.field) && !(document.values_at(solr_field.field)[0].empty?))||
@@ -37,6 +39,14 @@ module ApplicationHelper
       taw_arr = TgAuthWork.find(:all, :conditions => {:auth_id => object.id})
       tgs = Textgroup.find(taw_arr.collect {|d| d.tg_id})
       works = Work.find(taw_arr.collect {|d| d.work_id}, :order => "title")
+      #also taking in to related works listed with the authors
+      rel_works = object.related_works == nil ? [] : object.related_works.split(';')
+      w_ids = works.collect {|w| w.standard_id[/\w+\.\w+$/]}
+      rel_works.each do |rw|
+        unless w_ids.include?(rw)
+          works << Work.find(:all, :conditions => ["standard_id rlike ?", rw])
+        end
+      end
       return works, tgs
     end
 

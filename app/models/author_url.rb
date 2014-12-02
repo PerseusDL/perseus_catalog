@@ -9,4 +9,37 @@
 
 class AuthorUrl < ActiveRecord::Base
   # attr_accessible :title, :body
+  def self.author_url_row(text, auth, node)
+    text = text.strip
+    if text =~ /orlabs\.oclc/
+      url_end = text[/(lccn|np).+$/]
+      text = "http://worldcat.org/wcidentities/#{url_end}"
+      label = "Worldcat Identities"
+    else
+      url = AuthorUrl.find_by_url(text)
+      unless url
+        if node.attribute('displayLabel')
+          label = node.attribute('displayLabel').value
+        else
+          case 
+          when text =~ /wikipedia/
+            label = "Wikipedia"
+          when text =~ /viaf/
+            label = "VIAF"
+          when text =~ /quod\.lib\.umich/
+            label = "Smith's Dictionary"
+          when text =~ /id\.loc\.gov/
+            label = "ID.gov"
+          else
+            label = text
+          end  
+        end
+      end
+      url = AuthorUrl.new
+      url.url = text
+      url.author_id = auth.id
+      url.display_label = label
+      url.save
+    end
+  end
 end

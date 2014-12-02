@@ -10,8 +10,10 @@
         <ul>
           <dt><%= "URN:"%></dt>
           <dd><%= w_id %></dd>
+          <% if work.word_count %>
           <dt><%= "Word Count:"%></dt>
           <dd><%= work.word_count %></dd>
+          <% end %>
           <%= link_to "Click here for Work record", :id => w_id %>
         </ul>
       </div>

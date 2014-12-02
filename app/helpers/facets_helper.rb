@@ -36,9 +36,11 @@ module FacetsHelper
     params.merge(:id => type, :action => "facet", :q => "#{q_field}:[#{letter} TO #{lett_arr[next_index]}]")
   end
 
-  def render_facet_value(facet_solr_field, item, options ={})    
+  def render_facet_value(facet_solr_field, item, options ={})   
     is_lang = facet_solr_field =~ /lang/i 
-    (link_to_unless(options[:suppress_link], render_field_value(item.label, is_lang), add_facet_params_and_redirect(facet_solr_field, item), :class=>"facet_select") + " " + render_facet_count(item.hits)).html_safe
+
+      (link_to_unless(options[:suppress_link], render_field_value(item.label, is_lang), add_facet_params_and_redirect(facet_solr_field, item), :class=>"facet_select") + " " + render_facet_count(item.hits)).html_safe
+   
   end
 
 #Overriding original to add the removal of alphabetic pagination in the :q field

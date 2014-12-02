@@ -2,7 +2,7 @@
   <% d_id = @document.values_at("uid")[0]%>
   <% doc = Author.get_info(d_id) %>
   <% works, tgs = find_related(doc) %>
-  <% field_list = ["phi_id", "tlg_id", "stoa_id", "alt_id", "name", "alt_parts", "dates", "alt_names", "field_of_activity", "notes"] %>
+  <% field_list = ["phi_id", "tlg_id", "stoa_id", "alt_id", "name", "abbr", "alt_names", "field_of_activity", "notes"] %>
 
 <dl class="dl-horizontal  dl-invert">
 

@@ -8,18 +8,6 @@
 #=============================================================================================
 
 
-#Atom build rake tasks
-
-desc "Build Atom feed"
-task :build_atom_feed => :environment do
-  builder = AtomBuild.new
-  builder.multi_agents
-  builder.build_feeds
-  #builder.process_pending
-  #builder.process_works
-end
-
-
 #Lexicon processing rake tasks
 
 desc "Process a lexicon"
@@ -34,4 +22,17 @@ desc "Screen scrape abbreviations"
 task :scrape_abbr => :environment do
   processor = LexProcessor.new
   processor.scrape_abbr
+end
+
+
+desc "run_findit"
+task :findit => :environment do 
+  finder = FindIt.new
+  finder.process_csv
+end
+
+desc "run_compare"
+task :compare => :environment do
+  finder = FindIt.new
+  finder.compare_db_mods
 end

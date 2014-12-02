@@ -8,7 +8,7 @@
 #=============================================================================================
 
 class Expression < ActiveRecord::Base
-  # attr_accessible :title, :body
+  attr_accessible :abbr_title
   belongs_to :work
 
   belongs_to :editors_or_translator

@@ -194,7 +194,7 @@ class Parser
         #if record has none of the main id types, grab the first alt_id
         prob_mads_id = "#{alt_ids[0]}" unless prob_mads_id
         name_part = auth_name.gsub(/\s+|,|\./, "")[0, 5]
-        person.unique_id = "M#{prob_mads_id.gsub(/\s/, '')}#{name_part}"
+        person.unique_id = cite_urn[/author.+/]
         person.cite_urn = cite_urn if cite_urn
         person.save
           
@@ -643,7 +643,7 @@ class Parser
           parts =[]
           s.children.each {|s_part| parts << s_part.inner_text.strip}
           parts.delete("")
-          raw_subjects << parts.join(", ")
+          raw_subjects << parts.join(">>")
         end
         expression.subjects = raw_subjects.join("; ")
 
