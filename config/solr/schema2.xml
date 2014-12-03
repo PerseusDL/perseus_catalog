@@ -228,7 +228,8 @@
          them will be ignored outright 
      --> 
     <fieldtype name="ignored" stored="false" indexed="false" class="solr.StrField" /> 
-
+    
+    <fieldType name="noTokenText" class="solr.TextField" positionIncrementGap="100"/>
  </types>
 
 
@@ -238,6 +239,9 @@
      type: mandatory - the name of a previously defined type from the <types> section
      indexed: true if this field should be indexed (searchable or sortable)
      stored: true if this field should be retrievable
+     compressed: [false] if this field should be stored using gzip compression
+       (this will only apply if the field type is compressable; among
+       the standard field types, only TextField and StrField are)
      multiValued: true if this field may contain multiple values per document
      omitNorms: (expert) set to true to omit the norms associated with
        this field (this disables length normalization and index-time
@@ -248,7 +252,7 @@
        best performance.
    -->
 
-   <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
+   <!--<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
    <field name="sku" type="textTight" indexed="true" stored="true" omitNorms="true"/>
    <field name="name" type="text" indexed="true" stored="true"/>
    <field name="nameSort" type="string" indexed="true" stored="false"/>
@@ -257,21 +261,20 @@
    <field name="cat" type="text_ws" indexed="true" stored="true" multiValued="true" omitNorms="true" termVectors="true" />
    <field name="features" type="text" indexed="true" stored="true" multiValued="true"/>
    <field name="includes" type="text" indexed="true" stored="true"/>
-
    <field name="weight" type="sfloat" indexed="true" stored="true"/>
-   <field name="price"  type="sfloat" indexed="true" stored="true"/>
+   <field name="price"  type="sfloat" indexed="true" stored="true"/>-->
    <!-- "default" values can be specified for fields, indicating which
         value should be used if no value is specified when adding a document.
      -->
-   <field name="popularity" type="sint" indexed="true" stored="true" default="0"/>
-   <field name="inStock" type="boolean" indexed="true" stored="true"/>
+   <!--<field name="popularity" type="sint" indexed="true" stored="true" default="0"/>
+   <field name="inStock" type="boolean" indexed="true" stored="true"/>-->
 
    <!-- Some sample docs exists solely to demonstrate the spellchecker
         functionality, this is the only field they container.
         Typically you might build the spellchecker of "catchall" type field
         containing all of the text in each document
      -->
-   <field name="word" type="string" indexed="true" stored="true"/>
+   <!--<field name="word" type="string" indexed="true" stored="true"/>-->
 
    
    <!-- catchall field, containing all other searchable text fields (implemented
@@ -280,15 +283,68 @@
 
    <!-- non-tokenized version of manufacturer to make it easier to sort or group
         results by manufacturer.  copied from "manu" via copyField -->
-   <field name="manu_exact" type="string" indexed="true" stored="false"/>
+   <!--<field name="manu_exact" type="string" indexed="true" stored="false"/>-->
+
+   <!-- Here, default is used to create a "timestamp" field indicating
+        When each document was indexed.
+     -->
+   <field name="timestamp" type="date" indexed="true" stored="true" default="NOW" multiValued="false"/>
+   <!-- Everything gets a uid-->
+   <field name="uid" type="string" indexed="true" stored="true" required="true" multiValued="false"/>
+   <field name="title_display" type="string" indexed="true" stored="true"></field>
+   <!-- Work documents -->
+   <field name="work_urn" type="text" indexed="true" stored="true"/>
+   <field name="work_title" type="text" indexed="true" stored="true"/>
+   <field name="work_tg_urn" type="text" indexed="true" stored="true"/>  
+   <field name="work_no_token" type="alphaOnlySort" indexed="true" stored="true"/>
+   <field name="work_facet" type="string" indexed="true" stored="false"/>
+   <field name="work_auth_name" type="text" indexed="true" stored="true"/>
+   <field name="work_auth_alt_name" type="text" indexed="true" stored="true"/>
+   <field name="work_lang" type="text" indexed="true" stored="true"/>
+   <field name="work_tg_name" type="text" indexed="true" stored="true"/>
+   <!-- Expression documents -->
+   <field name="exp_urn" type="text" indexed="true" stored="true"/>
+   <field name="exp_work_urn" type="string" indexed="true" stored="true"/>
+   <field name="exp_auth_name" type="text" indexed="true" stored="true"/>
+   <field name="exp_title" type="text" indexed="true" stored="true"/>
+   <field name="exp_alt_title" type="text" indexed="true" stored="true"/>
+   <field name="exp_host_title" type="text" indexed="true" stored="true"/>
+   <field name="exp_series" type="string" indexed="true" stored="true"/>
+   <field name="exp_subject" type="string" indexed="true" stored="true"/>
+   <field name="year_facet" type="integer" indexed="true" stored="false"/>
+   <field name="exp_year" type="integer" indexed="true" stored="true"/>
+   <field name="ed_name" type="text" indexed="true" stored="true"/>
+   <field name="ed_alt_name" type="text" indexed="true" stored="true"/>
+   <field name="trans_name" type="text" indexed="true" stored="true"/>
+   <field name="trans_alt_name" type="text" indexed="true" stored="true"/>
+   <field name="exp_language" type="text" indexed="true" stored="true"/>
+   <field name="exp_type" type="text" indexed="true" stored="true"/>
+   <!-- Author documents -->
+   <field name="phi_id" type="string" indexed="true" stored="true"/>
+   <field name="tlg_id" type="string" indexed="true" stored="true"/>
+   <field name="stoa_id" type="string" indexed="true" stored="true"/>
+   <field name="auth_name" type="text" indexed="true" stored="true"/>
+   <field name="auth_facet" type="string" indexed="true" stored="false"/>
+   <field name="auth_no_token" type="alphaOnlySort" indexed="true" stored="true"/>
+   <field name="auth_alt_name" type="text" indexed="true" stored="true"/>
+   <field name="auth_alt_id" type="text" indexed="true" stored="true"/>
+   <!-- Textgroup documents -->
+   <field name="tg_urn" type="text" indexed="true" stored="true"/>
+   <field name="tg_auth_names" type="text" indexed="true" stored="true" multiValued="true"/>
+   <field name="tg_name" type="text" indexed="true" stored="true"/>
+   <field name="tg_facet" type="string" indexed="true" stored="false"/>
+   <field name="tg_no_token" type="alphaOnlySort" indexed="true" stored="true"/>
+     
    <field name="_version_" type="long" indexed="true" stored="true" multiValued="false"/>
+
+
    <!-- Dynamic field definitions.  If a field name is not found, dynamicFields
         will be used if the name matches any of the patterns.
         RESTRICTION: the glob-like pattern in the name attribute must have
         a "*" only at the start or the end.
         EXAMPLE:  name="*_i" will match any field ending in _i (like myid_i, z_i)
         Longer patterns will be matched first.  if equal size patterns
-        both match, the first appearing in the schema will be used.  -->
+        both match, the first appearing in the schema will be used.
    <dynamicField name="*_i"  type="sint"    indexed="true"  stored="true"/>
    <dynamicField name="*_s"  type="string"  indexed="true"  stored="true"/>
    <dynamicField name="*_l"  type="slong"   indexed="true"  stored="true"/>
@@ -297,8 +353,8 @@
    <dynamicField name="*_f"  type="sfloat"  indexed="true"  stored="true"/>
    <dynamicField name="*_d"  type="sdouble" indexed="true"  stored="true"/>
    <dynamicField name="*_dt" type="date"    indexed="true"  stored="true"/>
-
-   <dynamicField name="random*" type="random" />
+   <dynamicField name="*_facet" type="string" indexed="true" stored="true" multiValued="true"/>
+   <dynamicField name="random*" type="random" />-->
 
    <!-- uncomment the following to ignore any fields that don't already match an existing 
         field name or dynamic field, rather than reporting them as an error. 
@@ -311,10 +367,12 @@
  <!-- Field to use to determine and enforce document uniqueness. 
       Unless this field is marked with required="false", it will be a required field
    -->
- <uniqueKey>id</uniqueKey>
+  
+  <uniqueKey>uid</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
- <defaultSearchField>text</defaultSearchField>
+ <defaultSearchField>text</defaultSearchField> 
+  <!--text might not be the best default field, to keep in mind...-->
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="OR"/>
@@ -322,17 +380,29 @@
   <!-- copyField commands copy one field to another at the time a document
         is added to the index.  It's used either to index the same field differently,
         or to add multiple fields to the same field for easier/faster searching.  -->
-   <copyField source="id" dest="sku"/>
 
-   <copyField source="cat" dest="text"/>
-   <copyField source="name" dest="text"/>
-   <copyField source="name" dest="nameSort"/>
-   <copyField source="name" dest="alphaNameSort"/>
-   <copyField source="manu" dest="text"/>
-   <copyField source="features" dest="text"/>
-   <copyField source="includes" dest="text"/>
-
-   <copyField source="manu" dest="manu_exact"/>
+  <copyField source="uid" dest="text"/>
+  <copyField source="phi_id" dest="text"/>
+  <copyField source="tlg_id" dest="text"/>
+  <copyField source="stoa_id" dest="text"/>
+  <copyField source="title_display" dest="text"/>
+  <copyField source="auth_name" dest="text"/>
+  <copyField source="tg_name" dest="text"/>
+  <copyField source="work_auth_name" dest="text"/>
+  <copyField source="exp_auth_name" dest="text"/>
+  <copyField source="work_auth_alt_name" dest="text"/>
+  <copyField source="exp_alt_title" dest="text"/>
+  <copyField source="exp_host_title" dest="text"/>
+  <copyField source="auth_alt_name" dest="text"/>
+  <copyField source="ed_name" dest="text"/>
+  <copyField source="ed_alt_name" dest="text"/>
+  <copyField source="trans_name" dest="text"/>
+  <copyField source="trans_alt_name" dest="text"/>
+  <copyField source="work_auth_name" dest="auth_no_token"/>
+  <copyField source="exp_year" dest="year_facet"/>
+  <copyField source="work_tg_name" dest="tg_no_token"/>
+  
+  
 
  <!-- Similarity is the scoring routine for each document vs. a query.
       A custom similarity may be specified here, but the default is fine
