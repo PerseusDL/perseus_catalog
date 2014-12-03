@@ -236,8 +236,7 @@
          them will be ignored outright 
      --> 
     <fieldtype name="ignored" stored="false" indexed="false" class="solr.StrField" /> 
-    
-    <fieldType name="noTokenText" class="solr.TextField" positionIncrementGap="100"/>
+
  </types>
 
 
@@ -247,9 +246,6 @@
      type: mandatory - the name of a previously defined type from the <types> section
      indexed: true if this field should be indexed (searchable or sortable)
      stored: true if this field should be retrievable
-     compressed: [false] if this field should be stored using gzip compression
-       (this will only apply if the field type is compressable; among
-       the standard field types, only TextField and StrField are)
      multiValued: true if this field may contain multiple values per document
      omitNorms: (expert) set to true to omit the norms associated with
        this field (this disables length normalization and index-time
@@ -260,7 +256,7 @@
        best performance.
    -->
 
-   <!--<field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
+   <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
    <field name="sku" type="textTight" indexed="true" stored="true" omitNorms="true"/>
    <field name="name" type="text" indexed="true" stored="true"/>
    <field name="nameSort" type="string" indexed="true" stored="false"/>
@@ -271,19 +267,19 @@
    <field name="includes" type="text" indexed="true" stored="true"/>
 
    <field name="weight" type="sfloat" indexed="true" stored="true"/>
-   <field name="price"  type="sfloat" indexed="true" stored="true"/>-->
+   <field name="price"  type="sfloat" indexed="true" stored="true"/>
    <!-- "default" values can be specified for fields, indicating which
         value should be used if no value is specified when adding a document.
      -->
-   <!--<field name="popularity" type="sint" indexed="true" stored="true" default="0"/>
-   <field name="inStock" type="boolean" indexed="true" stored="true"/>-->
+   <field name="popularity" type="sint" indexed="true" stored="true" default="0"/>
+   <field name="inStock" type="boolean" indexed="true" stored="true"/>
 
    <!-- Some sample docs exists solely to demonstrate the spellchecker
         functionality, this is the only field they container.
         Typically you might build the spellchecker of "catchall" type field
         containing all of the text in each document
      -->
-   <!--<field name="word" type="string" indexed="true" stored="true"/>-->
+   <field name="word" type="string" indexed="true" stored="true"/>
 
    
    <!-- catchall field, containing all other searchable text fields (implemented
@@ -291,7 +287,7 @@
    <field name="text" type="text" indexed="true" stored="false" multiValued="true"/>
 
    <!-- non-tokenized version of manufacturer to make it easier to sort or group
-        results by manufacturer.  copied from "manu" via copyField -->
+        results by manufacturer.  copied from "manu" via copyField -->=
    <!--<field name="manu_exact" type="string" indexed="true" stored="false"/>-->
 
    <!-- Here, default is used to create a "timestamp" field indicating
@@ -355,7 +351,7 @@
         a "*" only at the start or the end.
         EXAMPLE:  name="*_i" will match any field ending in _i (like myid_i, z_i)
         Longer patterns will be matched first.  if equal size patterns
-        both match, the first appearing in the schema will be used.
+        both match, the first appearing in the schema will be used.  -->
    <dynamicField name="*_i"  type="sint"    indexed="true"  stored="true"/>
    <dynamicField name="*_s"  type="string"  indexed="true"  stored="true"/>
    <dynamicField name="*_l"  type="slong"   indexed="true"  stored="true"/>
@@ -364,8 +360,8 @@
    <dynamicField name="*_f"  type="sfloat"  indexed="true"  stored="true"/>
    <dynamicField name="*_d"  type="sdouble" indexed="true"  stored="true"/>
    <dynamicField name="*_dt" type="date"    indexed="true"  stored="true"/>
-   <dynamicField name="*_facet" type="string" indexed="true" stored="true" multiValued="true"/>
-   <dynamicField name="random*" type="random" />-->
+
+   <dynamicField name="random*" type="random" />
 
    <!-- uncomment the following to ignore any fields that don't already match an existing 
         field name or dynamic field, rather than reporting them as an error. 
@@ -378,12 +374,10 @@
  <!-- Field to use to determine and enforce document uniqueness. 
       Unless this field is marked with required="false", it will be a required field
    -->
-  
-  <uniqueKey>uid</uniqueKey>
+ <uniqueKey>id</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
- <defaultSearchField>text</defaultSearchField> 
-  <!--text might not be the best default field, to keep in mind...-->
+ <defaultSearchField>text</defaultSearchField>
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="OR"/>
@@ -391,6 +385,16 @@
   <!-- copyField commands copy one field to another at the time a document
         is added to the index.  It's used either to index the same field differently,
         or to add multiple fields to the same field for easier/faster searching.  -->
+   <copyField source="id" dest="sku"/>
+
+   <copyField source="cat" dest="text"/>
+   <copyField source="name" dest="text"/>
+   <copyField source="name" dest="nameSort"/>
+   <copyField source="name" dest="alphaNameSort"/>
+   <copyField source="manu" dest="text"/>
+   <copyField source="features" dest="text"/>
+   <copyField source="includes" dest="text"/>
+
 
   <copyField source="uid" dest="text"/>
   <copyField source="phi_id" dest="text"/>
@@ -414,7 +418,6 @@
   <copyField source="work_tg_name" dest="tg_no_token"/>
   
   
-
  <!-- Similarity is the scoring routine for each document vs. a query.
       A custom similarity may be specified here, but the default is fine
       for most applications.  -->

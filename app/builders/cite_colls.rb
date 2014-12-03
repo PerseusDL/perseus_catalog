@@ -37,7 +37,7 @@ module CiteColls
   def get_cite_rows(type, key, value)
     #returns array of xml response
     if value == "all"
-      cite_url = "http://localhost:3000/cite-collections/api/#{type}.json"
+      cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}.json"
       response = @agent.get(cite_url).body
       j_arr = JSON.parse(response)
       return j_arr
