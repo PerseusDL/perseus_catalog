@@ -2,7 +2,7 @@
 <dataConfig>
     <dataSource type="JdbcDataSource"
         driver="com.mysql.jdbc.Driver"
-        url="Jdbc:mysql://localhost/perseus_blacklight"
+        url="Jdbc:mysql://"
         user="root"
         password=""/>
     <document>
