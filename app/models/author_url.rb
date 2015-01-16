@@ -34,12 +34,12 @@ class AuthorUrl < ActiveRecord::Base
             label = text
           end  
         end
+        url = AuthorUrl.new
+        url.url = text
+        url.author_id = auth.id
+        url.display_label = label
+        url.save
       end
-      url = AuthorUrl.new
-      url.url = text
-      url.author_id = auth.id
-      url.display_label = label
-      url.save
     end
   end
 end

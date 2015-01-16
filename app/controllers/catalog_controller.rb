@@ -89,6 +89,7 @@ class CatalogController < ApplicationController
     config.add_index_field 'phi_id', :label => 'Identifier:'
     config.add_index_field 'tlg_id', :label => 'Identifier:'
     config.add_index_field 'stoa_id', :label => 'Identifier:'
+    config.add_index_field 'work_abb_title', :label => 'Abbreviated title:'
     config.add_index_field 'work_auth_name', :label => 'Author:'
     config.add_index_field 'exp_auth_name', :label => 'Author:'  
     config.add_index_field 'ed_name', :label => 'Editor:'
@@ -107,6 +108,7 @@ class CatalogController < ApplicationController
     config.add_show_field 'work_urn', :label => 'URN:'
     #config.add_show_field 'exp_urn', :label => 'URN:'
     config.add_show_field 'exp_alt_title', :label => 'Alternate title:'
+    config.add_show_field 'work_abb_title', :label => 'Abbreviated title:'
     config.add_show_field 'ed_name', :label => 'Editor:'
     config.add_show_field 'trans_name', :label => 'Translator:'
     config.add_show_field 'exp_language', :label => 'Language:'
@@ -144,8 +146,8 @@ class CatalogController < ApplicationController
       field.solr_local_parameters = {
         :df => 'work_title',
         :type => 'dismax',
-        :qf => 'work_title',# work_abb_title^5.0',
-        :pf => 'work_title'# work_abb_title'
+        :qf => 'work_title work_abb_title^5.0',
+        :pf => 'work_title work_abb_title'
       }
     end
     
@@ -153,7 +155,7 @@ class CatalogController < ApplicationController
       field.solr_parameters = { :'spellcheck.dictionary' => 'auth_name' }
       field.solr_local_parameters = {
         :type => 'dismax',
-        :qf => 'auth_name auth_alt_name'# auth_abb_name^5.0'
+        :qf => 'auth_name auth_alt_name auth_abb_name^5.0'
       }
     end
 

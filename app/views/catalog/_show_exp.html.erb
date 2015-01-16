@@ -6,13 +6,29 @@
      
 
 
-  <% field_list = ["publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "page_start", "page_end", "word_count", "notes", "subjects"] %> <%# "pages", "table_of_cont" removed-%>
+  <% field_list = ["publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "pages", "word_count", "table_of_cont", "notes", "subjects"] %>
+
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <dl class="dl-horizontal  dl-invert">
+        <% test_rows = get_urls("test", doc.id) %>
+        <% unless test_rows.empty? %>
+          <h4>Get to the Text</h4>
+          <%# item urls-%>      
+          <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression"} %>
+          <%# host urls-%>         
+          <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host"} %>
+        <% else %>
+          <h4>No Online Texts Found</h4>
+          <p>We're sorry, we don't yet have a link to this text. We are constantly adding new texts to the catalog, please check back later. <br/>
+          If you know of a digital, open source version of this text, please contact us and we will see if it is possible to include it here.</p>
+        <% end %>
+      </dl>
+    </div>
+  </div>
 
   <dl class="dl-horizontal  dl-invert">
-
-    <%# item urls-%>      
-    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression"} %>
-
+    <h4>Full Catalog Record</h4>
     <dt><%= "URN:" %></dt>
     <dd><%= d_id %></dd>
     <dt><%= "Work:" %></dt>
@@ -30,10 +46,12 @@
 
     <%# mysql fields-%>
     <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
-   
-    <%# host urls-%>         
-    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host"} %>
+   <%# item catalog urls-%>     
+    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression_info"} %>
+    <%# host catalog urls-%>         
+    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host_info"} %>
 
+    
     
   </dl>
 

@@ -48,6 +48,13 @@ class Author < ActiveRecord::Base
     end
   end
 
+  def self.get_works(id)
+    taw_arr = TgAuthWork.find(:all, :conditions => ["auth_id = ?", id])
+    work_arr = []
+    taw_arr.each {|row| work_arr << row.work_id}
+    return work_arr
+  end
+
   def self.find_all_potential_authors(id)
     id_auth = Author.find_by_major_ids(id)    
     rel_works = Author.find(:all, :conditions => ["related_works rlike ?", id]) 

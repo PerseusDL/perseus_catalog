@@ -1,34 +1,72 @@
 <%# default partial to display mysql document info in catalog show view for works-%>
-<dl class="dl-horizontal  dl-invert">
+
   <% d_id = @document.values_at("work_urn")[0]%>
   <% doc = Work.get_info(d_id) %>
   <% exprs, auths, tgs, non_cat = find_related(doc) %>
-
+  <% eds = exprs.select{|e| e.var_type == "edition"} %>
+  <% trans = exprs.select{|e| e.var_type == "translation"} %>
+  
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <% unless eds.empty? %>
+        <% ed, eds_urls = select_expression_url(eds) %>
+        <% unless eds_urls.empty? %>
+          <% e_pg = get_pages(ed) %>
+          <h4>Quick-Find an Edition</h4>
+          <% if e_pg %> 
+            <% text = "Go to page #{e_pg} in " %>
+          <% else %>
+            <% text = "Go to " %>
+          <% end %>
+            <p><%= text %> <%= link_to(ed.cts_label, eds_urls[0].url, :target => "_blank" ) %></p>
+          
+          <p><%= "1 of #{eds.length.to_s} editions. To select a specific edition, see below."%></p>
+        <% end %>
+      <% end %>
+      
+      <% unless trans.empty? %>
+        <% trs, trans_urls = select_expression_url(trans) %>
+        <% unless trans_urls.empty? %>
+          <% t_pg = get_pages(trs) %>
+          <h4>Quick-Find a Translation</h4>    
+          <% if t_pg %>
+            <% text = "Go to page #{t_pg} in " %>
+          <% else %>
+            <% text = "Go to " %>
+          <% end %>   
+          <p><%= text %> <%=link_to(trs.cts_label, trans_urls[0].url, :target => "_blank") %></p>
+          
+          <p><%= "1 of #{trans.length.to_s} translations. To select a specific translation, see below."%></p>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  
   <dl class="dl-horizontal  dl-invert">
-
-  <%# fields-%>
-  <dt><%= "URN:" %></dt>
-  <dd><%= d_id %></dd>
-  <dt><%= "Work title:" %></dt>
-  <dd><%= @document.values_at("work_title")[0] %></dd>
-  <dt><%= "Textgroup:" %></dt>
-  <% tgs.each do |tg| %>
-    <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
-  <% end %>
-  <dt><%= "Author:" %></dt>
-  <% auths.each do |auth| %>
-    <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
-  <% end %>
+    <h4>Work Information</h4>
+    <%# fields-%>
+    <dt><%= "URN:" %></dt>
+    <dd><%= d_id %></dd>
+    <dt><%= "Work title:" %></dt>
+    <dd><%= @document.values_at("work_title")[0] %></dd>
+    <%= render :partial => "mysql_render", :locals => {:field_list => ["abbr_title"], :doc => doc} %>
+    <dt><%= "Textgroup:" %></dt>
+    <% tgs.each do |tg| %>
+      <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
+    <% end %>
+    <dt><%= "Author:" %></dt>
+    <% auths.each do |auth| %>
+      <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
+    <% end %>
 
 </dl>
 
 <div>
   &nbsp
-  <% eds = exprs.select{|e| e.var_type == "edition"} %>
+  
   <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Edition'} %>
 
-  <% eds = exprs.select{|e| e.var_type == "translation"} %>
-  <%= render :partial => 'ed_list', :locals => {:eds => eds, :type => 'Translation'} %>
+  <%= render :partial => 'ed_list', :locals => {:eds => trans, :type => 'Translation'} %>
 
   <%= render :partial => 'ed_list', :locals => {:eds => non_cat, :type => 'Uncataloged Version'} %>
 
