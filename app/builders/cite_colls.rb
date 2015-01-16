@@ -67,8 +67,14 @@ module CiteColls
       cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
       #cite_url = "http://localhost:3000/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
     end
-    response = @agent.get(cite_url).body
-    j_arr = JSON.parse(response)
+    response = @agent.get(cite_url)
+    unless response.code == "200"
+      puts "Got response #{response.code}, retrying"
+      sleep 2
+      response = @agent.get(cite_url)
+    end
+    body = response.body
+    j_arr = JSON.parse(body)
     return j_arr
   end
 

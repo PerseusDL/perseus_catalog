@@ -9,32 +9,32 @@
   <div class="panel panel-default">
     <div class="panel-body">
       <% unless eds.empty? %>
-        <% ed, eds_urls = select_expression_url(eds) %>
-        <% unless eds_urls.empty? %>
+        <% ed, ed_url = select_expression_url(eds) %>
+        <% if ed_url %>
           <% e_pg = get_pages(ed) %>
           <h4>Quick-Find an Edition</h4>
           <% if e_pg %> 
-            <% text = "Go to page #{e_pg} in " %>
+            <% text = "In #{ed_url.display_label} go to page #{e_pg} to: " %>
           <% else %>
-            <% text = "Go to " %>
+            <% text = "Go to #{ed_url.display_label}: " %>
           <% end %>
-            <p><%= text %> <%= link_to(ed.cts_label, eds_urls[0].url, :target => "_blank" ) %></p>
+            <p><%= text %> <%= link_to(ed.cts_label, ed_url.url, :target => "_blank" ) %></p>
           
           <p><%= "1 of #{eds.length.to_s} editions. To select a specific edition, see below."%></p>
         <% end %>
       <% end %>
       
       <% unless trans.empty? %>
-        <% trs, trans_urls = select_expression_url(trans) %>
-        <% unless trans_urls.empty? %>
+        <% trs, trans_url = select_expression_url(trans) %>
+        <% if trans_url %>
           <% t_pg = get_pages(trs) %>
           <h4>Quick-Find a Translation</h4>    
           <% if t_pg %>
-            <% text = "Go to page #{t_pg} in " %>
+            <% text = "In #{trans_url.display_label} go to page #{t_pg} to: " %>
           <% else %>
-            <% text = "Go to " %>
+            <% text = "Go to #{trans_url.display_label}: " %>
           <% end %>   
-          <p><%= text %> <%=link_to(trs.cts_label, trans_urls[0].url, :target => "_blank") %></p>
+          <p><%= text %> <%=link_to(trs.cts_label, trans_url.url, :target => "_blank") %></p>
           
           <p><%= "1 of #{trans.length.to_s} translations. To select a specific translation, see below."%></p>
         <% end %>

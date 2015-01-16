@@ -71,44 +71,63 @@ class NewParser
       #there should only be one work, but this gets it out of the array, 
       #work is a json object, less hassle than parsing XML
       cite_work_arr.each do |w|
-        tg = nil
-        tg = Textgroup.find_by_urn_end(@auth_cts)
-        #auth will be an array since there is the possibility of multiple authors
-        auth = []
-        auth = Author.find_all_potential_authors(@auth_cts)
-        work = nil
-        work = work_row(w, tg, doc, ns)
-        #link it all in tg_auth_work table
-        
-        if auth.empty?
-          #if has a tg but no auth, add tg to auth table
-          a = Author.new
-          a.unique_id = tg.urn
-          a.phi_id = tg.urn_end if tg.urn_end =~ /phi/
-          a.tlg_id = tg.urn_end if tg.urn_end =~ /tlg/
-          a.stoa_id = tg.urn_end if tg.urn_end =~ /stoa/
-          a.name = tg.group_name
-          a.save
-        else
-          #using first author because otherwise solr might get two rows returned and then will fail
-          #unsure what to do about this
-          a = auth[0]
-        end         
-        taw = nil
-        taw = TgAuthWork.find_row(auth[0].id, work.id, tg.id)
-        unless taw
-          taw = TgAuthWork.new
-          taw.tg_id = tg.id
-          taw.auth_id = auth[0].id
-          taw.work_id = work.id
-          taw.save
+        if w['urn_status'] == "published"
+          tg = nil
+          tg = Textgroup.find_by_urn_end(@auth_cts)
+          #auth will be an array since there is the possibility of multiple authors
+          auth = []
+          auth = Author.find_all_potential_authors(@auth_cts)
+          work = nil
+          work = work_row(w, tg, doc, ns)
+          #link it all in tg_auth_work table
+          
+          if auth.empty?
+            #check names
+            checking = Author.find_by_name_or_alt_name(tg.group_name)
+            unless checking
+              #if has a tg but no auth, add tg to auth table
+              a = Author.new
+              a.unique_id = tg.urn
+              case tg.urn_end
+              when /phi/
+                a.phi_id = tg.urn_end
+              when /tlg/
+                a.tlg_id = tg.urn_end
+              when /stoa/
+                a.stoa_id = tg.urn_end
+              else
+                a.alt_id = tg.urn_end
+              end
+              a.name = tg.group_name
+              a.save
+              auth << a
+            else
+              auth = [checking]
+              a = auth[0]
+            end
+          else
+            #looking in the rel_works to pinpoint an author
+            a = nil
+            auth.each do |row|
+              rel_w = row.related_works
+              if rel_w && rel_w != ""
+                a = row if rel_w =~ /#{@work_cts}/
+              end
+            end
+            #if no matches in rel_works just use first author
+            a = auth[0] unless a
+          end  
+          taw = nil
+          taw = TgAuthWork.find_row(a.id, work.id, tg.id)
+          unless taw
+            taw = TgAuthWork.new
+            taw.tg_id = tg.id
+            taw.auth_id = a.id
+            taw.work_id = work.id
+            taw.save
+          end
+          version_rows(tg, auth, work, doc, ns)
         end
-
-          
-          
-      
-        
-        version_rows(tg, auth, work, doc, ns)
       end
     rescue Exception => e
       puts "Something went wrong for the work parse! #{$!}"
@@ -192,8 +211,7 @@ class NewParser
         
         auth.related_works = a['related_works']
     
-        #have to go to the MADS files now
-        #need to narrow down section of XML used, in case there is more than one author
+        #Don't actually need this bit, but is good at catching author id errors...
         auth_ids = doc.xpath(".//mads:identifier[@type='citeurn']", ns)
         mads_xml = nil
         auth_ids.each do |node| 
@@ -202,7 +220,7 @@ class NewParser
           end
         end
 
-        alt_parts = mads_xml.xpath("//mads:authority//mads:namePart[@type='termsOfAddress']", ns)
+        alt_parts = doc.xpath("//mads:authority//mads:namePart[@type='termsOfAddress']", ns)
         dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']", ns)
         auth.alt_parts = alt_parts.inner_text if alt_parts
         auth.dates = dates.inner_text if dates
@@ -354,6 +372,7 @@ class NewParser
                   t_type = alt_node.attribute('type')
                   if t_type
                     if t_type.value == "abbreviated"
+                      #!!this isn't good, leads to multiple titles if import is re-run, but need to accommodate multi titles in the record itself
                       abr_title = alt_node.inner_text.strip
                       exp.abbr_title = ((exp.abbr_title == nil || exp.abbr_title.empty?) ? abr_title : "#{exp.abbr_title};#{abr_title}")
                     else
@@ -421,14 +440,15 @@ class NewParser
                 attrib = ex_tag.attribute('unit')
                 unit_attr = attrib.value if attrib
                 if unit_attr == "pages"
-                  if ex_tag.children.length > 1
+                  chil = ex_tag.xpath("mods:list", ns)
+                  unless chil.empty?
+                    exp.pages = chil.inner_text
+                  else
                     pg_s = ex_tag.xpath(".//mods:start", ns)
                     pg_e = ex_tag.xpath(".//mods:end", ns)
                     pages = pg_s.inner_text if pg_s
                     pages = pages + "-#{pg_e.inner_text}" if pg_e
                     exp.pages = pages
-                  else
-                    exp.pages = ex_tag.child.inner_text.strip
                   end
                 elsif unit_attr == "words"
                   exp.word_count = ex_tag.xpath(".//mods:total", ns).inner_text
@@ -440,10 +460,11 @@ class NewParser
               hosts = mods.xpath(".//mods:relatedItem[@type='host']", ns)
               if hosts.empty?
                 hosts = mods
+                #not collecting urls, since there is no host section
                 mods_host_process(exp, hosts, ns)
               else
                 hosts.each do |host|
-                  mods_host_process(exp, host, ns)
+                  host_urls = mods_host_process(exp, host, ns)
                 end
               end
               #cts_label, cts_descr
@@ -456,7 +477,7 @@ class NewParser
               exp.save
 
               #expression urls
-              ex_u = url_get(mods, ".//mods:url", ns)
+              ex_u = url_get(mods, "./mods:location/mods:url", ns)
               ExpressionUrl.expr_urls(exp.id, ex_u)
               ExpressionUrl.expr_urls(exp.id, host_urls, true)
 
@@ -492,6 +513,7 @@ class NewParser
     exp.table_of_cont = tb_cont.inner_text unless tb_cont.empty?
     host_urls = url_get(host, ".//mods:url", ns)
     exp.oclc_id = turn_to_list(host, ".//mods:identifier[@type='oclc']", ";", ns)
+    return host_urls
   end
 
   def url_get(doc, path, ns)
@@ -502,9 +524,28 @@ class NewParser
       url = url_node.inner_text.strip
       unless url.empty?
         unless display == nil || display.empty?
-          u = [display, url]
+          #clean the display text... random spacing in some
+          arr = display.split(/\s/)
+          arr.delete("")
+          u = [arr.join(" "), url]
         else
-          u = [url, url]
+          case url
+            when /hdl/
+              display = "HathiTrust"
+            when /books\.google/
+              display = "Google Books"
+            when /lccn/
+              display = "LC Permalink"
+            when /worldcat/
+              display = "WorldCat"
+            when /archive\.org/
+              display = "Open Content Alliance"
+            when /perseus/
+              display = "Perseus"
+          else
+            display = url
+          end              
+          u = [display, url]
         end
         urls << u
       else

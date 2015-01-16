@@ -44,7 +44,8 @@ module ApplicationHelper
       w_ids = works.collect {|w| w.standard_id[/\w+\.\w+$/]}
       rel_works.each do |rw|
         unless w_ids.include?(rw)
-          works << Work.find(:all, :conditions => ["standard_id rlike ?", rw])
+          ws = Work.find(:all, :conditions => ["standard_id rlike ?", rw])
+          works << ws[0] unless ws.empty?
         end
       end
       return works, tgs
@@ -59,15 +60,60 @@ module ApplicationHelper
 
 #methods for the url_render partial
   def get_urls (type, id)
-    if type == "expression" 
+    if type =~ /expression/
       rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 0 and exp_id = ?", id]) 
     elsif type == "author" 
       rows = AuthorUrl.find(:all, :conditions => [ "author_id = ?", id]) 
-    elsif type == "host" 
+    elsif type =~ /host/ 
       rows = ExpressionUrl.find(:all, :conditions => [ "host_work = 1 and exp_id = ?", id]) 
+    elsif type == "test"
+      rows = ExpressionUrl.find(:all, :conditions => [ "exp_id = ?", id])
+      unless rows.empty?
+        weeded = []
+        rows.each {|r| weeded << r unless r.display_label =~ /WorldCat|OCLC|LC|Open Library/i}
+        return weeded
+      end
     end 
     return rows
   end
+
+#get an edition or translation for quick-find on works page
+  def select_expression_url(arr)
+    got_it = nil
+    url = nil
+    arr.each do |row|
+      #favor perseus expressions
+      if row.cts_urn =~ /perseus/
+        urls = get_urls("expression", row.id)
+        got_it = row
+        unless urls.empty?
+          urls.each do |ur|
+            if ur.url =~ /perseus/
+              url = ur
+              break
+            end
+          end
+          #if it hits here, there is no perseus url, which is weird
+          url = urls[0] unless url
+        end   
+      end
+    end
+    #just go with the first expression if no perseus
+    if got_it == nil
+      row = arr[0] 
+      urls = get_urls("expression", row.id)
+      got_it = row 
+      unless urls.empty?
+        urls.each do |ur|
+          unless ur.url =~ /worldcat|oclc|lccn|openlibrary/i
+            url = ur
+            break
+          end
+        end
+      end
+    end
+    return got_it, url
+  end 
 
 #render urls for any type of record
   def render_url_list (rows, type)
@@ -80,15 +126,26 @@ module ApplicationHelper
       end
       b = a.join.html_safe
       return (dt_tag + b) unless b.empty?
-    else
-      h_text = []
+    elsif type =~ /info/
       h_info = []
       rows.each do |r|
         unless r.url == "" or r.url == nil
-          unless r.display_label =~ /WorldCat|LC/i
-            h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
-          else
+          if r.display_label =~ /WorldCat|OCLC|LC|Open Library/i
             h_info << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
+          end
+        end
+      end
+      info_tags = nil
+      unless h_info.empty?
+        info_tags = dt_tag + h_info.join.html_safe
+      end
+      return info_tags if info_tags
+    else
+      h_text = []
+      rows.each do |r|
+        unless r.url == "" or r.url == nil
+          unless r.display_label =~ /WorldCat|OCLC|LC|Open Library/i
+            h_text << (content_tag :dd, (link_to r.display_label, r.url, :target => "_blank"))
           end
         end
       end
@@ -98,16 +155,7 @@ module ApplicationHelper
       unless h_text.empty?
         combo_tags = dt_tag + h_text.join.html_safe
       end
-      info_tags = nil
-      unless h_info.empty?
-        info_tags = content_tag(:dt, type_text_display("#{type}_info")) + h_info.join.html_safe
-      end
-       
-      if combo_tags and info_tags
-        return combo_tags + info_tags
-      else
-        return (combo_tags ? combo_tags : info_tags)
-      end
+      return combo_tags if combo_tags
     end 
   end
 
@@ -118,11 +166,11 @@ module ApplicationHelper
       when "author"
         text = "Author info:"
       when "expression"
-        text = "Find text here:"
+        text = "Find the text:"
       when "expression_info"
-        text = "Other catalog records"
+        text = "Other catalog records:"
       when "host"
-        text = "Host work text:"
+        text = "Find the full book:"
       when "host_info"
         text = "Host catalog records:"
     end
@@ -133,9 +181,20 @@ module ApplicationHelper
   def render_author_list
     auth_arr = Author.all(:order => 'name')
     results = ""
+    @top_auths = []
     auth_arr.each do |auth|
       auth_name = auth.name
       solr_id = auth.unique_id
+      works_arr = Author.get_works(auth.id)
+      words = 0
+      unless works_arr.empty?
+        #need to find the actual work, the array is just ids for works
+        works_arr.each do |w| 
+          w_row = Work.find(w)
+          words = (words + w_row.word_count.to_i) if w_row.word_count
+        end
+        @top_auths << [auth_name, words]
+      end
       unless auth_name == ""      
         works_link = link_to "Search for Works", "/?f[auth_facet][]=#{auth_name}"
       else
@@ -147,12 +206,29 @@ module ApplicationHelper
       spacer = content_tag(:li, " ")
       works_search = content_tag(:li, works_link)
       list = content_tag(:ul, auth_record.html_safe + spacer + works_search.html_safe, :class => 'inline')
-      results << content_tag(:dt, auth_name) + content_tag(:dd, list)
+      unless words == 0
+        auth_entry = content_tag(:dt, auth_name) + content_tag(:dd, "Words Represented: #{words.to_s}") + content_tag(:dd, list)
+      else
+        auth_entry = content_tag(:dt, auth_name) + content_tag(:dd, list)
+      end
+      results << auth_entry
 
     end
     content_tag(:dl, results.html_safe)
   end
 
+  def author_word_counts
+    @top_auths.sort!{|a1, a2| a2[1] <=> a1[1]} 
+    top_ten = @top_auths.first(10)    
+    return top_ten
+  end
+
+  def get_pages(exp)
+    pgs = exp.pages
+    pg = nil
+    pg = pgs.split('-')[0] unless (pgs == "" || pgs == nil)
+    return pg
+  end
 
   def render_rss_feed
 

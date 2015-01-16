@@ -1,9 +1,19 @@
-<div id="browse-list" class="span12">
-  <h2> Authors </h2>
-
- 
+<div id="browse-list" class="span6">
+  <h2> Authors </h2> 
     <%= render_author_list %>
- 
+</div>
 
-
+<div id="calcs" class="span6">
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <h3>Top Authors by Word Count</h3>
+      <dl class="dl  dl-invert">
+        <% top_auths = author_word_counts %>
+        <% top_auths.each do |auth| %>
+          <dt><%= auth[0] %></dt>
+          <dd><%= auth[1] %></dd>
+        <% end %>
+      </dl>
+    </div>
+  </div>
 </div>
