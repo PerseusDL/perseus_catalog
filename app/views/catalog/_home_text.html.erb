@@ -1,8 +1,8 @@
 <div class="hero-unit">
   
   <h3>Welcome!</h3>
-  <p>To search, please enter your query in the search box above. If you'd like to immediately browse works, editions, or translations, take a look at the limiting fields to the right. To browse authors, please see <%= link_to "this list", browse_path%>.</p>
-  <p>The 'All Fields' search will query the full text of each catalog record and return results that are ranked by relevance.  Frequently, your desired record may appear a few pages into the search results. To narrow your results you can use the 'Browse by' fields in the sidebar, or you can search using one of the additional search fields. For further details on the search field behaviors, please see <%= link_to "this page", 'http://sites.tufts.edu/perseuscatalog/documentation/user-guide/searching/'%>.</p>
+  <p>To search, please enter your query in the search box above. If you'd like to immediately browse <b>works</b>, <b>editions</b>, or <b>translations</b>, take a look at the limiting fields to the right. The numbers in the <b>'Browse by'</b> lists represent not physical volumes but works, the texts seen as artistic creations, for example Homer's <i>Iliad</i>, or Livy's <i>History of Rome</i>. A work can span multiple volumes or a single volume could contain multiple works. To browse <b>authors</b>, please see <b><%= link_to "this list", browse_path%></b>.</p>
+  <p>The <b>'All Fields'</b> search will query the full text of each catalog record and return results that are ranked by relevance.  Frequently, your desired record may appear a few pages into the search results. To narrow your results you can use the <b>'Browse by'</b> fields in the sidebar, or you can search using one of the additional search fields. For further details on the search field behaviors, please see <b><%= link_to "this page", 'http://sites.tufts.edu/perseuscatalog/documentation/user-guide/searching/'%></b>.</p>
   
   <h3>News and Announcements</h3>
   <%= render 'blog_feed' %>
