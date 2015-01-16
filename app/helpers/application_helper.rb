@@ -196,7 +196,7 @@ module ApplicationHelper
         @top_auths << [auth_name, words]
       end
       unless auth_name == ""      
-        works_link = link_to "Search for Works", "/?f[auth_facet][]=#{auth_name}"
+        works_link = link_to "Search for Works", "/?f[tg_facet][]=#{auth_name}"
       else
         auth_name = "[Unnamed]"
         works_link = link_to "Search for Works", "/?f[auth_facet][]="
