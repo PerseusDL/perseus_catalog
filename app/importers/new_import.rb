@@ -186,8 +186,8 @@ class NewParser
         end
         if auth_arr.length == 1
           auth = auth_arr[0] 
- 
-          auth.unique_id = a['urn'] unless auth.unique_id == a['urn']
+          auth_cite = a['urn'][/^[\w:]+\.\d+/]
+          auth.unique_id = auth_cite unless auth.unique_id == auth_cite
           auth.name = a['authority_name'] unless auth.name == a['authority_name']
           alt_ids_arr = a['alt_ids'].split(/;|,/)
           alt_ids_arr << a['canonical_id'] unless (a['canonical_id'] == nil && a['canonical_id'] == "")
@@ -259,7 +259,8 @@ class NewParser
             auth_arr << Author.new_auth(a, false)
           end
           if auth_arr.length == 1
-            auth_arr[0].unique_id = a['urn'] unless auth_arr[0].unique_id == a['urn']
+            auth_cite = a['urn'][/^[\w:]+\.\d+/]
+            auth_arr[0].unique_id = auth_cite unless auth_arr[0].unique_id == auth_cite
             auth_arr[0].name = a['authority_name'] unless auth_arr[0].name == a['authority_name']
             auth_arr[0].save
             final_auth_arr << auth_arr[0]
@@ -278,7 +279,8 @@ class NewParser
             auth_arr << Author.new_auth(cite_tg_row, true)
           else
             if auth_arr.length == 1
-              auth_arr[0].unique_id = cite_tg_row['urn'] unless auth_arr[0].unique_id == cite_tg_row['urn']
+              tg_cite = cite_tg_row['urn'][/^[\w:]+\.\d+/]
+              auth_arr[0].unique_id = tg_cite unless auth_arr[0].unique_id == tg_cite
               auth_arr[0].name = cite_tg_row['groupname_eng'] unless auth_arr[0].name == cite_tg_row['groupname_eng']
               auth_arr[0].save
               final_auth_arr << auth_arr[0]
