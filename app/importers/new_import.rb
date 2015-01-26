@@ -150,7 +150,7 @@ class NewParser
       tg = Textgroup.find_by_urn_end(cite_tg['textgroup'][/\w+$/])
       unless tg
         tg = Textgroup.new
-        tg.urn = cite_tg['urn']
+        tg.urn = cite_tg['textgroup']
         tg.urn_end = cite_tg['textgroup'][/\w+$/]
         tg.group_name = cite_tg['groupname_eng']
         tg.save
