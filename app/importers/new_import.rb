@@ -156,7 +156,7 @@ class NewParser
         tg.save
       else
         unless tg.urn == cite_tg['textgroup']
-          tg.urn == cite_tg['textgroup']
+          tg.urn = cite_tg['textgroup']
           tg.save
         end
         unless tg.group_name == cite_tg['groupname_eng']

@@ -17,6 +17,12 @@ task :parse_records => :environment do
   puts "test done"
 end
 
+desc "Just author and textgroup import"
+task :auth_tg_import => :environment do
+  importer = XmlImporter.new
+  importer.auth_and_tg
+end
+
 desc "Hathifiles import"
 task :hathifiles_import => :environment do
   #pull the latest metadata files from the HathiTrust

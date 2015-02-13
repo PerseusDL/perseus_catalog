@@ -15,15 +15,23 @@ class XmlImporter
 
   def import(rec_file, file_type)
     begin
-      tg = NewParser.new
-      au = NewParser.new
-      tg.textgroup_import
-      au.author_import
+      auth_and_tg
       if File.directory?(rec_file)
         multi_import(rec_file, file_type)
       else
         single_import(rec_file, file_type)
       end
+    rescue Exception => e
+      puts "#{$!}\n #{e.backtrace}"
+    end
+  end
+
+  def auth_and_tg
+    begin
+      tg = NewParser.new
+      au = NewParser.new
+      tg.textgroup_import
+      au.author_import
     rescue Exception => e
       puts "#{$!}\n #{e.backtrace}"
     end
@@ -50,7 +58,7 @@ class XmlImporter
     d = Dir.new(directory_path)
     d.each do |file|
       if File.directory?("#{directory_path}/#{file}")  
-          multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS|greekLit|latinLit|mads/
+          multi_import("#{directory_path}/#{file}", file_type) unless file =~ /\.|\.\.|CVS|Lit|mads/
       else
         if file_type == ("author" or "edtrans")
           single_import("#{directory_path}/#{file}", file_type) if file =~ /\.mads\.xml/
