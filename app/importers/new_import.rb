@@ -136,9 +136,9 @@ class NewParser
   end
 
 
-  def get_cts_ids(atom_id)
+  def get_cts_ids(atom_id) 
     @lit_type = atom_id[/\w+Lit/]
-    @work_cts = atom_id[/urn(:|\w|\.|-)+/]
+    @work_cts = atom_id[/urn(:|\w|\.)+/]
     @tg_cts = @work_cts[/urn.+\./].chop
     @auth_cts = @tg_cts[/:\w+$/].delete(':')
   end
@@ -155,6 +155,10 @@ class NewParser
         tg.group_name = cite_tg['groupname_eng']
         tg.save
       else
+        unless tg.urn == cite_tg['textgroup']
+          tg.urn == cite_tg['textgroup']
+          tg.save
+        end
         unless tg.group_name == cite_tg['groupname_eng']
           tg.group_name = cite_tg['groupname_eng']
           tg.save
