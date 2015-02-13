@@ -12,7 +12,7 @@
     <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
   <% end %>
   <%= render_document_partial @document, :show %>
-  <dt><%= "CITE id"%>
+  <dt><%= "CITE id:"%>
   <dd><%= link_to doc.unique_id, "http://catalog.perseus.org/cite-collections/authors/#{doc.unique_id}"%></dd>
   <%# mysql fields-%>
   <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
