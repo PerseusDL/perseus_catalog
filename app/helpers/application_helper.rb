@@ -96,18 +96,17 @@ module ApplicationHelper
           #if it hits here, there is no perseus url, which is weird
           url = urls[0] unless url
         end   
-      end
-    end
-    #just go with the first expression if no perseus
-    if got_it == nil
-      row = arr[0] 
-      urls = get_urls("expression", row.id)
-      got_it = row 
-      unless urls.empty?
-        urls.each do |ur|
-          unless ur.url =~ /worldcat|oclc|lccn|openlibrary/i
-            url = ur
-            break
+      end    
+      #just go with the first expression that isn't a host work link if no perseus
+      if got_it == nil 
+        urls = get_urls("expression", row.id)
+        unless urls.empty?
+          urls.each do |ur|
+            unless ur.url =~ /worldcat|oclc|lccn|openlibrary/i
+              url = ur
+              got_it = row 
+              break
+            end
           end
         end
       end
@@ -185,6 +184,7 @@ module ApplicationHelper
     auth_arr.each do |auth|
       auth_name = auth.name
       solr_id = auth.unique_id
+
       works_arr = Author.get_works(auth.id)
       words = 0
       unless works_arr.empty?
@@ -195,11 +195,8 @@ module ApplicationHelper
         end
         @top_auths << [auth_name, words]
       end
-      unless auth_name == ""      
-        works_link = link_to "Search for Works", "/?f[tg_facet][]=#{auth_name}"
-      else
-        auth_name = "[Unnamed]"
-        works_link = link_to "Search for Works", "/?f[auth_facet][]="
+      unless works_arr.empty?      
+        works_link = link_to "Search for Works", "/?f[auth_facet][]=#{auth_name}"
       end
       auth_link = link_to "View Authority Record", catalog_path(:id => solr_id)
       auth_record = content_tag(:li, auth_link)

@@ -56,7 +56,7 @@
                 <field column="name" name="work_auth_name"/>
                 <field column="alt_names" name="work_auth_alt_name"/>
             </entity>
-            <entity name="facet_sub" rootEntity="false" query="SELECT a.name, a.alt_names FROM authors a where a.id=(select taw.auth_id from tg_auth_works taw where taw.work_id='${works.id}') and a.unique_id like 'm%'">
+            <entity name="facet_sub" rootEntity="false" query="SELECT a.name, a.alt_names FROM authors a where a.id=(select taw.auth_id from tg_auth_works taw where taw.work_id='${works.id}')">
                 <field column="name" name="auth_facet"/>
             </entity>
             <entity name="tgs_sub" rootEntity="false" query="SELECT t.urn, t.group_name FROM textgroups t where t.id=(select taw.tg_id from tg_auth_works taw where taw.work_id='${works.id}')">
