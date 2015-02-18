@@ -8,7 +8,8 @@
     <% eds.each do |ed| %>
       <% e_id = ed.cts_urn %>
       <div class="facets-collapse">
-        <h5><%= ed.cts_label %></h5>
+        <%# This little bit of insanity is to accommodate any rtl text in the host title, esp for Arabic records %>
+        <h5><%= "#{ed.title}," %> <bdi><%= "#{ed.host_title}" %></bdi></h5>
         <ul>
           <dt><%= "URN:" %></dt>
           <dd><%= e_id %></dd>

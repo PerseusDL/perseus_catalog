@@ -6,7 +6,7 @@
      
 
 
-  <% field_list = ["publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "pages", "word_count", "table_of_cont", "notes", "subjects"] %>
+  <% field_list = ["host_title","publisher", "place_publ", "date_publ", "edition", "date_mod", "phys_descr", "pages", "word_count", "table_of_cont", "notes", "subjects"] %>
 
   <div class="panel panel-default">
     <div class="panel-body">
@@ -26,32 +26,33 @@
       </dl>
     </div>
   </div>
+  <div>
+    <dl class="dl-horizontal  dl-invert">
+      <h4>Full Catalog Record</h4>
+      <dt><%= "URN:" %></dt>
+      <dd><%= d_id %></dd>
+      <dt><%= "Work:" %></dt>
+      <dd><%= link_to work.title, :id => work.standard_id %></dd>
+      <% tgs.each do |tg| %>
+        <dt><%= "Textgroup:"%>
+        <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
+      <% end %>
+      <% auths.each do |auth| %>
+        <dt><%= "Author:" %></dt>
+        <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
+      <% end %>
+      <%# show fields-%>
+      <%= render_document_partial @document, :show %>
 
-  <dl class="dl-horizontal  dl-invert">
-    <h4>Full Catalog Record</h4>
-    <dt><%= "URN:" %></dt>
-    <dd><%= d_id %></dd>
-    <dt><%= "Work:" %></dt>
-    <dd><%= link_to work.title, :id => work.standard_id %></dd>
-    <% tgs.each do |tg| %>
-      <dt><%= "Textgroup:"%>
-      <dd><%= link_to tg.urn_end, :id => tg.urn %></dd>
-    <% end %>
-    <% auths.each do |auth| %>
-      <dt><%= "Author:" %></dt>
-      <dd><%= link_to auth.name, :id => auth.unique_id%></dd>
-    <% end %>
-    <%# show fields-%>
-    <%= render_document_partial @document, :show %>
+      <%# mysql fields-%>
+      <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
+     <%# item catalog urls-%>     
+      <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression_info"} %>
+      <%# host catalog urls-%>         
+      <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host_info"} %>
 
-    <%# mysql fields-%>
-    <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
-   <%# item catalog urls-%>     
-    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "expression_info"} %>
-    <%# host catalog urls-%>         
-    <%= render :partial => "url_render", :locals => {:id => doc.id, :type => "host_info"} %>
-
-    
-    
-  </dl>
+      
+      
+    </dl>
+  </div>
 

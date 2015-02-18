@@ -6,6 +6,6 @@
     <% if (val && val != "")%>
       
       <dt><%= "#{key.gsub("_", " ").capitalize}:"%></dt>
-      <dd><%= render_field_value(val, is_lang) %></dd>
+      <dd><bdi><%= render_field_value(val, is_lang) %></bdi></dd>
     <% end%>
   <% end %>

@@ -113,7 +113,7 @@ class CatalogController < ApplicationController
     config.add_show_field 'trans_name', :label => 'Translator:'
     config.add_show_field 'exp_language', :label => 'Language:'
     config.add_show_field 'exp_series', :label => 'Series:'
-    config.add_show_field 'exp_host_title', :label => 'Host work title:'
+    #config.add_show_field 'exp_host_title', :label => 'Host work title:'
 
 
     # "fielded" search configuration. Used by pulldown among other places.
