@@ -2,7 +2,8 @@
   <% d_id = @document.values_at("uid")[0]%>
   <% doc = Author.get_info(d_id) %>
   <% works, tgs = find_related(doc) %>
-  <% field_list = ["phi_id", "tlg_id", "stoa_id", "alt_id", "name", "abbr", "alt_names", "field_of_activity", "notes"] %> <%#, "abbr" removed -%>
+  <% field_list = ["phi_id", "tlg_id", "stoa_id", "alt_id", "name", "abbr", "alt_names", "field_of_activity", "notes"] %>
+  <% auth_url = doc.unique_id =~ /author/ ? "http://catalog.perseus.org/cite-collections/authors/#{doc.unique_id}" : "http://catalog.perseus.org/cite-collections/textgroups/#{doc.unique_id}" %>
 
 <dl class="dl-horizontal  dl-invert">
 
@@ -13,7 +14,7 @@
   <% end %>
   <%= render_document_partial @document, :show %>
   <dt><%= "CITE id:"%>
-  <dd><%= link_to doc.unique_id, "http://catalog.perseus.org/cite-collections/authors/#{doc.unique_id}"%></dd>
+  <dd><%= link_to doc.unique_id, auth_url %></dd>
   <%# mysql fields-%>
   <%= render :partial => "mysql_render", :locals => {:field_list => field_list, :doc => doc} %>
 

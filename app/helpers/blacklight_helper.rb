@@ -45,7 +45,7 @@ module BlacklightHelper
     # original value when there is nothing to get
     value.map! { |lang| LANGUAGE_CODES[lang] || lang } if is_lang
 
-    return value.map { |v| html_escape v }.join("<br />")
+    return value.map { |v| html_escape v }.join("<br />").html_safe
   end
 
   private

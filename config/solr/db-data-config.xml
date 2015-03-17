@@ -71,7 +71,7 @@
             <field column="urn" name="tg_urn"/>
             <field column="urn_end" name="title_display"/>
             <field column="group_name" name="tg_name"/>
-            <entity name="tg_authors" rootEntity="false" query="SELECT name FROM authors where '${textgroups.urn_end}' in (phi_id, tlg_id, stoa_id)">
+            <entity name="tg_authors" rootEntity="false" query="SELECT name FROM authors where '${textgroups.urn_end}' in (phi_id, tlg_id, stoa_id, alt_id)">
                 <field column="name" name="tg_auth_names" splitBy=";"/>
             </entity>
         </entity>

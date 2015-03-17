@@ -67,7 +67,12 @@ class NewParser
       #creates instance variables for cts ids
       get_cts_ids(atom_id)
       cite_work_arr = get_cite_rows('works', 'work', @work_cts)
-
+      #just in case we get more than one work due to a fuzzy search
+      if cite_work_arr.length > 1
+        correct_row = nil
+        cite_work_arr.each {|r| correct_row = r if r['work'] == @work_cts}
+        cite_work_arr = [correct_row]
+      end
       #there should only be one work, but this gets it out of the array, 
       #work is a json object, less hassle than parsing XML
       cite_work_arr.each do |w|
@@ -83,7 +88,7 @@ class NewParser
           
           if auth.empty?
             #check names
-            checking = Author.find_by_name_or_alt_name(tg.group_name)
+            checking = tg.group_name ? Author.find_by_name_or_alt_name(tg.group_name) : nil
             unless checking
               #if has a tg but no auth, add tg to auth table
               a = Author.new
@@ -98,7 +103,7 @@ class NewParser
               else
                 a.alt_id = tg.urn_end
               end
-              a.name = tg.group_name
+              a.name = tg.group_name ? tg.group_name : work.title
               a.save
               auth << a
             else
@@ -407,6 +412,7 @@ class NewParser
                 role_term = role_node.inner_text if role_node
                 if role_term =~ /editor|compiler|translator/i
                   if raw_name && raw_name.empty? == false
+                    raw_name.gsub!(/\*/, "")
                     person = EditorsOrTranslator.find_by_name_or_alt_name(raw_name)
                     #check for this ed/trans in the cite tables
                     cite_auth_ed = get_cite_rows('authors', 'authority_name', raw_name)

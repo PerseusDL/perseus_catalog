@@ -51,7 +51,7 @@ module FacetsHelper
     new_params.delete(:page)
 
     #Delete q, if needed
-    new_params.delete(:q)
+    #new_params.delete(:q)
 
     # Delete any request params from facet-specific action, needed
     # to redir to index action properly. 
