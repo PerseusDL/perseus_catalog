@@ -146,8 +146,8 @@ class CatalogController < ApplicationController
       field.solr_local_parameters = {
         :df => 'work_title',
         :type => 'dismax',
-        :qf => 'work_title work_abb_title^5.0',
-        :pf => 'work_title work_abb_title'
+        :qf => 'work_title work_abb_title work_alt_titles',
+        :pf => 'work_title work_abb_title work_alt_titles'
       }
     end
     

@@ -64,6 +64,9 @@
                 <field column="group_name" name="tg_facet"/>               
                 <field column="urn" name="work_tg_urn"/>
             </entity>
+            <entity name="exp_sub" rootEntity="false" query="SELECT e.alt_title FROM expressions e where e.work_id='${works.id}'">
+                <field column="alt_title" name="work_alt_titles"/>
+            </entity>
         </entity>
         
         <entity name="textgroups" rootEntity="true" query="SELECT * FROM textgroups">

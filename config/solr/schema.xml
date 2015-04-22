@@ -269,6 +269,7 @@
    <field name="work_auth_alt_name" type="text" indexed="true" stored="true"/>
    <field name="work_lang" type="text" indexed="true" stored="true"/>
    <field name="work_tg_name" type="text" indexed="true" stored="true"/>
+   <field name="work_alt_titles" type="text" indexed="true" stored="true"/>
    <!-- Expression documents -->
    <field name="exp_urn" type="text" indexed="true" stored="true"/>
    <field name="exp_work_urn" type="string" indexed="true" stored="true"/>
