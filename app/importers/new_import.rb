@@ -346,9 +346,11 @@ class NewParser
 
     #going by what is in the atom feed since it is easier to look for versions
     #in the cite table than select the correct mods from the xml
+
     mods_nodes = doc.xpath(".//mods:mods", ns)
     unless mods_nodes.empty?
       mods_nodes.each do |mods|
+
         mods_cts_node = mods.xpath("mods:identifier[@type='ctsurn']", ns)
         if mods_cts_node
           mods_cts = mods_cts_node.inner_text
@@ -359,20 +361,21 @@ class NewParser
           error_handler(message)
           next
         end
-
         cite_vers = get_cite_rows("versions", "version", mods_cts)
         unless cite_vers.empty?
           #should only be one of these
           cite_vers.each do |vers|
             begin
+
               vers_cts = vers['version']
-              collection = mods.search("//modsCollection", ns)
-              unless collection == []
+              collection = mods.search("//mods:modsCollection", ns)
+              unless collection.empty?
                 num = mods.attribute('ID').value
-                label_parts = vers_cts.label_eng.split(";")
+                label_parts = vers['label_eng'].split(";")
                 num_label = label_parts[0] + ";" + num
               end
-              exp_arr = Expression.where(:cts_urn, vers_cts)
+              exp_arr = Expression.where("cts_urn = ?" vers_cts)
+              byebug
               if exp_arr == []
                 exp = Expression.new
                 exp.cts_label = num ? num_label : vers['label_eng']
@@ -411,14 +414,14 @@ class NewParser
                   t_type = alt_node.attribute('type')
                   if t_type
                     if t_type.value == "abbreviated"
-                      abr_title = alt_node.inner_text.gsub(/\s+#{sep}|\s{2,}|#{sep}$/, " ").strip
+                      abr_title = alt_node.inner_text.gsub(/\s{2,}/, " ").strip
                       if exp.abbr_title == nil || exp.abbr_title.empty?
                         exp.abbr_title = abr_title
                       else
                         exp.abbr_title << (exp.abbr_title =~ /#{abr_title}$/ ? "" : ";#{abr_title}")
                       end
                     else
-                      alt_t = alt_node.inner_text.gsub(/\s+#{sep}|\s{2,}|#{sep}$/, " ").strip
+                      alt_t = alt_node.inner_text.gsub(/\s{2,}/, " ").strip
                       if exp.alt_title == nil || exp.alt_title.empty?
                         exp.alt_title = alt_t
                       else
@@ -427,7 +430,7 @@ class NewParser
                     end
                   else
                     #sometimes alt titles don't have a type
-                    alt_t = alt_node.inner_text.gsub(/\s+#{sep}|\s{2,}|#{sep}$/, " ").strip
+                    alt_t = alt_node.inner_text.gsub(/\s{2,}/, " ").strip
                     if exp.alt_title == nil || exp.alt_title.empty?
                       exp.alt_title = alt_t
                     else
