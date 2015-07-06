@@ -14,14 +14,14 @@ class Series < ActiveRecord::Base
   def self.series_row(mods, ns)
     ser = nil
     mods.xpath(".//mods:relatedItem[@type='series']", ns).each do |series|
-      raw_abb = series.xpath("mods:titleInfo[@type='abbreviated']", ns)
+      raw_abb = series.xpath("mods:titleInfo[@type='abbreviated']/mods:title", ns)
       ser_abb = raw_abb.empty? ? nil : raw_abb.inner_text.strip
-      raw_title = series.xpath("mods:titleInfo[not(@type='abbreviated')]", ns)
+      raw_title = series.xpath("mods:titleInfo[not(@type='abbreviated')]/mods:title", ns)
       ser_title = raw_title.empty? ? nil : raw_title.inner_text.strip
       #series name standardization
       if ser_title
         case
-          when (ser_title =~ /Teubner|Teubneriana/i || ser_abb =~ /Teubner/i)
+          when (ser_title =~ /Teubner|Teubneriana|Tevbneriana/i || ser_abb =~ /Teubner/i)
             clean_title = "Bibliotheca Teubneriana"
           when (ser_title =~ /Loeb|LCL/i || ser_abb =~ /Loeb|LCL/i)
             clean_title = "Loeb Classical Library"

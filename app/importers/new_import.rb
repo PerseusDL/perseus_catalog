@@ -366,10 +366,38 @@ class NewParser
           cite_vers.each do |vers|
             begin
               vers_cts = vers['version']
-              exp = Expression.find_by_cts_urn(vers_cts)
-              unless exp
-                exp = Expression.new
+              collection = mods.search("//modsCollection", ns)
+              unless collection == []
+                num = mods.attribute('ID').value
+                label_parts = vers_cts.label_eng.split(";")
+                num_label = label_parts[0] + ";" + num
               end
+              exp_arr = Expression.where(:cts_urn, vers_cts)
+              if exp_arr == []
+                exp = Expression.new
+                exp.cts_label = num ? num_label : vers['label_eng']
+              elsif exp_arr.length == 1
+                if num
+                  if exp_arr[0].label_eng == num_label
+                    exp = exp_arr[0]
+                  else
+                    exp = Expression.new
+                    exp.cts_label = num_label
+                  end
+                else
+                  exp = exp_arr[0]
+                end
+              else
+                exp = nil
+                exp_arr.each do |e|                 
+                  exp = exp_arr[0] if e.label_eng == num_label
+                end
+                unless exp
+                  exp = Expression.new
+                  exp.cts_label = num_label
+                end
+              end
+              exp.cts_descr = vers['desc_eng']
               exp.cts_urn = vers_cts
               exp.work_id = work.id
               exp.tg_id = tg.id
@@ -383,17 +411,28 @@ class NewParser
                   t_type = alt_node.attribute('type')
                   if t_type
                     if t_type.value == "abbreviated"
-                      #!!this isn't good, leads to multiple titles if import is re-run, but need to accommodate multi titles in the record itself
-                      abr_title = alt_node.inner_text.strip
-                      exp.abbr_title = ((exp.abbr_title == nil || exp.abbr_title.empty?) ? abr_title : "#{exp.abbr_title};#{abr_title}")
+                      abr_title = alt_node.inner_text.gsub(/\s+#{sep}|\s{2,}|#{sep}$/, " ").strip
+                      if exp.abbr_title == nil || exp.abbr_title.empty?
+                        exp.abbr_title = abr_title
+                      else
+                        exp.abbr_title << (exp.abbr_title =~ /#{abr_title}$/ ? "" : ";#{abr_title}")
+                      end
                     else
-                      alt_t = alt_node.inner_text.strip
-                      exp.alt_title = ((exp.alt_title == nil || exp.alt_title.empty?) ? alt_t : "#{exp.alt_title};#{alt_t}")
+                      alt_t = alt_node.inner_text.gsub(/\s+#{sep}|\s{2,}|#{sep}$/, " ").strip
+                      if exp.alt_title == nil || exp.alt_title.empty?
+                        exp.alt_title = alt_t
+                      else
+                        exp.alt_title << (exp.alt_title =~ /#{alt_t}$/ ? "" : ";#{alt_t}")
+                      end
                     end
                   else
                     #sometimes alt titles don't have a type
-                    alt_t = alt_node.inner_text.strip
-                    exp.alt_title = ((exp.alt_title == nil || exp.alt_title.empty?) ? alt_t : "#{exp.alt_title};#{alt_t}")
+                    alt_t = alt_node.inner_text.gsub(/\s+#{sep}|\s{2,}|#{sep}$/, " ").strip
+                    if exp.alt_title == nil || exp.alt_title.empty?
+                      exp.alt_title = alt_t
+                    else
+                      exp.alt_title << (exp.alt_title =~ /#{alt_t}$/ ? "" : ";#{alt_t}")
+                    end                   
                   end
                 end
               end
@@ -479,12 +518,10 @@ class NewParser
                   host_urls = mods_host_process(exp, host, ns)
                 end
               end
-              #cts_label, cts_descr
-              exp.cts_label = vers['label_eng']
-              exp.cts_descr = vers['desc_eng']
+              
               #series_id 
               ser = Series.series_row(mods, ns)
-              exp.series_id = ser.id if (ser && !exp.series_id)
+              exp.series_id = ser.id if ser
               
               exp.save
 
@@ -513,7 +550,9 @@ class NewParser
       exp.place_code = turn_to_list(orig, ".//mods:place/mods:placeTerm[@type='code']", ";", ns) 
       exp.publisher = turn_to_list(orig, ".//mods:publisher", ";", ns)
       exp.date_publ = turn_to_list(orig, ".//mods:dateIssued", ";", ns)
-      exp.date_int = date_process(exp.date_publ) 
+      exp.date_publ = turn_to_list(orig, ".//mods:dateCreated", ";", ns) if exp.date_publ == nil
+      date_int = date_process(exp.date_publ)
+      exp.date_int = (date_int == 0 ? nil : date_int)
       exp.date_mod = turn_to_list(orig, ".//mods:dateModified", ";", ns)
       exp.edition = turn_to_list(orig, ".//mods:edition", ";", ns)
     end
@@ -627,6 +666,7 @@ class NewParser
   end
 
   def date_process(date_s)
+    date_s.gsub(/-\?|\?/, "0") if (date_s && date_s != "")
     d = date_s[/\d+/]
     date_i = d.to_i
     return date_i
