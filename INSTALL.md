@@ -153,7 +153,6 @@ Now's a good time to install some other required gems.
 
 	sudo apt-get install mysql-server;
 	sudo apt-get install mysql-client;
-	sudo apt-get install libmysql-ruby;
 	sudo apt-get install libmysqlclient-dev;
 	sudo apt-get install libmysql-java;
 
