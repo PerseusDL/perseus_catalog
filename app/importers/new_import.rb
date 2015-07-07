@@ -375,7 +375,6 @@ class NewParser
                 num_label = label_parts[0] + ";" + num
               end
               exp_arr = Expression.where("cts_urn = ?" vers_cts)
-              byebug
               if exp_arr == []
                 exp = Expression.new
                 exp.cts_label = num ? num_label : vers['label_eng']
@@ -554,6 +553,7 @@ class NewParser
       exp.publisher = turn_to_list(orig, ".//mods:publisher", ";", ns)
       exp.date_publ = turn_to_list(orig, ".//mods:dateIssued", ";", ns)
       exp.date_publ = turn_to_list(orig, ".//mods:dateCreated", ";", ns) if exp.date_publ == nil
+      exp.date_publ = turn_to_list(orig, ".//mods:copyrightDate", ";", ns) if exp.date_publ == nil
       date_int = date_process(exp.date_publ)
       exp.date_int = (date_int == 0 ? nil : date_int)
       exp.date_mod = turn_to_list(orig, ".//mods:dateModified", ";", ns)
