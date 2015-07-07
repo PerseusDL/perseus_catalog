@@ -374,7 +374,7 @@ class NewParser
                 label_parts = vers['label_eng'].split(";")
                 num_label = label_parts[0] + ";" + num
               end
-              exp_arr = Expression.where("cts_urn = ?" vers_cts)
+              exp_arr = Expression.where(cts_urn: vers_cts)
               if exp_arr == []
                 exp = Expression.new
                 exp.cts_label = num ? num_label : vers['label_eng']
