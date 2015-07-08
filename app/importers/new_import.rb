@@ -350,7 +350,6 @@ class NewParser
     mods_nodes = doc.xpath(".//mods:mods", ns)
     unless mods_nodes.empty?
       mods_nodes.each do |mods|
-
         mods_cts_node = mods.xpath("mods:identifier[@type='ctsurn']", ns)
         if mods_cts_node
           mods_cts = mods_cts_node.inner_text
@@ -366,10 +365,9 @@ class NewParser
           #should only be one of these
           cite_vers.each do |vers|
             begin
-
               vers_cts = vers['version']
-              collection = mods.search("//mods:modsCollection", ns)
-              unless collection.empty?
+              par_name = mods.parent.name
+              if par_name == "modsCollection"
                 num = mods.attribute('ID').value
                 label_parts = vers['label_eng'].split(";")
                 num_label = label_parts[0] + ";" + num
@@ -380,7 +378,7 @@ class NewParser
                 exp.cts_label = num ? num_label : vers['label_eng']
               elsif exp_arr.length == 1
                 if num
-                  if exp_arr[0].label_eng == num_label
+                  if exp_arr[0].cts_label == num_label
                     exp = exp_arr[0]
                   else
                     exp = Expression.new
@@ -392,7 +390,7 @@ class NewParser
               else
                 exp = nil
                 exp_arr.each do |e|                 
-                  exp = exp_arr[0] if e.label_eng == num_label
+                  exp = exp_arr[0] if e.cts_label == num_label
                 end
                 unless exp
                   exp = Expression.new
@@ -518,6 +516,10 @@ class NewParser
               else
                 hosts.each do |host|
                   host_urls = mods_host_process(exp, host, ns)
+                  if exp.table_of_cont == nil || exp.table_of_cont == ""
+                    tb_cont = mods.xpath(".//mods:tableOfContents", ns)
+                    exp.table_of_cont = tb_cont.inner_text unless tb_cont.empty?
+                  end
                 end
               end
               
@@ -552,8 +554,8 @@ class NewParser
       exp.place_code = turn_to_list(orig, ".//mods:place/mods:placeTerm[@type='code']", ";", ns) 
       exp.publisher = turn_to_list(orig, ".//mods:publisher", ";", ns)
       exp.date_publ = turn_to_list(orig, ".//mods:dateIssued", ";", ns)
-      exp.date_publ = turn_to_list(orig, ".//mods:dateCreated", ";", ns) if exp.date_publ == nil
-      exp.date_publ = turn_to_list(orig, ".//mods:copyrightDate", ";", ns) if exp.date_publ == nil
+      exp.date_publ = turn_to_list(orig, ".//mods:dateCreated", ";", ns) if (exp.date_publ == nil || exp.date_publ == "")
+      exp.date_publ = turn_to_list(orig, ".//mods:copyrightDate", ";", ns) if (exp.date_publ == nil || exp.date_publ == "")
       date_int = date_process(exp.date_publ)
       exp.date_int = (date_int == 0 ? nil : date_int)
       exp.date_mod = turn_to_list(orig, ".//mods:dateModified", ";", ns)
