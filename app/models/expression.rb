@@ -18,7 +18,7 @@ class Expression < ActiveRecord::Base
   has_many :expression_url
 
   def self.get_info(id)
-    doc = Expression.find_by_cts_urn(id)
+    doc = Expression.where(cts_urn: id)
     return doc
   end
 

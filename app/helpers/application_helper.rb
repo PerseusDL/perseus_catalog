@@ -77,6 +77,13 @@ module ApplicationHelper
     return rows
   end
 
+
+#find and group any multivolume editions or translations
+  def group_multi(arr)
+    grouped = arr.group_by{|item| [item.cts_urn]}
+  end
+
+
 #get an edition or translation for quick-find on works page
   def select_expression_url(arr)
     got_it = nil
