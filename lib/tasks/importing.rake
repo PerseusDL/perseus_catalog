@@ -67,6 +67,13 @@ task :import_word_count => :environment do
   end
 end
 
+desc "Word count calculate"
+task :word_count => :environment do
+  Browse.word_calc
+  
+
+end
+
 desc "import records in catalog_pending"
 task :catalog_pending_import => :environment do
   cpi = CatalogPendingImporter.new

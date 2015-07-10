@@ -183,50 +183,6 @@ module ApplicationHelper
     text
   end
 
-#methods to help the browse list
-  def render_author_list
-    auth_arr = Author.all(:order => 'name')
-    results = ""
-    @top_auths = []
-    auth_arr.each do |auth|
-      auth_name = auth.name
-      solr_id = auth.unique_id
-
-      works_arr = Author.get_works(auth.id)
-      words = 0
-      unless works_arr.empty?
-        #need to find the actual work, the array is just ids for works
-        works_arr.each do |w| 
-          w_row = Work.find(w)
-          words = (words + w_row.word_count.to_i) if w_row.word_count
-        end
-        @top_auths << [auth_name, words]
-      end
-      unless works_arr.empty?      
-        works_link = link_to "Search for Works", "/?f[auth_facet][]=#{auth_name}"
-      end
-      auth_link = link_to "View Authority Record", catalog_path(:id => solr_id)
-      auth_record = content_tag(:li, auth_link)
-      spacer = content_tag(:li, " ")
-      works_search = content_tag(:li, works_link)
-      list = content_tag(:ul, auth_record.html_safe + spacer + works_search.html_safe, :class => 'inline')
-      unless words == 0
-        auth_entry = content_tag(:dt, auth_name) + content_tag(:dd, "Words Represented: #{words.to_s}") + content_tag(:dd, list)
-      else
-        auth_entry = content_tag(:dt, auth_name) + content_tag(:dd, list)
-      end
-      results << auth_entry
-
-    end
-    content_tag(:dl, results.html_safe)
-  end
-
-  def author_word_counts
-    @top_auths.sort!{|a1, a2| a2[1] <=> a1[1]} 
-    top_ten = @top_auths.first(10)    
-    return top_ten
-  end
-
   def get_pages(exp)
     pgs = exp.pages
     pg = nil

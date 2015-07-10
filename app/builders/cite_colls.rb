@@ -37,8 +37,8 @@ module CiteColls
   def get_cite_rows(type, key, value)
     #returns array of xml response
     if value == "all"
-      cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}.json"
-      #cite_url = "http://localhost:3000/cite-collections/api/#{type}.json"
+      #cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}.json"
+      cite_url = "http://localhost:10524/cite-collections/api/#{type}.json"
       response = @agent.get(cite_url).body
       j_arr = JSON.parse(response)
       return j_arr
@@ -62,11 +62,11 @@ module CiteColls
 
   def query_cite_tables(type, key, value)
     if type == 'authors'
-      #cite_url = "http://localhost:3000/cite-collections/api/#{type}/search?#{key}=#{value}&alt_ids=#{value}&format=json"
-      cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}/search?#{key}=#{value}&alt_ids=#{value}&format=json"
+      cite_url = "http://localhost:10524/cite-collections/api/#{type}/search?#{key}=#{value}&alt_ids=#{value}&format=json"
+      #cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}/search?#{key}=#{value}&alt_ids=#{value}&format=json"
     else
-      cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
-      #cite_url = "http://localhost:3000/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
+      #cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
+      cite_url = "http://localhost:10524/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
     end
     response = @agent.get(cite_url)
     unless response.code == "200"

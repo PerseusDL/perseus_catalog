@@ -1,0 +1,23 @@
+<div>
+  <dl>
+    <% @auth_list.each do |auth| %>
+      <% img_nm = Browse.auth_type(auth) %>
+      <dt>
+        <% if img_nm %>
+          <%= image_tag(img_nm) %>&nbsp;
+        <% end %>
+        <%= auth.name %>    
+      </dt>
+      <% words = Browse.words(auth.id) %>
+      <% unless words == 0 %>
+      <dd><%= "Words Represented: #{words.to_s}" %></dd>
+      <% end %>
+      <dd>
+        <ul class="inline">        
+          <li><%= link_to "View Authority Record", catalog_path(:id => auth.unique_id) %></li>
+          <li><%= link_to "Search for Works", "/?f[auth_facet][]=#{auth.name}" %></li>      
+        </ul>
+      </dd>      
+    <% end %>
+  </dl>
+</div>

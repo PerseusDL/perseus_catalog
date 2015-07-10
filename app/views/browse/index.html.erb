@@ -1,7 +1,18 @@
-<% #cache do %>
+
   <div id="browse-list" class="span6">
-    <h2> Authors </h2> 
-      <%= render_author_list %>
+    <h2> Authors </h2>
+        <div id="alph_p">
+          <%= alphabetical_paginate @alphaParams %>
+        </div> 
+        <br/> 
+        <div id="alist">
+          <%= render 'browse' %>
+        </div>
+        <div id="pag">
+          <%= paginate @auth_list, :remote => true %>
+        </div>
+
+      
   </div>
 
   <div id="calcs" class="span6">
@@ -9,13 +20,13 @@
       <div class="panel-body">
         <h3>Top Authors by Word Count</h3>
         <dl class="dl  dl-invert">
-          <% top_auths = author_word_counts %>
+          <% top_auths = Browse.author_word_counts %>
           <% top_auths.each do |auth| %>
             <dt><%= auth[0] %></dt>
             <dd><%= auth[1] %></dd>
+            <dd><%= link_to "Get Works", "/?f[auth_facet][]=#{auth[0]}" %></dd>
           <% end %>
         </dl>
       </div>
     </div>
   </div>
-<% #end %>

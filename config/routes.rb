@@ -10,6 +10,7 @@ BlacklightTest::Application.routes.draw do
   match "modsForm", :to => 'mods_generator#index'
   #resources :solr_document, :constraints => {:id => /urn:cts:\w+:\w+\.*\w*\.*\w*-*\w*/}
 
+  get "browse" => "browse#index"
 
   
 =begin

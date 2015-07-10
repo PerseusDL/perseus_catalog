@@ -15,7 +15,7 @@ class XmlImporter
 
   def import(rec_file, file_type)
     begin
-      auth_and_tg
+      #auth_and_tg
       if File.directory?(rec_file)
         multi_import(rec_file, file_type)
       else
