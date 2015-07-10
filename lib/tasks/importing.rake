@@ -69,7 +69,7 @@ end
 
 desc "Word count calculate"
 task :word_count => :environment do
-  Browse.word_calc
+  Browse.word_counter
   
 
 end
