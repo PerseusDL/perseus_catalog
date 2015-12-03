@@ -13,13 +13,19 @@ rake catalog_pending_import type="latest"
 
 
 # 2. BUILD ATOM FEEDS
-cd ~/perseus_catalog
-bundle exec rake parse_records file_type='atom' rec_file='/home/ubuntu/FRBR.feeds.20150608'
+# IF FIRST LOAD OF DATA THEN
+rake build_atom_feed type="all"
+# OTHERWISE IF UPDATE
+rake build_atom_feed type="latest"
 
-# 3. TEST
+# 3. IMPORT ATOM FEEDS
+cd ~/perseus_catalog
+bundle exec rake parse_records file_type='atom' rec_file='/home/ubuntu/FRBR.feeds.YYYYMMDD'
+
+# 4. IMPORT DATA TO SOLR
 curl http://localhost:8080/solr-4.5.1/db/dataimport?command=full-import&clean=false
 
-# 4. DEPLOY
+# 5. DEPLOY TO PRODUCTION
 # dump mysql
 # reload on catalog0.perseus.tufts.edu
 # rerun solr import on catalog0.perseus.tufts.edu
