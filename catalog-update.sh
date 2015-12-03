@@ -16,10 +16,7 @@ git pull
 # 2. IMPORT/UPDATE CITE_COLLECTION DATA FROM GIT REPOS
 cd ~/cite_collections_rails
 
-# IF FIRST LOAD OF DATA THEN
-rake catalog_pending_import type="all" 
-# OTHERWISE IF UPDATE
-rake catalog_pending_import type="latest" 
+rake catalog_pending_import
 
 
 # 3. BUILD ATOM FEEDS
