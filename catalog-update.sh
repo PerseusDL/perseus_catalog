@@ -20,9 +20,9 @@ rake catalog_pending_import
 
 
 # 3. BUILD ATOM FEEDS
-# IF FIRST LOAD OF DATA THEN
+# IF FULL LOAD OF DATA THEN
 rake build_atom_feed type="all"
-# OTHERWISE IF UPDATE
+# THIS ONLY LOADS CHANGES FROM THE LAST WEEK
 rake build_atom_feed type="latest"
 
 # 4. IMPORT ATOM FEEDS
