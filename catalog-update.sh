@@ -3,6 +3,12 @@
 
 # Prerequisite: Setup via catalog-update.setup.sh
 
+# 0. REFRESH LOCAL COPY OF THE CITE COLLECTIONS MYSQL DB!!!!
+# TODO -- if we aren't running against the live cite collections db
+# which isn't likely since it's behind a Tufts Firewall, then
+# we need to dump the live db and lock it down for updates
+# before doing the import.  this is a serious flaw in the process...
+
 # 1. UPDATE LOCAL GIT REPOS
 
 cd ~/catalog_pending
