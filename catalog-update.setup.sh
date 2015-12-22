@@ -51,6 +51,10 @@ mkdir ~/catalog_errors
 
 # 5. update procedure
 
+# TODO NEED TO FREEZE EDITS TO LIVE CITE_COLLECTIONS
+# TABLES AND THEN LOAD INTO THE BUILD ENVIRONMENT BEFORE STARTING
+
+
 cd cite_collections_rails
 rake catalog_pending_import type="all" [ first load ]
 rake catalog_pending_import type="latest" [ subsequent ]
