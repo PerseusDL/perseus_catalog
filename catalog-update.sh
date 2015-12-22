@@ -33,7 +33,14 @@ rake build_atom_feed type="latest"
 
 # 4. IMPORT ATOM FEEDS
 cd ~/perseus_catalog
+# TODO - I believe we need to drop the data base and start from scratch
+# otherwise things like redirected versions will remain in the db
 bundle exec rake parse_records file_type='atom' rec_file='/home/ubuntu/FRBR.feeds.YYYYMMDD'
+
+
+# 5. Load word counts??
+
+bundle exec rake word_count 
 
 # 5. IMPORT DATA TO SOLR
 curl http://localhost:8080/solr-4.5.1/db/dataimport?command=full-import&clean=false
