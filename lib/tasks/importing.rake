@@ -53,6 +53,8 @@ end
 
 desc "Word count import"
 task :import_word_count => :environment do
+  # @balmas 20151222 - this tasks seems now to be obsolete
+  # the word_count task should be used instead?
   #use a csv of word counts to populate the word_counts table
   file = ENV["file"]
   file_type = ENV["type"]
