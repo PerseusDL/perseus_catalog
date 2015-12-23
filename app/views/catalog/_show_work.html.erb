@@ -20,7 +20,7 @@
           <% end %>
             <p><%= text %> <%= link_to(ed.cts_label, ed_url.url, :target => "_blank" ) %></p>
           
-          <p><%= "1 of #{eds.length.to_s} editions. To select a specific edition, see below."%></p>
+          <p><%= "1 of #{group_multi(eds).keys.length.to_s} editions. To select a specific edition, see below."%></p>
         <% end %>
       <% end %>
       
@@ -36,7 +36,7 @@
           <% end %>   
           <p><%= text %> <%=link_to(trs.cts_label, trans_url.url, :target => "_blank") %></p>
           
-          <p><%= "1 of #{trans.length.to_s} translations. To select a specific translation, see below."%></p>
+          <p><%= "1 of #{group_multi(trans).keys.length.to_s} translations. To select a specific translation, see below."%></p>
         <% end %>
       <% end %>
     </div>
