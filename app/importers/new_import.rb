@@ -22,6 +22,12 @@ class NewParser
   require 'xml_importer.rb'
   include CiteColls
 
+  MODS_NS = {"mods" => "http://www.loc.gov/mods/v3"}
+  TI_NS = 'http://chs.harvard.edu/xmlns/cts/ti'
+  ATOM_NS = 'http://www.w3.org/2005/Atom'
+  MODS_NS = 'http://www.loc.gov/mods/v3'
+  MADS_NS = 'http://www.loc.gov/mads/v2'
+
   def textgroup_import
     set_agent
     cite_tg_arr = get_cite_rows('textgroups', 'textgroup', 'all')
@@ -38,9 +44,8 @@ class NewParser
       begin
         if auth['urn_status'] == "published"
           mads = get_xml("#{BASE_DIR}/catalog_data/mads/#{auth['mads_file']}")
-          ns = mads.collect_namespaces
           tg_row = Textgroup.find_by_urn_end(auth['canonical_id'])      
-          author_row(auth, tg_row, mads, ns)
+          author_row(auth, tg_row, mads)
         end
       rescue
         puts "error with #{auth}\n#{$!}"
@@ -62,8 +67,8 @@ class NewParser
       set_agent
       @error_report = File.open("#{BASE_DIR}/catalog_errors/error_log#{Date.today}.txt", 'w')
       #grab namespaces not defined on the root of the xml doc
-      ns = doc.collect_namespaces
-      atom_id = doc.xpath("atom:feed/atom:id", ns).inner_text
+      atom_id = doc.xpath("atom:feed/atom:id", {"atom" => ATOM_NS}).inner_text
+      puts "parsing #{atom_id}"
       #creates instance variables for cts ids
       get_cts_ids(atom_id)
       cite_work_arr = get_cite_rows('works', 'work', @work_cts)
@@ -83,7 +88,7 @@ class NewParser
           auth = []
           auth = Author.find_all_potential_authors(@auth_cts)
           work = nil
-          work = work_row(w, tg, doc, ns)
+          work = work_row(w, tg, doc)
           #link it all in tg_auth_work table
           
           if auth.empty?
@@ -131,7 +136,7 @@ class NewParser
             taw.work_id = work.id
             taw.save
           end
-          version_rows(tg, auth, work, doc, ns)
+          version_rows(tg, auth, work, doc)
         end
       end
     rescue Exception => e
@@ -177,7 +182,7 @@ class NewParser
   end
   
 
-  def author_row(a, cite_tg_row, doc, ns)
+  def author_row(a, cite_tg_row, doc)
     #since there are textgroups without mads and the cite authors are a record of our mads
     #we will lack cite authors where we have authors in the catalog, therefore
     #cite_auth_arr might be empty, but want to still update/add these authors so as to provide the ability to search for them
@@ -221,7 +226,7 @@ class NewParser
         auth.related_works = a['related_works']
     
         #Don't actually need this bit, but is good at catching author id errors...
-        auth_ids = doc.xpath(".//mads:identifier[@type='citeurn']", ns)
+        auth_ids = doc.xpath(".//mads:identifier[@type='citeurn']", {"mads" => MADS_NS})
         mads_xml = nil
         auth_ids.each do |node| 
           if node.inner_text == a['urn']
@@ -229,28 +234,28 @@ class NewParser
           end
         end
 
-        alt_parts = doc.xpath("//mads:authority//mads:namePart[@type='termsOfAddress']", ns)
-        dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']", ns)
+        alt_parts = doc.xpath("//mads:authority//mads:namePart[@type='termsOfAddress']", {"mads" => MADS_NS})
+        dates = doc.xpath(".//mads:authority//mads:namePart[@type='date']",{"mads" => MADS_NS})
         auth.alt_parts = alt_parts.inner_text if alt_parts
         auth.dates = dates.inner_text if dates
       
-        abbrs = turn_to_list(doc, ".//mads:variant[@type='abbreviation']", ";", ns, ", ")  
-        other_names = turn_to_list(doc, ".//mads:related", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
+        abbrs = turn_to_list(doc, ".//mads:variant[@type='abbreviation']", ";", {"mads" => MADS_NS}, ", ")  
+        other_names = turn_to_list(doc, ".//mads:related", ";", {"mads" => MADS_NS}, ", ", "mads:name/mads:namePart[not(@type='date')]")
         if other_names.empty?  
-          other_names = turn_to_list(doc, ".//mads:variant", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
+          other_names = turn_to_list(doc, ".//mads:variant", ";", {"mads" => MADS_NS}, ", ", "mads:name/mads:namePart[not(@type='date')]")
         else
-          other_names << ";" + turn_to_list(doc, ".//mads:variant", ";", ns, ", ", "mads:name/mads:namePart[not(@type='date')]")
+          other_names << ";" + turn_to_list(doc, ".//mads:variant", ";", {"mads" => MADS_NS}, ", ", "mads:name/mads:namePart[not(@type='date')]")
         end
         auth.alt_names = other_names
         auth.abbr = abbrs
         
-        fields = turn_to_list(doc, ".//mads:fieldOfActivity", ";", ns)
+        fields = turn_to_list(doc, ".//mads:fieldOfActivity", ";", {"mads" => MADS_NS})
         auth.field_of_activity = fields unless fields.empty?
 
-        notes = turn_to_list(doc, ".//mads:note", ";", ns)
+        notes = turn_to_list(doc, ".//mads:note", ";", {"mads" => MADS_NS}) 
         auth.notes = notes unless notes.empty?
         
-        auth_urls(auth, doc, ns)
+        auth_urls(auth, doc)
         
         auth.save
         final_auth_arr << auth
@@ -311,8 +316,8 @@ class NewParser
   end
   
   
-  def auth_urls(auth, doc, ns)
-    url_nodes = doc.xpath(".//mads:url", ns)
+  def auth_urls(auth, doc)
+    url_nodes = doc.xpath(".//mads:url", {"mads" => MADS_NS})
     if url_nodes
       url_nodes.each do |node|
         text = node.inner_text
@@ -324,7 +329,7 @@ class NewParser
   end
 
 
-  def work_row(w, tg, doc, ns)
+  def work_row(w, tg, doc)
     wrk = Work.get_info(@work_cts)
     unless wrk
       wrk = Work.new
@@ -333,34 +338,39 @@ class NewParser
     wrk.textgroup_id = tg.id unless wrk.textgroup_id == tg.id
     wrk.title = w['title_eng'] unless wrk.title == w['title_eng']
     wrk.language = w['orig_lang'] unless wrk.language == w['orig_lang']
-    count_node = doc.xpath(".//mods:extent[@unit='words']", ns)
+    count_node = doc.xpath(".//mods:extent[@unit='words']", {"mods" => MODS_NS})
     wrk.word_count = count_node.inner_text.strip if count_node
     wrk.save
     return wrk
   end
   
 
-  def version_rows(tg, auth, work, doc, ns)
+  def version_rows(tg, auth, work, doc)
     #reminder, auth is an array while the others are ActiveRecord objects
     #versions is expressions in the blacklight db
 
     #going by what is in the atom feed since it is easier to look for versions
     #in the cite table than select the correct mods from the xml
 
-    mods_nodes = doc.xpath(".//mods:mods", ns)
+    mods_nodes = doc.xpath(".//mods:mods", {"mods" => MODS_NS})
     unless mods_nodes.empty?
+       
       mods_nodes.each do |mods|
-        mods_cts_node = mods.xpath("mods:identifier[@type='ctsurn']", ns)
+        error_handler("Checking #{mods.attr('ID')}")
+        mods_cts_node = mods.xpath("mods:identifier[@type='ctsurn']", {"mods" => MODS_NS}) 
         if mods_cts_node
           mods_cts = mods_cts_node.inner_text
+          message = "CTS found #{mods_cts}"
+          error_handler(message)
         else
           atom_ent = mods.parent.parent
-          at_id = atom_ent.xpath(".//atom:id", ns)
+          at_id = atom_ent.xpath(".//atom:id", {"atom" => ATOM_NS})
           message = "No CTS urn in record #{at_id}, please check"
           error_handler(message)
           next
         end
-        cite_vers = get_cite_rows("versions", "version", mods_cts)
+        cite_vers = get_cite_rows("versions", "version", "^#{mods_cts}$")
+        puts "cite_vers #{cite_vers.length} for #{mods_cts}"
         unless cite_vers.empty?
           #should only be one of these
           cite_vers.each do |vers|
@@ -404,7 +414,7 @@ class NewParser
               exp.title = work.title
              
               #find alt and abbr titles
-              alt_title_nodes = mods.xpath("./mods:titleInfo[not(@type='uniform')]", ns)
+              alt_title_nodes = mods.xpath("./mods:titleInfo[not(@type='uniform')]", {"mods" => MODS_NS})
               unless alt_title_nodes.empty?
                 alt_titles = []
                 alt_title_nodes.each do |alt_node|
@@ -444,10 +454,10 @@ class NewParser
               end
 
               #find editors and translators
-              mods.xpath(".//mods:name", ns).each do |names|
-                name_node = names.xpath(".//mods:namePart[not(@type='date')]", ns)
+              mods.xpath(".//mods:name", {"mods" => MODS_NS}).each do |names|
+                name_node = names.xpath(".//mods:namePart[not(@type='date')]", {"mods" => MODS_NS})
                 raw_name = name_node.inner_text if name_node
-                role_node = names.xpath(".//mods:roleTerm", ns)
+                role_node = names.xpath(".//mods:roleTerm", {"mods" => MODS_NS})
                 role_term = role_node.inner_text if role_node
                 if role_term =~ /editor|compiler|translator/i
                   if raw_name && raw_name.empty? == false
@@ -468,7 +478,7 @@ class NewParser
                       person.mads_id = cite_tg_urn if cite_tg_urn
                       person.alt_id = cite_auth_urn if cite_auth_urn
                       person.name = raw_name
-                      dates_node = names.xpath(".//mods:namePart[@type='date']", ns)
+                      dates_node = names.xpath(".//mods:namePart[@type='date']", {"mods" => MODS_NS})
                       person.dates = dates_node.inner_text if dates_node
                       person.save
                     end
@@ -487,50 +497,50 @@ class NewParser
               #translation or edition?
               exp.var_type = vers['ver_type']
               #get page ranges and word counts
-              mods.xpath(".//mods:part/mods:extent", ns).each do |ex_tag|
+              mods.xpath(".//mods:part/mods:extent", {"mods" => MODS_NS}).each do |ex_tag|
                 attrib = ex_tag.attribute('unit')
                 unit_attr = attrib.value if attrib
                 if unit_attr == "pages"
-                  chil = ex_tag.xpath("mods:list", ns)
+                  chil = ex_tag.xpath("mods:list", {"mods" => MODS_NS})
                   unless chil.empty?
                     exp.pages = chil.inner_text
                   else
-                    pg_s = ex_tag.xpath(".//mods:start", ns)
-                    pg_e = ex_tag.xpath(".//mods:end", ns)
+                    pg_s = ex_tag.xpath(".//mods:start", {"mods" => MODS_NS})
+                    pg_e = ex_tag.xpath(".//mods:end", {"mods" => MODS_NS})
                     pages = pg_s.inner_text if pg_s
                     pages = pages + "-#{pg_e.inner_text}" if pg_e
                     exp.pages = pages
                   end
                 elsif unit_attr == "words"
-                  exp.word_count = ex_tag.xpath(".//mods:total", ns).inner_text
+                  exp.word_count = ex_tag.xpath(".//mods:total", {"mods" => MODS_NS}).inner_text
                 end
               end             
               #get all host work information
               #some won't have more than one tag, but turn_to_list can work with single cases
               host_urls = []
-              hosts = mods.xpath(".//mods:relatedItem[@type='host']", ns)
+              hosts = mods.xpath(".//mods:relatedItem[@type='host']", {"mods" => MODS_NS})
               if hosts.empty?
                 hosts = mods
                 #not collecting urls, since there is no host section
-                mods_host_process(exp, hosts, ns)
+                mods_host_process(exp, hosts)
               else
                 hosts.each do |host|
-                  host_urls = mods_host_process(exp, host, ns)
+                  host_urls = mods_host_process(exp, host)
                   if exp.table_of_cont == nil || exp.table_of_cont == ""
-                    tb_cont = mods.xpath(".//mods:tableOfContents", ns)
+                    tb_cont = mods.xpath(".//mods:tableOfContents", {"mods" => MODS_NS})
                     exp.table_of_cont = tb_cont.inner_text unless tb_cont.empty?
                   end
                 end
               end
               
               #series_id 
-              ser = Series.series_row(mods, ns)
+              ser = Series.series_row(mods, {"mods" => MODS_NS})
               exp.series_id = ser.id if ser
               
               exp.save
 
               #expression urls
-              ex_u = url_get(mods, "./mods:location/mods:url", ns)
+              ex_u = url_get(mods, "./mods:location/mods:url", {"mods" => MODS_NS})
               ExpressionUrl.expr_urls(exp.id, ex_u)
               ExpressionUrl.expr_urls(exp.id, host_urls, true)
 
@@ -547,28 +557,28 @@ class NewParser
     end
   end
 
-  def mods_host_process(exp, host, ns)
-    exp.host_title = turn_to_list(host, "./mods:titleInfo[not(@type='uniform')]", ";", ns, ", ")
-    host.xpath(".//mods:originInfo", ns).each do |orig|
-      exp.place_publ = turn_to_list(orig, ".//mods:place/mods:placeTerm[not(@type='code')]", ";", ns) 
-      exp.place_code = turn_to_list(orig, ".//mods:place/mods:placeTerm[@type='code']", ";", ns) 
-      exp.publisher = turn_to_list(orig, ".//mods:publisher", ";", ns)
-      exp.date_publ = turn_to_list(orig, ".//mods:dateIssued", ";", ns)
-      exp.date_publ = turn_to_list(orig, ".//mods:dateCreated", ";", ns) if (exp.date_publ == nil || exp.date_publ == "")
-      exp.date_publ = turn_to_list(orig, ".//mods:copyrightDate", ";", ns) if (exp.date_publ == nil || exp.date_publ == "")
+  def mods_host_process(exp, host)
+    exp.host_title = turn_to_list(host, "./mods:titleInfo[not(@type='uniform')]", ";", {"mods" => MODS_NS}, ", ")
+    host.xpath(".//mods:originInfo", {"mods" => MODS_NS}).each do |orig|
+      exp.place_publ = turn_to_list(orig, ".//mods:place/mods:placeTerm[not(@type='code')]", ";", {"mods" => MODS_NS}) 
+      exp.place_code = turn_to_list(orig, ".//mods:place/mods:placeTerm[@type='code']", ";",{"mods" => MODS_NS}) 
+      exp.publisher = turn_to_list(orig, ".//mods:publisher", ";", {"mods" => MODS_NS})
+      exp.date_publ = turn_to_list(orig, ".//mods:dateIssued", ";", {"mods" => MODS_NS})
+      exp.date_publ = turn_to_list(orig, ".//mods:dateCreated", ";", {"mods" => MODS_NS}) if (exp.date_publ == nil || exp.date_publ == "")
+      exp.date_publ = turn_to_list(orig, ".//mods:copyrightDate", ";", {"mods" => MODS_NS}) if (exp.date_publ == nil || exp.date_publ == "")
       date_int = date_process(exp.date_publ)
       exp.date_int = (date_int == 0 ? nil : date_int)
-      exp.date_mod = turn_to_list(orig, ".//mods:dateModified", ";", ns)
-      exp.edition = turn_to_list(orig, ".//mods:edition", ";", ns)
+      exp.date_mod = turn_to_list(orig, ".//mods:dateModified", ";", {"mods" => MODS_NS})
+      exp.edition = turn_to_list(orig, ".//mods:edition", ";", {"mods" => MODS_NS})
     end
-    exp.phys_descr = turn_to_list(host, ".//mods:physicalDescription", ";", ns, ", ")
-    exp.notes = turn_to_list(host, ".//mods:note", ";", ns) 
-    subj = turn_to_list(host, ".//mods:subject", ";", ns, "--")
+    exp.phys_descr = turn_to_list(host, ".//mods:physicalDescription", ";", {"mods" => MODS_NS}, ", ")
+    exp.notes = turn_to_list(host, ".//mods:note", ";", {"mods" => MODS_NS}) 
+    subj = turn_to_list(host, ".//mods:subject", ";", {"mods" => MODS_NS}, "--")
     exp.subjects = sub_geo_codes(subj)                
-    tb_cont = host.xpath(".//mods:tableOfContents", ns)
+    tb_cont = host.xpath(".//mods:tableOfContents", {"mods" => MODS_NS})
     exp.table_of_cont = tb_cont.inner_text unless tb_cont.empty?
-    host_urls = url_get(host, ".//mods:url", ns)
-    exp.oclc_id = turn_to_list(host, ".//mods:identifier[@type='oclc']", ";", ns)
+    host_urls = url_get(host, ".//mods:url", {"mods" => MODS_NS})
+    exp.oclc_id = turn_to_list(host, ".//mods:identifier[@type='oclc']", ";", {"mods" => MODS_NS})
     return host_urls
   end
 

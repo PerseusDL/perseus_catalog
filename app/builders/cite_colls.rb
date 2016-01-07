@@ -33,27 +33,37 @@ module CiteColls
 
   end
 
+  def do_agent_get(url)
+    response = @agent.get(url)
+    tries = 0
+    while (response.code != "200" && tries < 3) do
+      tries = tries + 1
+      puts "Got response #{response.code}, retrying"
+      sleep 2
+      response = @agent.get(url)
+    end
+    if response.code != "200"
+       raise "Failed to retrieve #{url}. Response #{response.inspect}"
+    end
+    return response
+  end
 
   def get_cite_rows(type, key, value)
     #returns array of xml response
     if value == "all"
       #cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}.json"
       cite_url = "http://localhost:10524/cite-collections/api/#{type}.json"
-      response = @agent.get(cite_url).body
+      response = do_agent_get(cite_url).body
       j_arr = JSON.parse(response)
       return j_arr
     else
       j_arr = query_cite_tables(type, key, value)
-      #check for redirects
+      # check for redirects
+      # we exclude these from the blacklight interface
       j_arr.each_with_index do |row, i|
         redir = row['redirect_to']
         unless redir == nil || redir.empty?
-          if j_arr.any? {|r| r['urn'] == redir}
-            j_arr.delete_at(i)
-          else
-            new_j_arr = query_cite_tables(type, 'urn', redir)
-            j_arr.concat(new_j_arr)
-          end
+          j_arr.delete_at(i)
         end
       end
       return j_arr
@@ -68,12 +78,7 @@ module CiteColls
       #cite_url = "http://catalog.perseus.org/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
       cite_url = "http://localhost:10524/cite-collections/api/#{type}/search?#{key}=#{value}&format=json"
     end
-    response = @agent.get(cite_url)
-    unless response.code == "200"
-      puts "Got response #{response.code}, retrying"
-      sleep 2
-      response = @agent.get(cite_url)
-    end
+    response = do_agent_get(cite_url)
     body = response.body
     j_arr = JSON.parse(body)
     return j_arr
