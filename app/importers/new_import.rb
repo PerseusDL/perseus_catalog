@@ -23,7 +23,7 @@ class NewParser
   include CiteColls
 
   MODS_NS = {"mods" => "http://www.loc.gov/mods/v3"}
-  TI_NS = 'http://chs.harvard.edu/xmlns/cts/ti'
+  TI_NS = 'http://chs.harvard.edu/xmlns/cts'
   ATOM_NS = 'http://www.w3.org/2005/Atom'
   MODS_NS = 'http://www.loc.gov/mods/v3'
   MADS_NS = 'http://www.loc.gov/mads/v2'
