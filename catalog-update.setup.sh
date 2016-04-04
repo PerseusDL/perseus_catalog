@@ -13,6 +13,7 @@ source /home/ubuntu/.rvm/scripts/rvm
 rvm install ruby-2.0
 apt-get install tomcat6
 apt-get install mysql-server
+apt-get install libmysqlclient-dev 
 gem install rails
 gem install bundler
 gem install extelib
