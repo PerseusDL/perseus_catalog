@@ -32,6 +32,9 @@ rake build_atom_feed type="all"
 rake build_atom_feed type="latest"
 
 # 4. IMPORT ATOM FEEDS
+# start the cite collections server
+cd ~/cite_collections_rails
+nohup bundle exec rails server &
 cd ~/perseus_catalog
 # we need to drop the data base and start from scratch
 # otherwise things like redirected versions will remain in the db
