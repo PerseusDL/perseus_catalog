@@ -60,11 +60,9 @@
    </Directory>
 
 
-### load mysql data 
-TODO
+### load data 
 
-### load solr data
-TODO
+See https://github.com/PerseusDL/perseus_catalog/blob/master/catalog-update.setup.sh and https://github.com/PerseusDL/perseus_catalog/blob/master/catalog-update.sh
 
 ### configure catalog app
 * cp /var/www/perseus_catalog/config/database.yml.sample /var/www/perseus_catalog/config/database.yml
